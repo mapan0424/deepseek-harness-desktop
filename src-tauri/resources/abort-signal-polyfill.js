@@ -1,10 +1,27 @@
-// WebKit compatibility for macOS 12.x.
-// dsh web uses AbortSignal.timeout() while creating a workspace, but the
-// WKWebView shipped with Monterey does not provide that static method.
-(function installAbortSignalPolyfills(global) {
+// WebKit compatibility for macOS 12.7.6.
+// Only fill APIs missing from Monterey's WKWebView; never replace native APIs.
+(function installWebKitPolyfills(global) {
   "use strict";
 
-  if (!global || typeof global.AbortController !== "function" || typeof global.AbortSignal !== "function") {
+  if (!global) return;
+
+  if (typeof global.Promise === "function" && typeof global.Promise.withResolvers !== "function") {
+    Object.defineProperty(global.Promise, "withResolvers", {
+      configurable: true,
+      writable: true,
+      value: function withResolvers() {
+        var resolve;
+        var reject;
+        var promise = new global.Promise(function executor(resolvePromise, rejectPromise) {
+          resolve = resolvePromise;
+          reject = rejectPromise;
+        });
+        return { promise: promise, resolve: resolve, reject: reject };
+      },
+    });
+  }
+
+  if (typeof global.AbortController !== "function" || typeof global.AbortSignal !== "function") {
     return;
   }
 

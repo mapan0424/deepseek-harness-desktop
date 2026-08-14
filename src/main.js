@@ -5,8 +5,6 @@ const bootScreen = document.querySelector("#boot-screen");
 const bootStatus = document.querySelector("#boot-status");
 const progressBar = document.querySelector("#boot-progress-bar");
 const retryButton = document.querySelector("#boot-retry");
-const shell = document.querySelector("#native-shell");
-const frame = document.querySelector("#dsh-frame");
 
 function setStatus(message, progress) {
   bootStatus.textContent = message;
@@ -25,7 +23,7 @@ async function start() {
       const status = await invoke("dsh_status", { port: activePort });
       if (status === "ready") {
         setStatus("正在打开工作台…", 92);
-        frame.src = url;
+        await invoke("open_main_window", { port: activePort });
         return;
       }
       setStatus(attempt > 10 ? "正在准备本地运行时…" : "正在启动本地 Agent…", Math.min(86, 12 + attempt / 3));
@@ -37,12 +35,6 @@ async function start() {
   }
 }
 
-frame.addEventListener("load", () => {
-  shell.classList.remove("hidden");
-  bootScreen.classList.add("hidden");
-});
-
 retryButton.addEventListener("click", start);
-window.addEventListener("beforeunload", () => invoke("stop_dsh").catch(() => {}));
 
 start();

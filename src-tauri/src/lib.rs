@@ -7,7 +7,8 @@ use std::sync::Mutex;
 use std::time::Duration;
 
 use serde_json::{json, Value};
-use tauri::Manager;
+use tauri::webview::PageLoadEvent;
+use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
 
 struct DshProcess {
     child: Mutex<Option<Child>>,
@@ -26,7 +27,7 @@ fn npx_path() -> String {
     .iter()
     .find(|path| std::path::Path::new(path).exists())
     .map(|path| (*path).to_string())
-        .unwrap_or_else(|| "npx".to_string())
+    .unwrap_or_else(|| "npx".to_string())
 }
 
 fn node_search_path() -> String {
@@ -121,10 +122,12 @@ fn capture_output<R: Read + Send + 'static>(reader: R, log: Arc<Mutex<String>>) 
 
 #[tauri::command]
 fn start_dsh(
+    window: tauri::WebviewWindow,
     app: tauri::AppHandle,
     state: tauri::State<'_, DshProcess>,
     port: u16,
 ) -> Result<String, String> {
+    require_splash(&window)?;
     if !(1024..=65535).contains(&port) {
         return Err("端口必须在 1024 到 65535 之间".to_string());
     }
@@ -148,10 +151,12 @@ fn start_dsh(
         log.clear();
     }
 
-    let (program, args, using_bundled_runtime) = if let Some((node, entry)) = bundled_runtime(&app) {
+    let (program, args, using_bundled_runtime) = if let Some((node, entry)) = bundled_runtime(&app)
+    {
         (
             node,
             vec![
+                "--expose-internals".to_string(),
                 entry.to_string_lossy().into_owned(),
                 "web".to_string(),
                 "--port".to_string(),
@@ -220,7 +225,12 @@ fn start_dsh(
 }
 
 #[tauri::command]
-fn dsh_status(state: tauri::State<'_, DshProcess>, port: u16) -> Result<String, String> {
+fn dsh_status(
+    window: tauri::WebviewWindow,
+    state: tauri::State<'_, DshProcess>,
+    port: u16,
+) -> Result<String, String> {
+    require_splash(&window)?;
     let mut process = state
         .child
         .lock()
@@ -257,7 +267,72 @@ fn dsh_status(state: tauri::State<'_, DshProcess>, port: u16) -> Result<String, 
 }
 
 #[tauri::command]
-fn dsh_api_request(port: u16, method: String, payload: Value) -> Result<Value, String> {
+fn open_main_window(
+    window: tauri::WebviewWindow,
+    app: tauri::AppHandle,
+    state: tauri::State<'_, DshProcess>,
+    port: u16,
+) -> Result<(), String> {
+    require_splash(&window)?;
+    let active_port = state
+        .port
+        .lock()
+        .map_err(|_| "无法取得 dsh 端口锁".to_string())?
+        .ok_or_else(|| "dsh 尚未启动".to_string())?;
+    if port != active_port || !port_is_ready(active_port) {
+        return Err("dsh 尚未准备完成".to_string());
+    }
+
+    if let Some(window) = app.get_webview_window("main") {
+        window
+            .show()
+            .map_err(|error| format!("显示主窗口失败：{error}"))?;
+        window
+            .set_focus()
+            .map_err(|error| format!("聚焦主窗口失败：{error}"))?;
+        return Ok(());
+    }
+
+    let url = format!("http://127.0.0.1:{active_port}")
+        .parse()
+        .map_err(|error| format!("生成本地工作台地址失败：{error}"))?;
+    WebviewWindowBuilder::new(&app, "main", WebviewUrl::External(url))
+        .title("DeepSeek Harness — 非官方客户端")
+        .inner_size(1240.0, 820.0)
+        .min_inner_size(960.0, 640.0)
+        .resizable(true)
+        .visible(false)
+        .on_page_load(|window, payload| {
+            if payload.event() != PageLoadEvent::Finished {
+                return;
+            }
+            let _ = window.show();
+            let _ = window.set_focus();
+            if let Some(splash) = window.app_handle().get_webview_window("splash") {
+                let _ = splash.close();
+            }
+        })
+        .build()
+        .map_err(|error| format!("打开工作台失败：{error}"))?;
+    Ok(())
+}
+
+fn require_splash(window: &tauri::WebviewWindow) -> Result<(), String> {
+    if window.label() == "splash" {
+        Ok(())
+    } else {
+        Err("该命令仅允许启动窗口调用".to_string())
+    }
+}
+
+#[tauri::command]
+fn dsh_api_request(
+    window: tauri::WebviewWindow,
+    port: u16,
+    method: String,
+    payload: Value,
+) -> Result<Value, String> {
+    require_splash(&window)?;
     const ALLOWED_METHODS: &[&str] = &[
         "host.describe",
         "session.list",
@@ -315,12 +390,9 @@ fn dsh_api_request(port: u16, method: String, payload: Value) -> Result<Value, S
     let response: Value = serde_json::from_slice(&output.stdout)
         .map_err(|error| format!("dsh 返回了无效响应：{error}"))?;
     match response.get("result") {
-        Some(result) if result.get("ok") == Some(&Value::Bool(true)) => Ok(
-            result
-                .get("value")
-                .cloned()
-                .unwrap_or(Value::Null),
-        ),
+        Some(result) if result.get("ok") == Some(&Value::Bool(true)) => {
+            Ok(result.get("value").cloned().unwrap_or(Value::Null))
+        }
         Some(result) => Err(result
             .get("error")
             .and_then(|error| error.get("message"))
@@ -334,7 +406,12 @@ fn dsh_api_request(port: u16, method: String, payload: Value) -> Result<Value, S
 fn body_method(body: &str) -> Result<String, String> {
     serde_json::from_str::<Value>(body)
         .ok()
-        .and_then(|value| value.get("method").and_then(Value::as_str).map(str::to_string))
+        .and_then(|value| {
+            value
+                .get("method")
+                .and_then(Value::as_str)
+                .map(str::to_string)
+        })
         .ok_or_else(|| "无法生成 dsh 请求路径".to_string())
 }
 
@@ -346,14 +423,22 @@ fn chrono_like_timestamp() -> u128 {
 }
 
 #[tauri::command]
-fn stop_dsh(state: tauri::State<'_, DshProcess>) -> Result<(), String> {
+fn stop_dsh(
+    window: tauri::WebviewWindow,
+    state: tauri::State<'_, DshProcess>,
+) -> Result<(), String> {
+    require_splash(&window)?;
     let mut process = state
         .child
         .lock()
         .map_err(|_| "无法取得 dsh 进程锁".to_string())?;
 
     if let Some(mut child) = process.take() {
-        if child.try_wait().map_err(|error| format!("读取 dsh 状态失败：{error}"))?.is_none() {
+        if child
+            .try_wait()
+            .map_err(|error| format!("读取 dsh 状态失败：{error}"))?
+            .is_none()
+        {
             child
                 .kill()
                 .map_err(|error| format!("停止 dsh 失败：{error}"))?;
@@ -383,7 +468,13 @@ pub fn run() {
             port: Mutex::new(None),
             log: Arc::new(Mutex::new(String::new())),
         })
-        .invoke_handler(tauri::generate_handler![start_dsh, dsh_status, dsh_api_request, stop_dsh])
+        .invoke_handler(tauri::generate_handler![
+            start_dsh,
+            dsh_status,
+            open_main_window,
+            dsh_api_request,
+            stop_dsh
+        ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
         .run(|app_handle, event| {

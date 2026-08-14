@@ -89,7 +89,7 @@ DeepSeek Harness.app
 2. 如果端口已占用，向系统申请一个可用的本地端口；
 3. 从 App 的 `Contents/Resources/resources/dsh-runtime/` 直接定位内置运行时；
 4. 使用固定版本的官方 Node.js 启动固定版本的 `dsh web`，不调用系统 Node、npm 或 Homebrew；
-5. 轮询本地 HTTP 服务，确认就绪后再加载主界面；
+5. 轮询本地 HTTP 服务，确认就绪后创建主窗口，并将 Harness Web UI 作为顶层 localhost 页面加载（不使用 iframe）；
 6. 捕获 dsh 的标准输出和错误输出，启动失败时在界面中显示实际日志；
 7. App 退出时终止由当前 App 启动的 dsh 子进程；
 8. 新版检测到内置运行时后，仅删除旧版遗留的 `runtime-cache`，不删除用户会话、配置或凭据。
@@ -98,10 +98,12 @@ DeepSeek Harness.app
 
 ## 系统兼容性
 
-- Apple Silicon 与 Intel 使用完全独立的安装包和原生依赖；
-- macOS 12 Monterey 的 WKWebView 缺少 `AbortSignal.timeout()`，会导致创建工作区、选择文件夹时报错；
-- 从 `v0.1.3` 起，App 会在所有 WebView Frame 的业务脚本执行前注入 `AbortSignal.timeout()` 与 `AbortSignal.any()` 兼容实现；
-- 兼容脚本只作用于系统 WebView，不修改内置 Node.js，也不会接触 API Key、会话或工作区内容。
+- 最低支持 **macOS 12.7.6**；App 的系统版本声明和构建验证均以该版本为下限；
+- Apple Silicon 与 Intel 使用完全独立的 DMG、Node.js 和原生依赖，不提供 Universal Binary；
+- Harness Web UI 在 Tauri 主 WebView 中作为顶层 localhost 页面运行，避免旧版 WKWebView 中跨源 iframe 的 WebSocket 和事件处理问题；
+- macOS 12.7.6 的 WKWebView 缺少 `AbortSignal.timeout()`、`AbortSignal.any()` 和 `Promise.withResolvers()`；App 会在业务脚本执行前按需补齐这些 API；
+- 兼容脚本仅在 API 缺失时生效，不覆盖新系统的原生实现，不修改内置 Node.js，也不会接触 API Key、会话或工作区内容；
+- 构建验证会拒绝任何最低系统要求高于 macOS 12.7.6 的内置 Mach-O 可执行文件、动态库或 Node.js 原生模块。
 
 ## 当前优势
 
@@ -120,8 +122,7 @@ DeepSeek Harness.app
 
 ## 当前限制
 
-- 当前正式构建目标仅为 Apple Silicon（`aarch64`）；
-- 尚未提供 Intel 或 Universal Binary；
+- ARM64 和 Intel 分别发布，未提供 Universal Binary；
 - 0.1 刻意不签名、不公证，便于先把可运行包发出去；打开方式见 [安装 0.1（未签名）](#安装-01未签名)；
 - 主界面是系统 WebView，并非纯原生 SwiftUI；
 - App 会随包携带 Node.js 和完整 dsh 运行时，因此安装包不会像普通薄 WebView 外壳那么小；
@@ -165,7 +166,7 @@ xattr -dr com.apple.quarantine "/Applications/DeepSeek Harness.app"
 - 不要为了装这个 App 去打开「任何来源」；
 - 不要对整盘执行来路不明的 `xattr` / `spctl` 脚本。
 
-0.1 只覆盖 Apple Silicon（`aarch64`）。Intel Mac 请自行构建，或等后续 Universal / 签名版本。
+请按 Mac 的处理器下载对应 DMG：Apple Silicon 使用 `arm64`，Intel 使用 `x86_64`。两个包不能混用。
 
 ## 开发运行
 
@@ -278,7 +279,6 @@ App 名称保留为 **DeepSeek Harness**，用于清晰说明其用途；为避�
 
 ## 路线图
 
-- Intel / Universal Binary；
 - Apple Developer ID 签名和 notarization；
 - 原生菜单与快捷键；
 - 工作区选择和最近项目；

@@ -75,7 +75,6 @@ await run("npm", [
   "@img/sharp-darwin-x64",
   "@img/sharp-libvips-darwin-x64",
   "@koromix/koffi-darwin-x64",
-  "node-addon-require-builtin-darwin-x64",
 ], {
   npm_config_arch: nodeArch,
   npm_config_target_arch: nodeArch,
@@ -188,13 +187,24 @@ async function pruneIntelRuntime() {
     }
   }
 
-  const armBuiltin = join(runtimeRoot, "node_modules", "node-addon-require-builtin-darwin-arm64");
-  if (existsSync(armBuiltin)) {
-    await rm(armBuiltin, { recursive: true, force: true });
-  }
+  // This optional accelerator currently ships with LC_BUILD_VERSION minos
+  // 15.0. Cordis catches its absence and falls back to standard module loading,
+  // so exclude every platform binary to keep the Intel app compatible with
+  // the supported minimum, macOS 12.7.6.
+  await keepMatchingPackages(join(runtimeRoot, "node_modules"), (name) =>
+    !name.startsWith("node-addon-require-builtin-darwin-"));
 
   await rm(join(runtimeRoot, "node_modules", ".package-lock.json"), { force: true });
   await pruneNonRuntimeFiles(join(runtimeRoot, "node_modules"));
+}
+
+async function keepMatchingPackages(root, keep) {
+  if (!existsSync(root)) return;
+  for (const entry of await readdir(root, { withFileTypes: true })) {
+    if (entry.isDirectory() && !keep(entry.name)) {
+      await rm(join(root, entry.name), { recursive: true, force: true });
+    }
+  }
 }
 
 async function pruneNonRuntimeFiles(directory) {
@@ -230,7 +240,6 @@ function assertIntelNatives() {
     join(runtimeRoot, "node_modules", "@img", "sharp-darwin-x64"),
     join(runtimeRoot, "node_modules", "@img", "sharp-libvips-darwin-x64"),
     join(runtimeRoot, "node_modules", "@koromix", "koffi-darwin-x64"),
-    join(runtimeRoot, "node_modules", "node-addon-require-builtin-darwin-x64"),
   ];
   const missing = required.filter((path) => !existsSync(path));
   if (missing.length > 0) {

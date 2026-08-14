@@ -120,8 +120,11 @@ async function pruneRuntime() {
     !name.startsWith("koffi-") || name === "koffi-darwin-arm64");
   await keepMatchingPackages(join(runtimeRoot, "node_modules", "@vscode"), (name) =>
     !name.startsWith("ripgrep-") || name === "ripgrep-darwin-arm64");
+  // This optional accelerator currently ships with LC_BUILD_VERSION minos
+  // 15.0. Cordis catches its absence and falls back to standard module loading,
+  // so exclude it to keep the app compatible with macOS 12.7.6.
   await keepMatchingPackages(join(runtimeRoot, "node_modules"), (name) =>
-    !name.startsWith("node-addon-require-builtin-darwin-") || name === "node-addon-require-builtin-darwin-arm64");
+    !name.startsWith("node-addon-require-builtin-darwin-"));
 
   await rm(join(runtimeRoot, "node_modules", ".package-lock.json"), { force: true });
   await pruneNonRuntimeFiles(join(runtimeRoot, "node_modules"));
@@ -176,7 +179,6 @@ function assertRuntimeNatives() {
     join(runtimeRoot, "node_modules", "@img", "sharp-libvips-darwin-arm64"),
     join(runtimeRoot, "node_modules", "@koromix", "koffi-darwin-arm64"),
     join(runtimeRoot, "node_modules", "@vscode", "ripgrep-darwin-arm64"),
-    join(runtimeRoot, "node_modules", "node-addon-require-builtin-darwin-arm64"),
   ];
   const missing = required.filter((path) => !existsSync(path));
   if (missing.length) throw new Error(`ARM 运行时缺少原生模块：\n${missing.join("\n")}`);
