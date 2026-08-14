@@ -1,4 +1,5 @@
 <div align="center">
+  <p><strong>简体中文</strong> · <a href="README_EN.md">English</a></p>
   <img src="docs/assets/app-icon.png" width="128" height="128" alt="DeepSeek Harness for macOS 图标">
   <h1>DeepSeek Harness for macOS</h1>
   <p><strong>保留 Harness 的完整能力，带来打开即用的 Mac 体验。</strong></p>
