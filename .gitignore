@@ -10,6 +10,7 @@ lerna-debug.log*
 node_modules
 src-tauri/resources/dsh-runtime
 src-tauri/resources/dsh-runtime.tar.gz
+src-tauri/resources/.cache
 dist
 dist-ssr
 *.local

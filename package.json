@@ -9,8 +9,10 @@
   "scripts": {
     "tauri": "tauri",
     "prepare:runtime": "node scripts/prepare-runtime.mjs",
+    "prepare:runtime:intel": "node scripts/prepare-runtime-intel.mjs",
     "prepare:licenses": "node scripts/prepare-rust-licenses.mjs",
-    "build:macos": "pnpm prepare:runtime && pnpm prepare:licenses && pnpm tauri build"
+    "build:macos": "pnpm prepare:runtime && pnpm prepare:licenses && pnpm tauri build",
+    "build:macos:intel": "node scripts/build-macos-intel.mjs"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2"

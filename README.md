@@ -204,7 +204,36 @@ src-tauri/target/release/bundle/macos/DeepSeek Harness.app
 src-tauri/target/release/bundle/dmg/DeepSeek Harness_<version>_aarch64.dmg
 ```
 
-`src-tauri/resources/dsh-runtime/`、运行时压缩包、`node_modules/` 和 Rust `target/` 都是生成物，不提交到 Git 仓库。
+### Intel（单独脚本）
+
+Apple Silicon 上的 `pnpm build:macos` 只会打出 arm64 包。Intel 用另一条命令，不改现有流程：
+
+```bash
+pnpm build:macos:intel
+```
+
+它会：
+
+1. 下载官方 Node.js **darwin-x64**（不拷本机 Homebrew 的 arm64 Node）；
+2. 按 `x64` 安装 dsh 生产依赖，只保留 `darwin-x64` 原生模块；
+3. 用 Rust target `x86_64-apple-darwin` 打包。
+
+本机 Homebrew rustc 只有 aarch64 标准库时，需要先装 rustup：
+
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+source "$HOME/.cargo/env"
+rustup target add x86_64-apple-darwin
+```
+
+产物位于：
+
+```text
+src-tauri/target/x86_64-apple-darwin/release/bundle/macos/DeepSeek Harness.app
+src-tauri/target/x86_64-apple-darwin/release/bundle/dmg/DeepSeek Harness_<version>_x64.dmg
+```
+
+`src-tauri/resources/dsh-runtime/`、运行时压缩包、`src-tauri/resources/.cache/`、`node_modules/` 和 Rust `target/` 都是生成物，不提交到 Git 仓库。再打 Apple Silicon 包时执行 `pnpm build:macos` 即可覆盖回 arm64 运行时。
 
 ## 版本与升级原则
 
