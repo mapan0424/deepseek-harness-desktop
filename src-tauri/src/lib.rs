@@ -73,6 +73,7 @@ fn find_available_port(preferred: u16) -> Result<u16, String> {
 fn bundled_runtime(app: &tauri::AppHandle) -> Option<(PathBuf, PathBuf)> {
     let mut candidates = Vec::new();
     if let Ok(resource_dir) = app.path().resource_dir() {
+        candidates.push(resource_dir.join("resources/dsh-runtime"));
         candidates.push(resource_dir.join("dsh-runtime"));
     }
     candidates.push(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("resources/dsh-runtime"));
@@ -83,49 +84,19 @@ fn bundled_runtime(app: &tauri::AppHandle) -> Option<(PathBuf, PathBuf)> {
                 .join("node_modules/@deepseek-ai/dsh/lib/bin.js")
                 .is_file()
     }) {
+        // Releases before 0.1.2 unpacked a second runtime copy into the App
+        // data directory. The runtime now executes directly from Resources,
+        // so remove only that obsolete cache and preserve sessions/settings.
+        if let Ok(app_data_dir) = app.path().app_data_dir() {
+            let _ = std::fs::remove_dir_all(app_data_dir.join("runtime-cache"));
+        }
         return Some((
             runtime.join("node"),
             runtime.join("node_modules/@deepseek-ai/dsh/lib/bin.js"),
         ));
     }
 
-    let Some(resource_dir) = app.path().resource_dir().ok() else {
-        return None;
-    };
-    let archive = [
-        resource_dir.join("dsh-runtime.tar.gz"),
-        resource_dir.join("resources/dsh-runtime.tar.gz"),
-    ]
-    .into_iter()
-    .find(|path| path.is_file())?;
-    if !archive.is_file() {
-        return None;
-    }
-    let cache_dir = app.path().app_data_dir().ok()?.join("runtime-cache");
-    let runtime = cache_dir.join("dsh-runtime");
-    let node = runtime.join("node");
-    let entry = runtime.join("node_modules/@deepseek-ai/dsh/lib/bin.js");
-    if !node.is_file() || !entry.is_file() {
-        std::fs::create_dir_all(&cache_dir).ok()?;
-        let status = Command::new("/usr/bin/tar")
-            .args([
-                "-xzf",
-                archive.to_string_lossy().as_ref(),
-                "-C",
-                cache_dir.to_string_lossy().as_ref(),
-            ])
-            .status()
-            .ok()?;
-        if !status.success() {
-            return None;
-        }
-    }
-
-    if node.is_file() && entry.is_file() {
-        Some((node, entry))
-    } else {
-        None
-    }
+    None
 }
 
 fn append_log(log: &Arc<Mutex<String>>, line: &str) {
@@ -188,7 +159,7 @@ fn start_dsh(
             ],
             true,
         )
-    } else {
+    } else if cfg!(debug_assertions) {
         (
             PathBuf::from(npx_path()),
             vec![
@@ -200,6 +171,8 @@ fn start_dsh(
             ],
             false,
         )
+    } else {
+        return Err("正式包缺少内置 dsh 运行时，请重新下载完整 App。".to_string());
     };
 
     let mut command = Command::new(&program);

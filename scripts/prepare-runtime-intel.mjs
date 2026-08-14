@@ -1,5 +1,6 @@
 import { chmod, cp, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
-import { createWriteStream, existsSync } from "node:fs";
+import { createReadStream, createWriteStream, existsSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { spawn, spawnSync } from "node:child_process";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -8,7 +9,6 @@ import { pipeline } from "node:stream/promises";
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const resourcesRoot = join(projectRoot, "src-tauri", "resources");
 const runtimeRoot = join(resourcesRoot, "dsh-runtime");
-const runtimeArchive = join(resourcesRoot, "dsh-runtime.tar.gz");
 const cacheRoot = join(resourcesRoot, ".cache");
 const dshVersion = "0.1.0-rc.6";
 const nodeVersion = process.env.INTEL_NODE_VERSION || "22.23.2";
@@ -21,7 +21,7 @@ const officialNode = join(nodeExtractRoot, "bin", "node");
 const officialLicense = join(nodeExtractRoot, "LICENSE");
 
 await mkdir(cacheRoot, { recursive: true });
-await downloadOfficialNode();
+await downloadAndVerifyOfficialNode();
 assertIntelBinary(officialNode);
 
 await rm(runtimeRoot, { recursive: true, force: true });
@@ -86,16 +86,18 @@ await pruneIntelRuntime();
 assertIntelNatives();
 await installRuntimeLegalFiles();
 
-await rm(runtimeArchive, { force: true });
-await run("tar", ["-czf", runtimeArchive, "-C", resourcesRoot, "dsh-runtime"]);
+console.log(`Prepared slim dsh ${dshVersion} Intel runtime with Node ${nodeVersion} x64: ${runtimeRoot}`);
 
-console.log(`Prepared dsh ${dshVersion} Intel runtime with Node ${nodeVersion} x64: ${runtimeRoot}`);
-
-async function downloadOfficialNode() {
-  if (existsSync(officialNode) && existsSync(officialLicense)) {
-    console.log(`Using cached official Node ${nodeVersion} darwin-x64`);
-    return;
+async function downloadAndVerifyOfficialNode() {
+  const shasumsUrl = `https://nodejs.org/dist/v${nodeVersion}/SHASUMS256.txt`;
+  const shasumsResponse = await fetch(shasumsUrl);
+  if (!shasumsResponse.ok) {
+    throw new Error(`下载 Node.js 校验文件失败：${shasumsResponse.status} ${shasumsUrl}`);
   }
+  const shasums = await shasumsResponse.text();
+  const line = shasums.split("\n").find((item) => item.trim().endsWith(`  ${nodeTarballName}`));
+  if (!line) throw new Error(`SHASUMS256.txt 中找不到 ${nodeTarballName}`);
+  const expected = line.trim().split(/\s+/)[0];
 
   if (!existsSync(nodeTarballPath)) {
     console.log(`Downloading ${nodeTarballUrl}`);
@@ -106,11 +108,19 @@ async function downloadOfficialNode() {
     await pipeline(response.body, createWriteStream(nodeTarballPath));
   }
 
-  await rm(nodeExtractRoot, { recursive: true, force: true });
-  await run("tar", ["-xzf", nodeTarballPath, "-C", cacheRoot]);
-  if (!existsSync(officialNode)) {
-    throw new Error(`解压后找不到官方 Node.js：${officialNode}`);
+  const hash = createHash("sha256");
+  await pipeline(createReadStream(nodeTarballPath), hash);
+  const actual = hash.digest("hex");
+  if (actual !== expected) {
+    await rm(nodeTarballPath, { force: true });
+    throw new Error(`Node.js SHA-256 校验失败：expected ${expected}, got ${actual}`);
   }
+
+  if (!existsSync(officialNode) || !existsSync(officialLicense)) {
+    await rm(nodeExtractRoot, { recursive: true, force: true });
+    await run("tar", ["-xzf", nodeTarballPath, "-C", cacheRoot]);
+  }
+  if (!existsSync(officialNode)) throw new Error(`解压后找不到官方 Node.js：${officialNode}`);
 }
 
 function assertIntelBinary(file) {
@@ -169,12 +179,50 @@ async function pruneIntelRuntime() {
     }
   }
 
+  const vscodeRoot = join(runtimeRoot, "node_modules", "@vscode");
+  if (existsSync(vscodeRoot)) {
+    for (const entry of await readdir(vscodeRoot, { withFileTypes: true })) {
+      if (entry.name.startsWith("ripgrep-") && entry.name !== "ripgrep-darwin-x64") {
+        await rm(join(vscodeRoot, entry.name), { recursive: true, force: true });
+      }
+    }
+  }
+
   const armBuiltin = join(runtimeRoot, "node_modules", "node-addon-require-builtin-darwin-arm64");
   if (existsSync(armBuiltin)) {
     await rm(armBuiltin, { recursive: true, force: true });
   }
 
   await rm(join(runtimeRoot, "node_modules", ".package-lock.json"), { force: true });
+  await pruneNonRuntimeFiles(join(runtimeRoot, "node_modules"));
+}
+
+async function pruneNonRuntimeFiles(directory) {
+  if (!existsSync(directory)) return;
+  for (const entry of await readdir(directory, { withFileTypes: true })) {
+    const path = join(directory, entry.name);
+    if (entry.isDirectory()) {
+      // Keep docs and README files because some packages put license terms
+      // there; remove only unambiguous test fixtures and development output.
+      if (["test", "tests", "__tests__", "coverage"].includes(entry.name.toLowerCase())) {
+        await rm(path, { recursive: true, force: true });
+      } else {
+        await pruneNonRuntimeFiles(path);
+      }
+      continue;
+    }
+    if (!entry.isFile()) continue;
+    const lower = entry.name.toLowerCase();
+    if (
+      lower.endsWith(".map")
+      || lower.endsWith(".d.ts")
+      || lower.endsWith(".d.mts")
+      || lower.endsWith(".d.cts")
+      || lower.endsWith(".tsbuildinfo")
+    ) {
+      await rm(path, { force: true });
+    }
+  }
 }
 
 function assertIntelNatives() {

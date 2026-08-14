@@ -75,7 +75,7 @@ DeepSeek Harness.app
 ├── Tauri 原生窗口
 ├── Rust 生命周期管理层
 │   ├── 选择可用的 localhost 端口
-│   ├── 解压并启动内置 Node.js + dsh
+│   ├── 从 App Resources 直接启动内置 Node.js + dsh
 │   ├── 捕获 stdout / stderr
 │   ├── 检查 HTTP 服务是否就绪
 │   └── App 退出时终止子进程
@@ -87,11 +87,12 @@ DeepSeek Harness.app
 
 1. 优先尝试端口 `3080`；
 2. 如果端口已占用，向系统申请一个可用的本地端口；
-3. 正式包首次运行时，将内置运行时归档解压到 App 数据目录下的缓存位置；
-4. 使用内置 Node.js 启动固定版本的 `dsh web`；
+3. 从 App 的 `Contents/Resources/resources/dsh-runtime/` 直接定位内置运行时；
+4. 使用固定版本的官方 Node.js 启动固定版本的 `dsh web`，不调用系统 Node、npm 或 Homebrew；
 5. 轮询本地 HTTP 服务，确认就绪后再加载主界面；
 6. 捕获 dsh 的标准输出和错误输出，启动失败时在界面中显示实际日志；
-7. App 退出时终止由当前 App 启动的 dsh 子进程。
+7. App 退出时终止由当前 App 启动的 dsh 子进程；
+8. 新版检测到内置运行时后，仅删除旧版遗留的 `runtime-cache`，不删除用户会话、配置或凭据。
 
 服务只通过 `127.0.0.1` 访问，不会为了桌面外壳主动暴露到局域网。该设计不等同于完整安全沙箱：Harness 本身具有工具调用和文件操作能力，实际权限仍取决于 Harness 配置、插件、用户审批和 macOS 进程权限。
 
@@ -102,6 +103,8 @@ DeepSeek Harness.app
 - 端口 `3080` 被占用时自动切换，不直接启动失败；
 - 使用 Harness Web UI，避免重新实现核心交互并降低行为漂移；
 - 使用 macOS 系统 WebView，不额外内置一份 Chromium；
+- 运行时在 App 内只保留一份，不再把压缩包首次解压到 Application Support；
+- ARM 与 Intel 都使用固定版本并校验 SHA-256 的官方 Node.js，不携带构建机 Homebrew 环境；
 - 保留 dsh 实际启动日志，便于诊断运行时和配置问题；
 - App 退出时回收本地 dsh 进程，减少残留后台服务；
 - 构建时自动生成 npm 和 Rust/Tauri 依赖许可证报告；
@@ -214,7 +217,7 @@ pnpm build:macos:intel
 
 它会：
 
-1. 下载官方 Node.js **darwin-x64**（不拷本机 Homebrew 的 arm64 Node）；
+1. 下载并校验官方 Node.js **darwin-x64**（不拷本机 Homebrew 的 arm64 Node）；
 2. 按 `x64` 安装 dsh 生产依赖，只保留 `darwin-x64` 原生模块；
 3. 用 Rust target `x86_64-apple-darwin` 打包。
 
@@ -233,7 +236,7 @@ src-tauri/target/x86_64-apple-darwin/release/bundle/macos/DeepSeek Harness.app
 src-tauri/target/x86_64-apple-darwin/release/bundle/dmg/DeepSeek Harness_<version>_x64.dmg
 ```
 
-`src-tauri/resources/dsh-runtime/`、运行时压缩包、`src-tauri/resources/.cache/`、`node_modules/` 和 Rust `target/` 都是生成物，不提交到 Git 仓库。再打 Apple Silicon 包时执行 `pnpm build:macos` 即可覆盖回 arm64 运行时。
+`src-tauri/resources/dsh-runtime/`、`src-tauri/resources/.cache/`、`node_modules/` 和 Rust `target/` 都是生成物，不提交到 Git 仓库。运行时目录会直接进入 `.app`，不会再生成 `dsh-runtime.tar.gz` 或首次启动解压副本。再打 Apple Silicon 包时执行 `pnpm build:macos` 即可覆盖回 arm64 运行时。
 
 ## 版本与升级原则
 

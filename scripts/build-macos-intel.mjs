@@ -17,6 +17,7 @@ await run("pnpm", ["tauri", "build", "--target", rustTarget, "--no-sign"], {
   PATH: intelPath(),
   CARGO: existsSync(rustupCargo) ? rustupCargo : process.env.CARGO,
 });
+await run("pnpm", ["verify:macos:intel"]);
 
 console.log("Intel build finished.");
 console.log("  App: src-tauri/target/x86_64-apple-darwin/release/bundle/macos/DeepSeek Harness.app");
