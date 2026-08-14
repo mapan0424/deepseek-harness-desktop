@@ -1,8 +1,10 @@
 [package]
 name = "deepseek-harness-macos"
 version = "0.1.1"
-description = "A Tauri App"
-authors = ["you"]
+description = "Unofficial Tauri desktop client for DeepSeek Harness"
+authors = ["mapan0424"]
+license = "MIT"
+repository = "https://github.com/mapan0424/deepseek-harness-desktop"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

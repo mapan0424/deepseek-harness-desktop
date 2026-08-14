@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "DeepSeek Harness",
+  "productName": "Harness Desktop",
   "version": "0.1.1",
-  "identifier": "ai.deepseek.harness",
+  "identifier": "io.github.mapan0424.harness-desktop",
   "build": {
     "frontendDist": "../src"
   },
@@ -10,7 +10,7 @@
     "withGlobalTauri": true,
     "windows": [
       {
-        "title": "DeepSeek Harness",
+        "title": "Harness Desktop — Unofficial DeepSeek Harness Client",
         "width": 1240,
         "height": 820,
         "minWidth": 960,
@@ -27,7 +27,9 @@
     "targets": "all",
     "resources": [
       "resources/dsh-runtime.tar.gz",
-      "legal/LICENSE",
+      "legal/APP_LICENSE",
+      "legal/DEEPSEEK_HARNESS_LICENSE",
+      "legal/RUST_THIRD_PARTY_LICENSES.txt",
       "legal/THIRD_PARTY_NOTICES.md",
       "legal/UNOFFICIAL_NOTICE.txt"
     ],

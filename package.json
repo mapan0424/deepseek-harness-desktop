@@ -1,12 +1,16 @@
 {
-  "name": "deepseek-harness-macos",
+  "name": "harness-desktop-macos",
   "private": true,
   "version": "0.1.1",
+  "description": "Unofficial Tauri desktop client for DeepSeek Harness",
+  "license": "MIT",
+  "repository": "https://github.com/mapan0424/deepseek-harness-desktop",
   "type": "module",
   "scripts": {
     "tauri": "tauri",
     "prepare:runtime": "node scripts/prepare-runtime.mjs",
-    "build:macos": "pnpm prepare:runtime && pnpm tauri build"
+    "prepare:licenses": "node scripts/prepare-rust-licenses.mjs",
+    "build:macos": "pnpm prepare:runtime && pnpm prepare:licenses && pnpm tauri build"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2"

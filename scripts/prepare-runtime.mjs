@@ -1,4 +1,4 @@
-import { chmod, cp, mkdir, readdir, rm, writeFile } from "node:fs/promises";
+import { chmod, cp, mkdir, readFile, readdir, realpath, rm, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { arch } from "node:process";
 import { spawn, spawnSync } from "node:child_process";
@@ -50,6 +50,7 @@ await run("npm", [
 ]);
 
 await pruneRuntime();
+await installRuntimeLegalFiles(nodePath);
 
 await rm(runtimeArchive, { force: true });
 await run("tar", [
@@ -98,6 +99,69 @@ async function pruneRuntime() {
 
   // These are useful for npm development but are not read when dsh runs.
   await rm(join(runtimeRoot, "node_modules", ".package-lock.json"), { force: true });
+}
+
+async function installRuntimeLegalFiles(sourceNode) {
+  const legalRoot = join(runtimeRoot, "legal");
+  await mkdir(legalRoot, { recursive: true });
+
+  // Homebrew installs Node's complete license file at the version prefix root.
+  // Resolve symlinks so the notice copied into the distributed runtime always
+  // belongs to the exact Node executable bundled above.
+  const resolvedNode = await realpath(sourceNode);
+  const nodeLicense = resolve(dirname(resolvedNode), "../LICENSE");
+  if (!existsSync(nodeLicense)) {
+    throw new Error(`找不到内置 Node.js 的许可证文件：${nodeLicense}`);
+  }
+  await cp(nodeLicense, join(legalRoot, "NODEJS_LICENSE"));
+
+  const packages = [];
+  await collectPackageMetadata(join(runtimeRoot, "node_modules"), packages);
+  packages.sort((a, b) => a.name.localeCompare(b.name) || a.version.localeCompare(b.version));
+
+  const dsh = packages.find((item) => item.name === "@deepseek-ai/dsh");
+  const lines = [
+    "# Bundled Runtime Package Inventory",
+    "",
+    "Generated from the exact production dependency closure embedded in this build.",
+    "Each package remains subject to its own license. License and notice files supplied",
+    "by packages are retained next to package code under `node_modules/`.",
+    "",
+    `Bundled Node.js: ${spawnSync(join(runtimeRoot, "node"), ["--version"], { encoding: "utf8" }).stdout.trim()}`,
+    `Bundled DeepSeek Harness: ${dsh?.version ?? dshVersion}`,
+    "",
+    "| Package | Version | Declared license |",
+    "| --- | --- | --- |",
+    ...packages.map(({ name, version, license }) =>
+      `| \`${name.replaceAll("|", "\\|")}\` | \`${version}\` | ${license.replaceAll("|", "\\|")} |`),
+    "",
+  ];
+  await writeFile(join(legalRoot, "RUNTIME_PACKAGE_INVENTORY.md"), lines.join("\n"));
+}
+
+async function collectPackageMetadata(directory, packages) {
+  if (!existsSync(directory)) return;
+  for (const entry of await readdir(directory, { withFileTypes: true })) {
+    if (!entry.isDirectory() || entry.name.startsWith(".")) continue;
+    const path = join(directory, entry.name);
+    if (entry.name.startsWith("@")) {
+      await collectPackageMetadata(path, packages);
+      continue;
+    }
+    const manifestPath = join(path, "package.json");
+    if (!existsSync(manifestPath)) continue;
+    const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+    const declaredLicense = typeof manifest.license === "string"
+      ? manifest.license
+      : Array.isArray(manifest.licenses)
+        ? manifest.licenses.map((item) => item.type ?? String(item)).join(" OR ")
+        : "NOT DECLARED — inspect package files";
+    packages.push({
+      name: manifest.name ?? entry.name,
+      version: manifest.version ?? "unknown",
+      license: declaredLicense,
+    });
+  }
 }
 
 async function copyNodeLibraries(sourceNode) {

@@ -1,8 +1,8 @@
-# DeepSeek Harness for macOS
+# Harness Desktop for macOS
 
-这是一个 Tauri macOS 客户端：使用原生窗口和生命周期管理，主界面复用 DeepSeek Harness 官方 Web UI，保证完整的会话、Markdown、流式输出、工具调用和审批体验。
+这是一个非官方 Tauri macOS 客户端：使用原生窗口和生命周期管理，主界面复用 DeepSeek Harness Web UI，保证完整的会话、Markdown、流式输出、工具调用和审批体验。
 
-> 本项目是非官方的第三方 macOS 客户端，不代表 DeepSeek 官方产品或官方背书。原项目采用 MIT License；发行包内包含许可证和第三方依赖声明。
+> **非官方声明：** 本项目由第三方独立开发和分发，不是 DeepSeek 官方产品，未经 DeepSeek 赞助、认可或背书，也不代表与 DeepSeek 存在隶属关系。“DeepSeek”和“DeepSeek Harness”仅用于说明兼容或内置的上游项目。MIT 代码许可不授予商标权。
 
 ## 开发运行
 
@@ -36,9 +36,22 @@ pnpm build:macos
 - 启动失败时显示 dsh 实际日志；
 - App 退出时自动回收本地 dsh 进程。
 
+## 许可证与分发
+
+- 桌面外壳采用 [MIT License](LICENSE)；
+- 内置 DeepSeek Harness 采用 MIT License，其版权与完整许可文本随发行包保留；
+- 构建时会从实际内置的 npm 依赖闭包生成精确的包名、版本和许可证清单；
+- Node.js 的完整许可证及 bundled-component notices 会随内置运行时分发；
+- 构建时会从锁定的 Cargo 依赖图生成并打包 Rust/Tauri 完整许可证报告；
+- 详细说明见 [`src-tauri/legal/THIRD_PARTY_NOTICES.md`](src-tauri/legal/THIRD_PARTY_NOTICES.md)。
+
+> 发布二进制前必须复核自动生成的 npm 与 Rust/Tauri 许可证报告；生成失败时构建会中止。
+
 ## 后续发布工作
 
 - 增加 Intel / Universal 构建；
 - 将 API Key、Harness Home 和工作区迁移到 macOS Application Support；
 - 增加原生菜单、工作区选择、权限确认和自动更新；
+- 持续复核自动生成的第三方许可证报告；
+- 确认应用图标、名称和营销素材不暗示 DeepSeek 官方身份；
 - 发布前完成 Apple Developer ID 签名和公证。

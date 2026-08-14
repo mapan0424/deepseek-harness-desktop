@@ -1,58 +1,65 @@
 # Third-Party Notices
 
-本 App 内置了 DeepSeek Harness 的 dsh 运行时及其生产依赖。每个第三方项目仍
-受其自己的许可证约束；本文件不会改变这些许可证的条款。
+Harness Desktop for macOS is licensed under the MIT License in `APP_LICENSE`.
+It embeds DeepSeek Harness and a production runtime dependency closure. Every
+third-party component remains subject to its own license; nothing in this file
+changes those terms.
 
 ## DeepSeek Harness
 
-DeepSeek Harness 由 DeepSeek 发布，采用 MIT License。完整文本见同目录下的
-`LICENSE` 文件。当前 App 内置的 dsh 版本为 `0.1.0-rc.6`。
+This distribution embeds `@deepseek-ai/dsh` version `0.1.0-rc.6`.
 
-原项目及源代码：
+- Project: https://github.com/deepseek-ai/deepseek-harness
+- Package: https://www.npmjs.com/package/@deepseek-ai/dsh
+- License: MIT
+- Copyright: Copyright (c) 2026 DeepSeek
+- Full license text: `DEEPSEEK_HARNESS_LICENSE`
 
-- https://github.com/deepseek-ai/deepseek-harness
-- https://github.com/mapan0424/deepseek-harness
+The upstream MIT license requires its copyright and permission notice to be
+included in copies or substantial portions of the software. This distribution
+includes that notice both here and inside the embedded npm package.
 
 ## Runtime npm dependencies
 
-完整的精确版本依赖闭包记录在 App 内置运行时的 `package-lock.json` 中；运行时
-中各 npm 包自带的 `LICENSE`、`NOTICE` 或 README 文件也会随包保留。以下是项目
-公开声明的主要运行时依赖及其许可证类型：
+The release build generates `legal/RUNTIME_PACKAGE_INVENTORY.md` inside the
+embedded runtime archive from the exact installed production dependency
+closure. It records every embedded npm package's name, exact version, and
+declared license. Package-provided `LICENSE`, `NOTICE`, `COPYING`, and README
+files are retained next to package code under `node_modules/`.
 
-| Package | License |
-| --- | --- |
-| `@agentclientprotocol/sdk` | Apache-2.0 |
-| `@anthropic-ai/claude-agent-sdk` | See package license |
-| `@anthropic-ai/sdk` | MIT |
-| `@modelcontextprotocol/sdk` | MIT |
-| `@opentelemetry/*` | Apache-2.0 |
-| `@shikijs/langs` | MIT |
-| `@tanstack/react-virtual` | MIT |
-| `@vscode/ripgrep` | MIT |
-| `chokidar` | MIT |
-| `diff` | BSD-3-Clause |
-| `katex` | MIT |
-| `node-pty` | MIT |
-| `react` / `react-dom` | MIT |
-| `sharp` | Apache-2.0 |
-| `shiki` | MIT |
-| `turndown` | MIT |
-| `typescript` | Apache-2.0 |
-| `ws` | MIT |
-| `yaml` | ISC |
-| `zod` | MIT |
-| `zustand` | MIT |
+`package-lock.json` in the embedded runtime records the exact dependency tree.
+The generated inventory and package files, rather than a manually maintained
+summary, are authoritative for a particular release artifact.
 
-其他间接依赖以随包提供的 `package-lock.json` 和各包自身的许可证文件为准。
+Some dependencies use licenses that require notices or attribution beyond a
+short SPDX label. Their complete package-supplied texts remain in the embedded
+runtime and must not be removed from release artifacts.
 
 ## Bundled Node.js runtime
 
-本 App 为了让用户无需安装 Node.js，内置了一个 Node.js 运行时及其动态库。
-Node.js、OpenSSL、ICU、libuv、nghttp2、nghttp3、brotli、zlib、sqlite 等组件
-仍受其各自的许可证和版权声明约束；对应的运行时文件和包内许可证文件随内置
-运行时一起分发。
+The App embeds the Node.js executable used to run DeepSeek Harness. The build
+copies the complete license file belonging to the exact bundled Node.js binary
+to `legal/NODEJS_LICENSE` inside the embedded runtime. That file contains the
+Node.js license and bundled-component notices and must remain in every release.
+The generated runtime inventory records the exact Node.js version.
 
-## Distribution note
+## Tauri and Rust dependencies
 
-本 App 是非官方的 DeepSeek Harness macOS 客户端，不代表 DeepSeek 官方产品或
-官方背书。DeepSeek API、模型和相关在线服务的使用还应遵守其各自的服务条款。
+The desktop shell is built with Tauri and Rust crates. Their exact versions are
+pinned in `src-tauri/Cargo.lock`; each remains governed by its own license.
+The release build generates and ships `RUST_THIRD_PARTY_LICENSES.txt` from the
+locked Cargo dependency graph. It includes exact crate versions, declared SPDX
+expressions, repository metadata, and package-supplied license/notice texts.
+Do not publish a binary if generation fails or the resulting report has not
+been reviewed.
+
+## Branding and affiliation
+
+This is an independently developed, unofficial client. It is not a DeepSeek
+product and is not sponsored, endorsed, or approved by DeepSeek. The names
+“DeepSeek” and “DeepSeek Harness” are used only to identify compatibility and
+the embedded upstream project. MIT licenses grant copyright permissions; they
+do not grant trademark rights.
+
+Use of DeepSeek APIs, models, or online services remains subject to the terms
+applicable to those services.
