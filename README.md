@@ -96,6 +96,13 @@ DeepSeek Harness.app
 
 服务只通过 `127.0.0.1` 访问，不会为了桌面外壳主动暴露到局域网。该设计不等同于完整安全沙箱：Harness 本身具有工具调用和文件操作能力，实际权限仍取决于 Harness 配置、插件、用户审批和 macOS 进程权限。
 
+## 系统兼容性
+
+- Apple Silicon 与 Intel 使用完全独立的安装包和原生依赖；
+- macOS 12 Monterey 的 WKWebView 缺少 `AbortSignal.timeout()`，会导致创建工作区、选择文件夹时报错；
+- 从 `v0.1.3` 起，App 会在所有 WebView Frame 的业务脚本执行前注入 `AbortSignal.timeout()` 与 `AbortSignal.any()` 兼容实现；
+- 兼容脚本只作用于系统 WebView，不修改内置 Node.js，也不会接触 API Key、会话或工作区内容。
+
 ## 当前优势
 
 - 一个 App 完成启动、等待、展示和退出，无需手动维护终端进程；

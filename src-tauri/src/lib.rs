@@ -367,10 +367,17 @@ fn stop_dsh(state: tauri::State<'_, DshProcess>) -> Result<(), String> {
     Ok(())
 }
 
+const ABORT_SIGNAL_POLYFILL: &str = include_str!("../resources/abort-signal-polyfill.js");
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(
+            tauri::plugin::Builder::<tauri::Wry, ()>::new("webkit-compat")
+                .js_init_script_on_all_frames(ABORT_SIGNAL_POLYFILL)
+                .build(),
+        )
         .manage(DshProcess {
             child: Mutex::new(None),
             port: Mutex::new(None),
