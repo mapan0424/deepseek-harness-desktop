@@ -2,7 +2,7 @@
 
 一个面向 macOS 的 DeepSeek Harness 桌面外壳。项目使用 **Tauri + 系统 WebView** 管理原生窗口和应用生命周期，在本机启动 DeepSeek Harness 的 `dsh web` 服务，并加载其官方 Web UI。
 
-> **非官方声明：** 本项目由第三方独立开发和分发，不是 DeepSeek 官方产品，未经 DeepSeek 赞助、认可或背书，也不代表与 DeepSeek 存在隶属关系。“DeepSeek”和“DeepSeek Harness”仅用于说明兼容或内置的上游项目。MIT 代码许可不授予商标权。应用图标右下角的“非官方”角标、窗口标题以及第三方 Bundle ID 均用于避免身份混淆。
+> **非官方声明：** 本项目由第三方独立开发和分发，不是 DeepSeek 官方产品，未经 DeepSeek 赞助、认可或背书，也不代表与 DeepSeek 存在隶属关系。“DeepSeek”和“DeepSeek Harness”仅用于说明兼容或内置的上游项目。MIT 代码许可不授予商标权。窗口标题、第三方 Bundle ID、README 与 App 内法律声明用于避免身份混淆。
 
 > **0.1 预览：** 当前发布包**没有** Apple Developer ID 签名和公证。可以正常分发，但 macOS 会拦截首次打开。请只从本仓库 [Releases](https://github.com/mapan0424/deepseek-harness-desktop/releases) 下载，并按下面的 [安装 0.1（未签名）](#安装-01未签名) 操作。
 
@@ -116,7 +116,7 @@ DeepSeek Harness.app
 - App 退出时回收本地 dsh 进程，减少残留后台服务；
 - 构建时自动生成 npm 和 Rust/Tauri 依赖许可证报告；
 - 保留上游 MIT License、Node.js 完整许可证及包内第三方通知；
-- 已使用独立 Bundle ID 和“非官方”视觉标识，降低与官方发行版混淆的风险。
+- 已使用独立 Bundle ID、窗口标题和 App 内声明，降低与官方发行版混淆的风险。
 
 ## 当前限制
 
@@ -270,7 +270,6 @@ src-tauri/target/x86_64-apple-darwin/release/bundle/dmg/DeepSeek Harness_<versio
 
 App 名称保留为 **DeepSeek Harness**，用于清晰说明其用途；为避免暗示官方身份：
 
-- 图标右下角带有“非官方”角标；
 - 窗口与启动页标注“非官方客户端”；
 - Bundle ID 使用 `io.github.mapan0424.harness-desktop`，而非 DeepSeek 官方域名；
 - App 内随附独立的非官方及无背书声明。
