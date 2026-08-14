@@ -161,6 +161,10 @@ async function collectPackageMetadata(directory, packages) {
       version: manifest.version ?? "unknown",
       license: declaredLicense,
     });
+
+    // npm may nest a second version beneath an individual package when the
+    // dependency cannot be hoisted. Include those packages in the inventory.
+    await collectPackageMetadata(join(path, "node_modules"), packages);
   }
 }
 
