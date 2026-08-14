@@ -58,7 +58,32 @@ await run("npm", [
   npm_config_platform: "darwin",
 });
 
+// Host is Apple Silicon. npm still resolves optional native addons to arm64
+// unless those packages are requested by os/cpu. Intel dsh needs these.
+await run("npm", [
+  "install",
+  "--prefix",
+  runtimeRoot,
+  "--omit=dev",
+  "--ignore-scripts",
+  "--no-audit",
+  "--no-fund",
+  "--os=darwin",
+  "--cpu=x64",
+  "--include=optional",
+  "--force",
+  "@img/sharp-darwin-x64",
+  "@img/sharp-libvips-darwin-x64",
+  "@koromix/koffi-darwin-x64",
+  "node-addon-require-builtin-darwin-x64",
+], {
+  npm_config_arch: nodeArch,
+  npm_config_target_arch: nodeArch,
+  npm_config_platform: "darwin",
+});
+
 await pruneIntelRuntime();
+assertIntelNatives();
 await installRuntimeLegalFiles();
 
 await rm(runtimeArchive, { force: true });
@@ -125,13 +150,44 @@ async function pruneIntelRuntime() {
   const imgRoot = join(runtimeRoot, "node_modules", "@img");
   if (existsSync(imgRoot)) {
     for (const entry of await readdir(imgRoot, { withFileTypes: true })) {
-      if (entry.name.startsWith("sharp-") && entry.name !== "sharp-darwin-x64" && entry.name !== "sharp-libvips-darwin-x64") {
+      if (
+        entry.name.startsWith("sharp-")
+        && entry.name !== "sharp-darwin-x64"
+        && entry.name !== "sharp-libvips-darwin-x64"
+      ) {
         await rm(join(imgRoot, entry.name), { recursive: true, force: true });
       }
     }
   }
 
+  const koffiVendor = join(runtimeRoot, "node_modules", "@koromix");
+  if (existsSync(koffiVendor)) {
+    for (const entry of await readdir(koffiVendor, { withFileTypes: true })) {
+      if (entry.name.startsWith("koffi-") && entry.name !== "koffi-darwin-x64") {
+        await rm(join(koffiVendor, entry.name), { recursive: true, force: true });
+      }
+    }
+  }
+
+  const armBuiltin = join(runtimeRoot, "node_modules", "node-addon-require-builtin-darwin-arm64");
+  if (existsSync(armBuiltin)) {
+    await rm(armBuiltin, { recursive: true, force: true });
+  }
+
   await rm(join(runtimeRoot, "node_modules", ".package-lock.json"), { force: true });
+}
+
+function assertIntelNatives() {
+  const required = [
+    join(runtimeRoot, "node_modules", "@img", "sharp-darwin-x64"),
+    join(runtimeRoot, "node_modules", "@img", "sharp-libvips-darwin-x64"),
+    join(runtimeRoot, "node_modules", "@koromix", "koffi-darwin-x64"),
+    join(runtimeRoot, "node_modules", "node-addon-require-builtin-darwin-x64"),
+  ];
+  const missing = required.filter((path) => !existsSync(path));
+  if (missing.length > 0) {
+    throw new Error(`Intel 运行时缺少原生模块：\n${missing.join("\n")}`);
+  }
 }
 
 async function installRuntimeLegalFiles() {
