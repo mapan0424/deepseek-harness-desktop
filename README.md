@@ -1,12 +1,31 @@
-# DeepSeek Harness for macOS
+<div align="center">
+  <img src="docs/assets/app-icon.png" width="128" height="128" alt="DeepSeek Harness for macOS 图标">
+  <h1>DeepSeek Harness for macOS</h1>
+  <p><strong>保留 Harness 的完整能力，带来打开即用的 Mac 体验。</strong></p>
+  <p>无需 Node.js、终端命令或运行环境配置。下载、打开，开始工作。</p>
 
-> 把 DeepSeek Harness 带到桌面：打开即用，保留完整能力，不再为 Node.js、终端命令和运行环境分心。
+  <p>
+    <a href="https://github.com/mapan0424/deepseek-harness-desktop/releases/latest"><img src="https://img.shields.io/github/v/release/mapan0424/deepseek-harness-desktop?style=flat-square&label=release&color=111111" alt="GitHub Release"></a>
+    <img src="https://img.shields.io/badge/macOS-12.7.6%2B-111111?style=flat-square&logo=apple" alt="macOS 12.7.6+">
+    <img src="https://img.shields.io/badge/Apple%20Silicon-arm64-111111?style=flat-square" alt="Apple Silicon arm64">
+    <img src="https://img.shields.io/badge/Intel-x86__64-111111?style=flat-square" alt="Intel x86_64">
+    <a href="LICENSE"><img src="https://img.shields.io/github/license/mapan0424/deepseek-harness-desktop?style=flat-square&color=111111" alt="MIT License"></a>
+  </p>
 
-DeepSeek Harness for macOS 是一个面向 macOS 的非官方桌面客户端。它将 DeepSeek Harness、Node.js 和所需原生依赖完整封装进独立 App，让你像使用普通 Mac 应用一样启动 Harness，专注于对话、代码、工具与工作流本身。
+  <p>
+    <a href="https://github.com/mapan0424/deepseek-harness-desktop/releases/latest"><strong>下载最新版本</strong></a>
+    · <a href="https://github.com/deepseek-ai/deepseek-harness">上游 Harness</a>
+    · <a href="https://github.com/mapan0424/deepseek-harness-desktop/issues">问题与建议</a>
+  </p>
+</div>
 
-[下载最新版本](https://github.com/mapan0424/deepseek-harness-desktop/releases/latest) · [查看 DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) · [提交问题](https://github.com/mapan0424/deepseek-harness-desktop/issues)
+<p align="center">
+  <img src="docs/assets/deepseek-harness-macos.png" width="900" alt="DeepSeek Harness for macOS 产品界面">
+</p>
 
-## 为什么值得使用
+<p align="center"><sub>一个 App，完整封装 Harness、官方 Node.js 与对应架构的原生依赖。</sub></p>
+
+## ✨ 为什么值得使用
 
 ### 真正的开箱即用
 
@@ -60,7 +79,7 @@ Apple Silicon 与 Intel 使用完全独立的安装包、Node.js 和原生依赖
 
 项目为 macOS 12.7.6 补齐必要的 WebKit 能力，并在构建阶段验证 Markdown、原生模块架构和最低系统版本，力求让旧 Intel Mac 也能继续获得完整的 Harness 体验。
 
-## 下载与安装
+## 🚀 下载与安装
 
 前往 [GitHub Releases](https://github.com/mapan0424/deepseek-harness-desktop/releases/latest)，根据处理器选择安装包：
 
@@ -81,7 +100,7 @@ Apple Silicon 与 Intel 使用完全独立的安装包、Node.js 和原生依赖
 xattr -dr com.apple.quarantine "/Applications/DeepSeek Harness.app"
 ```
 
-## 它如何工作
+## 🧭 它如何工作
 
 ```text
 DeepSeek Harness.app
@@ -99,7 +118,7 @@ DeepSeek Harness.app
 
 正式发行包直接从 App Resources 运行唯一一份内置 runtime，不在首次启动时下载或解压第二份副本。桌面层负责环境和生命周期，Harness 负责 Agent、会话、模型、工具及插件能力。
 
-## 项目愿景
+## 🌊 项目愿景
 
 我们希望它不只是“能启动 Harness 的外壳”，而是一个长期可靠的 macOS 入口：
 
@@ -112,7 +131,7 @@ DeepSeek Harness.app
 
 如果你希望 Harness 成为每天都能从 Dock 打开的生产力工具，欢迎试用、反馈和参与改进。
 
-## 开发
+## 🛠️ 开发
 
 ### 环境
 
@@ -163,7 +182,7 @@ src-tauri/target/x86_64-apple-darwin/release/bundle/dmg/DeepSeek Harness_<versio
 - 生成 npm 与 Rust/Tauri 第三方许可证报告；
 - 检查运行时只有一份，不产生首次启动缓存副本。
 
-## 贡献
+## 🤝 贡献
 
 欢迎通过 [Issues](https://github.com/mapan0424/deepseek-harness-desktop/issues) 提交：
 
@@ -175,17 +194,17 @@ src-tauri/target/x86_64-apple-darwin/release/bundle/dmg/DeepSeek Harness_<versio
 
 提交问题时建议附上 macOS 版本、处理器架构和可公开的错误信息，请勿上传 API Key 或其他凭据。
 
-## 许可证与声明
+## 📄 许可证与声明
 
 桌面外壳采用 [MIT License](LICENSE)。DeepSeek Harness 及其他内置组件保留各自的版权和许可证；完整第三方说明见 [`src-tauri/legal/THIRD_PARTY_NOTICES.md`](src-tauri/legal/THIRD_PARTY_NOTICES.md)。
 
 本项目由社区独立开发和分发，不是 DeepSeek 官方产品，也不代表获得 DeepSeek 的赞助、认可或背书。“DeepSeek”与“DeepSeek Harness”仅用于说明兼容的上游项目。
 
-## 相关项目
+## 🔗 相关项目
 
 - [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)
 - [DeepSeek Harness 官方网站](https://deepseek.com/harness)
 
-## 友情链接 (Links)
+## 🌐 友情链接 (Links)
 
 - [LINUX DO 社区](https://linux.do)
