@@ -5,6 +5,7 @@ import { spawn, spawnSync } from "node:child_process";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { pipeline } from "node:stream/promises";
+import { patchRuntimeCompatibility } from "./patch-runtime-compat.mjs";
 
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const resourcesRoot = join(projectRoot, "src-tauri", "resources");
@@ -81,6 +82,7 @@ await run("npm", [
   npm_config_platform: "darwin",
 });
 
+await patchRuntimeCompatibility(runtimeRoot);
 await pruneIntelRuntime();
 assertIntelNatives();
 await installRuntimeLegalFiles();

@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import { readdir, stat } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import { join, resolve } from "node:path";
+import { verifyRuntimeCompatibility } from "./patch-runtime-compat.mjs";
 
 const [appArg, expectedArch] = process.argv.slice(2);
 if (!appArg || !["arm64", "x86_64"].includes(expectedArch)) {
@@ -23,6 +24,7 @@ assertMinimumSystemVersion();
 assertMachO(executable, expectedArch);
 assertMachO(node, expectedArch);
 await scanNativeFiles(join(runtime, "node_modules"));
+await verifyRuntimeCompatibility(runtime);
 const size = await directorySize(app);
 const max = 340 * 1024 * 1024;
 if (size > max) throw new Error(`Expanded App is unexpectedly large: ${(size / 1024 / 1024).toFixed(1)} MB > 340 MB`);

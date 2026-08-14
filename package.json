@@ -11,6 +11,7 @@
     "prepare:runtime": "node scripts/prepare-runtime.mjs",
     "prepare:runtime:intel": "node scripts/prepare-runtime-intel.mjs",
     "prepare:licenses": "node scripts/prepare-rust-licenses.mjs",
+    "test:runtime:compat": "node scripts/test-runtime-compat.mjs",
     "verify:macos:arm": "node scripts/verify-macos-bundle.mjs 'src-tauri/target/release/bundle/macos/DeepSeek Harness.app' arm64",
     "verify:macos:intel": "node scripts/verify-macos-bundle.mjs 'src-tauri/target/x86_64-apple-darwin/release/bundle/macos/DeepSeek Harness.app' x86_64",
     "build:macos": "pnpm prepare:runtime && pnpm prepare:licenses && pnpm tauri build --no-sign && pnpm verify:macos:arm",

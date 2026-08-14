@@ -102,8 +102,9 @@ DeepSeek Harness.app
 - Apple Silicon 与 Intel 使用完全独立的 DMG、Node.js 和原生依赖，不提供 Universal Binary；
 - Harness Web UI 在 Tauri 主 WebView 中作为顶层 localhost 页面运行，避免旧版 WKWebView 中跨源 iframe 的 WebSocket 和事件处理问题；
 - macOS 12.7.6 的 WKWebView 缺少 `AbortSignal.timeout()`、`AbortSignal.any()` 和 `Promise.withResolvers()`；App 会在业务脚本执行前按需补齐这些 API；
+- 构建时会精确修补上游 Markdown 邮箱自动链接中不受 Monterey JavaScriptCore 支持的 lookbehind 正则，并同时验证依赖源码和实际加载的预构建前端资源；
 - 兼容脚本仅在 API 缺失时生效，不覆盖新系统的原生实现，不修改内置 Node.js，也不会接触 API Key、会话或工作区内容；
-- 构建验证会拒绝任何最低系统要求高于 macOS 12.7.6 的内置 Mach-O 可执行文件、动态库或 Node.js 原生模块。
+- 构建验证会拒绝任何最低系统要求高于 macOS 12.7.6 的内置 Mach-O 文件，也会拒绝未经兼容处理的 Markdown 前端资源。
 
 ## 当前优势
 
