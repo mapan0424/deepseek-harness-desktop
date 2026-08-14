@@ -1,0 +1,14 @@
+{
+  "name": "deepseek-harness-macos",
+  "private": true,
+  "version": "0.1.1",
+  "type": "module",
+  "scripts": {
+    "tauri": "tauri",
+    "prepare:runtime": "node scripts/prepare-runtime.mjs",
+    "build:macos": "pnpm prepare:runtime && pnpm tauri build"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2"
+  }
+}

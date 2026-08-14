@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DeepSeek Harness</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script type="module" src="/main.js" defer></script>
+  </head>
+  <body>
+    <section class="boot-screen" id="boot-screen" aria-live="polite">
+      <div class="boot-mark"><img src="assets/whale-logo.svg" alt="DeepSeek Harness" /></div>
+      <p class="boot-kicker">DEEPSEEK HARNESS</p>
+      <h1>准备你的工作台</h1>
+      <p class="boot-status" id="boot-status">正在启动本地 Agent…</p>
+      <div class="boot-progress"><span id="boot-progress-bar"></span></div>
+      <button class="retry-button hidden" id="boot-retry">重新连接</button>
+    </section>
+
+    <main class="native-shell hidden" id="native-shell">
+      <iframe id="dsh-frame" title="DeepSeek Harness" allow="clipboard-read; clipboard-write"></iframe>
+    </main>
+  </body>
+</html>

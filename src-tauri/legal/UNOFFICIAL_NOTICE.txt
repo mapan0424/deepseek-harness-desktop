@@ -1,0 +1,7 @@
+DeepSeek Harness for macOS
+
+这是由第三方制作的非官方 macOS 客户端。
+本软件基于 DeepSeek Harness 开源项目构建，不代表 DeepSeek 官方产品或官方背书。
+
+DeepSeek Harness 原项目采用 MIT License。第三方依赖继续受其各自许可证约束，
+详见同目录下的 THIRD_PARTY_NOTICES.md。

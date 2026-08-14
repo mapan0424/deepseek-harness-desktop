@@ -1,0 +1,56 @@
+:root {
+  font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+  color: #f4f6fa;
+  background: #15171b;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+* { box-sizing: border-box; }
+html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+body { background: #15171b; }
+.hidden { display: none !important; }
+
+.boot-screen {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  background: #f7f7f5;
+  color: #111315;
+}
+
+.boot-mark {
+  width: 88px;
+  height: 70px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+}
+
+.boot-mark img {
+  display: block;
+  width: 86px;
+  height: auto;
+}
+
+.boot-kicker {
+  margin: 24px 0 10px;
+  color: #73777d;
+  font: 500 10px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: .18em;
+}
+
+.boot-screen h1 { margin: 0; color: #17191b; font-size: 27px; font-weight: 600; letter-spacing: -.045em; }
+.boot-status { margin: 12px 0 24px; color: #8a8f95; font-size: 13px; }
+.boot-progress { width: 240px; height: 3px; overflow: hidden; border-radius: 4px; background: #e1e2df; }
+.boot-progress span { display: block; width: 12%; height: 100%; border-radius: 4px; background: #17191b; transition: width .5s ease; }
+.retry-button { margin-top: 20px; border: 0; background: transparent; color: #17191b; font-size: 14px; }
+.retry-button:hover { color: #777; }
+
+.native-shell { width: 100vw; height: 100vh; background: #fff; animation: reveal .35s ease both; }
+.native-shell iframe { display: block; width: 100%; height: 100%; border: 0; background: #fff; }
+@keyframes reveal { from { opacity: 0; } to { opacity: 1; } }
