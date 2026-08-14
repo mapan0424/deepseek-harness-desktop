@@ -1,4 +1,4 @@
-# Harness Desktop for macOS
+# DeepSeek Harness for macOS（非官方客户端）
 
 这是一个非官方 Tauri macOS 客户端：使用原生窗口和生命周期管理，主界面复用 DeepSeek Harness Web UI，保证完整的会话、Markdown、流式输出、工具调用和审批体验。
 
