@@ -292,3 +292,7 @@ App 名称保留为 **DeepSeek Harness**，用于清晰说明其用途；为避�
 
 - DeepSeek Harness：https://github.com/deepseek-ai/deepseek-harness
 - 官方网站：https://deepseek.com/harness
+
+## 友情链接 (Links)
+
+* [LINUX DO 社区](https://linux.do)
