@@ -4,6 +4,8 @@
 
 > **非官方声明：** 本项目由第三方独立开发和分发，不是 DeepSeek 官方产品，未经 DeepSeek 赞助、认可或背书，也不代表与 DeepSeek 存在隶属关系。“DeepSeek”和“DeepSeek Harness”仅用于说明兼容或内置的上游项目。MIT 代码许可不授予商标权。应用图标右下角的“非官方”角标、窗口标题以及第三方 Bundle ID 均用于避免身份混淆。
 
+> **0.1 预览：** 当前发布包**没有** Apple Developer ID 签名和公证。可以正常分发，但 macOS 会拦截首次打开。请只从本仓库 [Releases](https://github.com/mapan0424/deepseek-harness-desktop/releases) 下载，并按下面的 [安装 0.1（未签名）](#安装-01未签名) 操作。
+
 ## 为什么要做这个项目
 
 DeepSeek Harness 本身已经提供成熟的 Web UI。直接通过浏览器运行非常适合开发和快速体验，但作为日常桌面工具仍有一些摩擦：
@@ -110,13 +112,50 @@ DeepSeek Harness.app
 
 - 当前正式构建目标仅为 Apple Silicon（`aarch64`）；
 - 尚未提供 Intel 或 Universal Binary；
-- 尚未完成 Apple Developer ID 签名和 notarization；
+- 0.1 刻意不签名、不公证，便于先把可运行包发出去；打开方式见 [安装 0.1（未签名）](#安装-01未签名)；
 - 主界面是系统 WebView，并非纯原生 SwiftUI；
 - App 会随包携带 Node.js 和完整 dsh 运行时，因此安装包不会像普通薄 WebView 外壳那么小；
 - dsh 仍处于 developer preview，上游可能发生兼容性破坏；
 - API Key、模型、插件和工作区行为主要由 DeepSeek Harness 自身配置决定；
 - 还没有自动更新、完整原生菜单和面向最终用户的工作区管理界面；
 - 当前 CSP 配置仍需在正式安全审计中进一步收紧。
+
+## 安装 0.1（未签名）
+
+可以。0.1 作为 GitHub 预览版，**暂时不签名是合理的**：受众是愿意自己构建或接受一次系统提示的开发者，不必先办 Developer ID（每年付费、还要走公证）。代价是双击不会像正式软件那样直接打开。
+
+未签名包在 macOS 上通常会看到「无法验证开发者」，有时会误报「已损坏」。后者多半是隔离属性（quarantine），不是文件真坏了。
+
+**只从本仓库 Releases 下载。** 不要用网盘、群文件或来路不明的镜像。
+
+### 推荐：去掉隔离属性后再打开
+
+1. 打开 `.dmg`，把 `DeepSeek Harness.app` 拖到「应用程序」。
+2. 不要先双击。在终端执行：
+
+```bash
+xattr -dr com.apple.quarantine "/Applications/DeepSeek Harness.app"
+```
+
+3. 再从「应用程序」打开。
+
+如果 App 不在「应用程序」里，把路径换成你实际放置的位置。
+
+### 备选：系统设置里允许这一次
+
+1. 双击后如果被拦截，打开 **系统设置 → 隐私与安全性**。
+2. 滚到页面下半部分，找到刚才被拦的 App。
+3. 点 **仍要打开**，按提示确认。
+
+部分系统版本也可以在 Finder 里对 App **按住 Control 再点按 → 打开**。若提示「已损坏」，请改用上面的 `xattr` 命令。
+
+### 不要这样做
+
+- 不要关闭 SIP；
+- 不要为了装这个 App 去打开「任何来源」；
+- 不要对整盘执行来路不明的 `xattr` / `spctl` 脚本。
+
+0.1 只覆盖 Apple Silicon（`aarch64`）。Intel Mac 请自行构建，或等后续 Universal / 签名版本。
 
 ## 开发运行
 
