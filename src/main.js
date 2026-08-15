@@ -23,7 +23,7 @@ async function start() {
       const status = await invoke("dsh_status", { port: activePort });
       if (status === "ready") {
         setStatus("正在打开工作台…", 92);
-        await invoke("open_main_window", { port: activePort });
+        await invoke("open_workspace", { port: activePort });
         return;
       }
       setStatus(attempt > 10 ? "正在准备本地运行时…" : "正在启动本地 Agent…", Math.min(86, 12 + attempt / 3));

@@ -7,7 +7,7 @@ use std::sync::Mutex;
 use std::time::Duration;
 
 use serde_json::{json, Value};
-use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
+use tauri::{LogicalSize, Manager, Size};
 
 struct DshProcess {
     child: Mutex<Option<Child>>,
@@ -298,9 +298,8 @@ fn dsh_status(
 }
 
 #[tauri::command]
-fn open_main_window(
+fn open_workspace(
     window: tauri::WebviewWindow,
-    app: tauri::AppHandle,
     state: tauri::State<'_, DshProcess>,
     port: u16,
 ) -> Result<(), String> {
@@ -314,42 +313,44 @@ fn open_main_window(
         return Err("dsh 尚未准备完成".to_string());
     }
 
-    if let Some(window) = app.get_webview_window("main") {
-        window
-            .show()
-            .map_err(|error| format!("显示主窗口失败：{error}"))?;
-        window
-            .set_focus()
-            .map_err(|error| format!("聚焦主窗口失败：{error}"))?;
-        return Ok(());
-    }
-
     let url = format!("http://127.0.0.1:{active_port}")
         .parse()
         .map_err(|error| format!("生成本地工作台地址失败：{error}"))?;
-    let main = WebviewWindowBuilder::new(&app, "main", WebviewUrl::External(url))
-        .title("DeepSeek Harness — 非官方客户端")
-        .inner_size(1240.0, 820.0)
-        .min_inner_size(960.0, 640.0)
-        .resizable(true)
-        .visible(true)
-        .build()
+    window
+        .set_title("DeepSeek Harness — 非官方客户端")
+        .map_err(|error| format!("更新窗口标题失败：{error}"))?;
+    window
+        .set_resizable(true)
+        .map_err(|error| format!("启用窗口缩放失败：{error}"))?;
+    window
+        .set_min_size(Some(Size::Logical(LogicalSize::new(960.0, 640.0))))
+        .map_err(|error| format!("设置窗口最小尺寸失败：{error}"))?;
+    window
+        .set_size(Size::Logical(LogicalSize::new(1240.0, 820.0)))
+        .map_err(|error| format!("调整工作台窗口失败：{error}"))?;
+    window
+        .center()
+        .map_err(|error| format!("居中工作台窗口失败：{error}"))?;
+    window
+        .navigate(url)
         .map_err(|error| format!("打开工作台失败：{error}"))?;
-    main.set_focus()
-        .map_err(|error| format!("聚焦主窗口失败：{error}"))?;
-    if let Some(splash) = app.get_webview_window("splash") {
-        splash
-            .close()
-            .map_err(|error| format!("关闭启动窗口失败：{error}"))?;
-    }
+    window
+        .set_focus()
+        .map_err(|error| format!("聚焦工作台失败：{error}"))?;
     Ok(())
 }
 
 fn require_splash(window: &tauri::WebviewWindow) -> Result<(), String> {
-    if window.label() == "splash" {
+    let url = window
+        .url()
+        .map_err(|error| format!("读取窗口地址失败：{error}"))?;
+    let is_app_origin = url.scheme() == "tauri"
+        || ((url.scheme() == "http" || url.scheme() == "https")
+            && url.host_str() == Some("tauri.localhost"));
+    if window.label() == "splash" && is_app_origin {
         Ok(())
     } else {
-        Err("该命令仅允许启动窗口调用".to_string())
+        Err("该命令仅允许启动页面调用".to_string())
     }
 }
 
@@ -521,7 +522,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             start_dsh,
             dsh_status,
-            open_main_window,
+            open_workspace,
             dsh_api_request,
             stop_dsh
         ])
