@@ -17,6 +17,9 @@ struct DshProcess {
 }
 
 fn npx_path() -> String {
+    if cfg!(windows) {
+        return "npx.cmd".to_string();
+    }
     [
         "/opt/homebrew/opt/node@22/bin/npx",
         "/opt/homebrew/opt/node/bin/npx",
@@ -30,11 +33,25 @@ fn npx_path() -> String {
     .unwrap_or_else(|| "npx".to_string())
 }
 
-fn node_search_path() -> String {
-    let app_path = std::env::var("PATH").unwrap_or_default();
-    format!(
-        "/opt/homebrew/opt/node@22/bin:/opt/homebrew/opt/node/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:{app_path}"
-    )
+fn node_search_path(runtime_root: Option<&std::path::Path>) -> std::ffi::OsString {
+    let mut paths = Vec::new();
+    if let Some(runtime_root) = runtime_root {
+        paths.push(runtime_root.to_path_buf());
+    }
+    if !cfg!(windows) {
+        paths.extend([
+            PathBuf::from("/opt/homebrew/opt/node@22/bin"),
+            PathBuf::from("/opt/homebrew/opt/node/bin"),
+            PathBuf::from("/opt/homebrew/bin"),
+            PathBuf::from("/usr/local/bin"),
+            PathBuf::from("/usr/bin"),
+            PathBuf::from("/bin"),
+        ]);
+    }
+    paths.extend(std::env::split_paths(
+        &std::env::var_os("PATH").unwrap_or_default(),
+    ));
+    std::env::join_paths(paths).unwrap_or_else(|_| std::env::var_os("PATH").unwrap_or_default())
 }
 
 fn port_is_ready(port: u16) -> bool {
@@ -79,8 +96,9 @@ fn bundled_runtime(app: &tauri::AppHandle) -> Option<(PathBuf, PathBuf)> {
     }
     candidates.push(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("resources/dsh-runtime"));
 
+    let node_name = if cfg!(windows) { "node.exe" } else { "node" };
     if let Some(runtime) = candidates.iter().find(|runtime| {
-        runtime.join("node").is_file()
+        runtime.join(node_name).is_file()
             && runtime
                 .join("node_modules/@deepseek-ai/dsh/lib/bin.js")
                 .is_file()
@@ -92,7 +110,7 @@ fn bundled_runtime(app: &tauri::AppHandle) -> Option<(PathBuf, PathBuf)> {
             let _ = std::fs::remove_dir_all(app_data_dir.join("runtime-cache"));
         }
         return Some((
-            runtime.join("node"),
+            runtime.join(node_name),
             runtime.join("node_modules/@deepseek-ai/dsh/lib/bin.js"),
         ));
     }
@@ -180,16 +198,18 @@ fn start_dsh(
         return Err("正式包缺少内置 dsh 运行时，请重新下载完整 App。".to_string());
     };
 
+    let runtime_root = using_bundled_runtime.then(|| program.parent()).flatten();
     let mut command = Command::new(&program);
     command
-        .env("PATH", node_search_path())
+        .env("PATH", node_search_path(runtime_root))
         .args(&args)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
 
+    #[cfg(target_os = "macos")]
     if using_bundled_runtime {
-        if let Some(runtime_root) = program.parent() {
+        if let Some(runtime_root) = runtime_root {
             command.env("DYLD_LIBRARY_PATH", runtime_root.join("lib"));
         }
     }
@@ -366,7 +386,12 @@ fn dsh_api_request(
     .to_string();
     let url = format!("http://127.0.0.1:{port}/api/{}", body_method(&body)?);
 
-    let output = Command::new("/usr/bin/curl")
+    let curl = if cfg!(windows) {
+        "curl.exe"
+    } else {
+        "/usr/bin/curl"
+    };
+    let output = Command::new(curl)
         .args([
             "-sS",
             "--fail-with-body",
@@ -434,21 +459,38 @@ fn stop_dsh(
         .map_err(|_| "无法取得 dsh 进程锁".to_string())?;
 
     if let Some(mut child) = process.take() {
-        if child
-            .try_wait()
-            .map_err(|error| format!("读取 dsh 状态失败：{error}"))?
-            .is_none()
-        {
-            child
-                .kill()
-                .map_err(|error| format!("停止 dsh 失败：{error}"))?;
-        }
-        let _ = child.wait();
+        terminate_child(&mut child)?;
     }
     if let Ok(mut active_port) = state.port.lock() {
         *active_port = None;
     }
 
+    Ok(())
+}
+
+fn terminate_child(child: &mut Child) -> Result<(), String> {
+    if child
+        .try_wait()
+        .map_err(|error| format!("读取 dsh 状态失败：{error}"))?
+        .is_some()
+    {
+        return Ok(());
+    }
+
+    #[cfg(windows)]
+    {
+        let _ = Command::new("taskkill")
+            .args(["/PID", &child.id().to_string(), "/T", "/F"])
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status();
+    }
+    if child.try_wait().ok().flatten().is_none() {
+        child
+            .kill()
+            .map_err(|error| format!("停止 dsh 失败：{error}"))?;
+    }
+    let _ = child.wait();
     Ok(())
 }
 
@@ -482,8 +524,7 @@ pub fn run() {
                 let state = app_handle.state::<DshProcess>();
                 let _ = state.child.lock().map(|mut process| {
                     if let Some(mut child) = process.take() {
-                        let _ = child.kill();
-                        let _ = child.wait();
+                        let _ = terminate_child(&mut child);
                     }
                 });
             }

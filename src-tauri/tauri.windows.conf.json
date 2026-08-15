@@ -1,0 +1,19 @@
+{
+  "bundle": {
+    "targets": ["nsis", "msi"],
+    "windows": {
+      "webviewInstallMode": {
+        "type": "offlineInstaller",
+        "silent": true
+      },
+      "nsis": {
+        "installMode": "currentUser",
+        "languages": ["English", "SimpChinese"],
+        "displayLanguageSelector": false
+      },
+      "wix": {
+        "language": "en-US"
+      }
+    }
+  }
+}
