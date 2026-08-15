@@ -3,8 +3,7 @@
     "targets": ["nsis", "msi"],
     "windows": {
       "webviewInstallMode": {
-        "type": "offlineInstaller",
-        "silent": true
+        "type": "skip"
       },
       "nsis": {
         "installMode": "currentUser",

@@ -171,11 +171,19 @@ fn start_dsh(
 
     let (program, args, using_bundled_runtime) = if let Some((node, entry)) = bundled_runtime(&app)
     {
+        // Passing a Windows drive-qualified script path through the installed
+        // process chain can be reduced to `C:` by Node's entry-point parser.
+        // Run from the embedded runtime and use a relative script path there.
+        let entry_arg = if cfg!(windows) {
+            "node_modules/@deepseek-ai/dsh/lib/bin.js".to_string()
+        } else {
+            entry.to_string_lossy().into_owned()
+        };
         (
             node,
             vec![
                 "--expose-internals".to_string(),
-                entry.to_string_lossy().into_owned(),
+                entry_arg,
                 "web".to_string(),
                 "--port".to_string(),
                 active_port.to_string(),
@@ -214,7 +222,11 @@ fn start_dsh(
         }
     }
 
-    if let Ok(app_data_dir) = app.path().app_data_dir() {
+    if cfg!(windows) && using_bundled_runtime {
+        if let Some(runtime_root) = runtime_root {
+            command.current_dir(runtime_root);
+        }
+    } else if let Ok(app_data_dir) = app.path().app_data_dir() {
         let _ = std::fs::create_dir_all(&app_data_dir);
         command.current_dir(app_data_dir);
     }
