@@ -7,7 +7,6 @@ use std::sync::Mutex;
 use std::time::Duration;
 
 use serde_json::{json, Value};
-use tauri::webview::PageLoadEvent;
 use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
 
 struct DshProcess {
@@ -328,24 +327,21 @@ fn open_main_window(
     let url = format!("http://127.0.0.1:{active_port}")
         .parse()
         .map_err(|error| format!("生成本地工作台地址失败：{error}"))?;
-    WebviewWindowBuilder::new(&app, "main", WebviewUrl::External(url))
+    let main = WebviewWindowBuilder::new(&app, "main", WebviewUrl::External(url))
         .title("DeepSeek Harness — 非官方客户端")
         .inner_size(1240.0, 820.0)
         .min_inner_size(960.0, 640.0)
         .resizable(true)
-        .visible(false)
-        .on_page_load(|window, payload| {
-            if payload.event() != PageLoadEvent::Finished {
-                return;
-            }
-            let _ = window.show();
-            let _ = window.set_focus();
-            if let Some(splash) = window.app_handle().get_webview_window("splash") {
-                let _ = splash.close();
-            }
-        })
+        .visible(true)
         .build()
         .map_err(|error| format!("打开工作台失败：{error}"))?;
+    main.set_focus()
+        .map_err(|error| format!("聚焦主窗口失败：{error}"))?;
+    if let Some(splash) = app.get_webview_window("splash") {
+        splash
+            .close()
+            .map_err(|error| format!("关闭启动窗口失败：{error}"))?;
+    }
     Ok(())
 }
 
