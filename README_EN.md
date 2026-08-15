@@ -10,6 +10,7 @@
     <img src="https://img.shields.io/badge/macOS-12.7.6%2B-111111?style=flat-square&logo=apple" alt="macOS 12.7.6+">
     <img src="https://img.shields.io/badge/Apple%20Silicon-arm64-111111?style=flat-square" alt="Apple Silicon arm64">
     <img src="https://img.shields.io/badge/Intel-x86__64-111111?style=flat-square" alt="Intel x86_64">
+    <img src="https://img.shields.io/badge/Windows-x86__64-111111?style=flat-square&logo=windows11" alt="Windows x86_64">
     <a href="LICENSE"><img src="https://img.shields.io/github/license/mapan0424/deepseek-harness-desktop?style=flat-square&color=111111" alt="MIT License"></a>
   </p>
 
@@ -69,27 +70,30 @@ The Harness service listens only on `127.0.0.1`. Sessions, settings, workspaces,
 
 Where model requests go—and how providers process them—depends on the model service you configure in Harness.
 
-### Built for both new and older Macs
+### Built for more useful machines
 
-Apple Silicon and Intel receive separate DMGs, Node.js runtimes, and native dependencies. This keeps each package focused and avoids the compromises of a Universal Binary.
+Apple Silicon, Intel Mac, and Windows x64 each receive dedicated installers, Node.js runtimes, and native dependencies. Keeping architectures separate avoids unnecessary size and compatibility compromises.
 
-- minimum supported version: **macOS 12.7.6**
+- minimum macOS version: **12.7.6**
 - Apple Silicon: `arm64`
 - Intel Mac: `x86_64`
-- compatibility work spanning Monterey through current macOS releases
+- Windows 10 / 11: `x86_64`
+- compatibility work across system WebViews and native modules
 
-The build pipeline fills important WebKit gaps on macOS 12.7.6 and verifies Markdown behavior, native architecture, and deployment targets so older Intel Macs can keep a complete Harness experience.
+The build pipeline verifies Markdown behavior, native architecture, and platform targets so older Intel Macs and mainstream Windows PCs can keep a complete Harness experience.
 
 ## 🚀 Download and install
 
-Open [GitHub Releases](https://github.com/mapan0424/deepseek-harness-desktop/releases/latest) and choose the package for your processor:
+Open [GitHub Releases](https://github.com/mapan0424/deepseek-harness-desktop/releases/latest) and choose the package for your platform and processor:
 
-| Mac | Package |
+| Platform | Package |
 | --- | --- |
-| Apple Silicon (M1, M2, M3, M4, and later) | `DeepSeek.Harness_*_arm64.dmg` |
-| Intel Mac | `DeepSeek.Harness_*_x86_64.dmg` |
+| macOS Apple Silicon (M1, M2, M3, M4, and later) | `DeepSeek.Harness_*_macos_arm64.dmg` |
+| macOS Intel | `DeepSeek.Harness_*_macos_x86_64.dmg` |
+| Windows 10 / 11 x64 (recommended) | `DeepSeek.Harness_*_windows_x86_64-setup.exe` |
+| Windows x64 enterprise deployment | `DeepSeek.Harness_*_windows_x86_64.msi` |
 
-Installation:
+### macOS
 
 1. Open the DMG.
 2. Drag `DeepSeek Harness.app` into Applications.
@@ -100,6 +104,14 @@ If macOS blocks the first launch, verify that the file came from this repository
 ```bash
 xattr -dr com.apple.quarantine "/Applications/DeepSeek Harness.app"
 ```
+
+### Windows
+
+1. Download and run `setup.exe`.
+2. Open DeepSeek Harness from the Start menu after installation.
+3. Configure your preferred model or API credentials in Harness.
+
+MSI is primarily intended for enterprise or managed deployment. Windows 10 and 11 normally include the required Microsoft Edge WebView2 Runtime.
 
 ## 🧭 How it works
 
@@ -161,7 +173,7 @@ Output:
 src-tauri/target/release/bundle/dmg/DeepSeek Harness_<version>_aarch64.dmg
 ```
 
-### Build for Intel
+### Build for Intel Mac
 
 ```bash
 pnpm build:macos:intel
@@ -171,6 +183,20 @@ Output:
 
 ```text
 src-tauri/target/x86_64-apple-darwin/release/bundle/dmg/DeepSeek Harness_<version>_x64.dmg
+```
+
+### Build for Windows x64
+
+Windows installers are built on a native Windows GitHub Actions runner:
+
+```text
+Actions → Build Windows x64 → Run workflow
+```
+
+They can also be built on a Windows x64 development machine:
+
+```bash
+pnpm build:windows
 ```
 
 The build pipeline automatically:
@@ -187,8 +213,8 @@ The build pipeline automatically:
 
 Use [Issues](https://github.com/mapan0424/deepseek-harness-desktop/issues) to report or discuss:
 
-- macOS compatibility problems
-- Intel or Apple Silicon feedback
+- macOS or Windows compatibility problems
+- Intel, Apple Silicon, or Windows x64 feedback
 - desktop experience improvements
 - build and distribution work
 - upgrades to newer Harness releases

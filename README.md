@@ -10,6 +10,7 @@
     <img src="https://img.shields.io/badge/macOS-12.7.6%2B-111111?style=flat-square&logo=apple" alt="macOS 12.7.6+">
     <img src="https://img.shields.io/badge/Apple%20Silicon-arm64-111111?style=flat-square" alt="Apple Silicon arm64">
     <img src="https://img.shields.io/badge/Intel-x86__64-111111?style=flat-square" alt="Intel x86_64">
+    <img src="https://img.shields.io/badge/Windows-x86__64-111111?style=flat-square&logo=windows11" alt="Windows x86_64">
     <a href="LICENSE"><img src="https://img.shields.io/github/license/mapan0424/deepseek-harness-desktop?style=flat-square&color=111111" alt="MIT License"></a>
   </p>
 
@@ -69,27 +70,30 @@ Harness 服务只监听本机 `127.0.0.1`。会话、设置、工作区和凭据
 
 模型请求的目标和数据处理方式取决于你在 Harness 中选择的模型服务与配置。
 
-### 同时照顾新旧 Mac
+### 覆盖更多仍有价值的设备
 
-Apple Silicon 与 Intel 使用完全独立的安装包、Node.js 和原生依赖，不用 Universal Binary 牺牲体积和可控性。
+Apple Silicon、Intel Mac 和 Windows x64 使用各自独立的安装包、Node.js 与原生依赖，避免混合架构带来的体积和兼容性问题。
 
-- 最低支持 **macOS 12.7.6**
+- macOS 最低支持 **12.7.6**
 - Apple Silicon：`arm64`
 - Intel Mac：`x86_64`
-- 持续适配 Monterey 到当前 macOS 的系统 WebView 差异
+- Windows 10 / 11：`x86_64`
+- 持续适配不同系统 WebView 与原生模块差异
 
-项目为 macOS 12.7.6 补齐必要的 WebKit 能力，并在构建阶段验证 Markdown、原生模块架构和最低系统版本，力求让旧 Intel Mac 也能继续获得完整的 Harness 体验。
+构建流程会验证 Markdown、原生模块架构和系统目标，让旧 Intel Mac 与主流 Windows PC 也能获得完整的 Harness 体验。
 
 ## 🚀 下载与安装
 
-前往 [GitHub Releases](https://github.com/mapan0424/deepseek-harness-desktop/releases/latest)，根据处理器选择安装包：
+前往 [GitHub Releases](https://github.com/mapan0424/deepseek-harness-desktop/releases/latest)，根据系统和处理器选择安装包：
 
-| Mac | 安装包 |
+| 平台 | 安装包 |
 | --- | --- |
-| Apple Silicon（M1 / M2 / M3 / M4 等） | `DeepSeek.Harness_*_arm64.dmg` |
-| Intel Mac | `DeepSeek.Harness_*_x86_64.dmg` |
+| macOS Apple Silicon（M1 / M2 / M3 / M4 等） | `DeepSeek.Harness_*_macos_arm64.dmg` |
+| macOS Intel | `DeepSeek.Harness_*_macos_x86_64.dmg` |
+| Windows 10 / 11 x64（推荐） | `DeepSeek.Harness_*_windows_x86_64-setup.exe` |
+| Windows x64 企业部署 | `DeepSeek.Harness_*_windows_x86_64.msi` |
 
-安装步骤：
+### macOS
 
 1. 打开 DMG；
 2. 将 `DeepSeek Harness.app` 拖入“应用程序”；
@@ -100,6 +104,14 @@ Apple Silicon 与 Intel 使用完全独立的安装包、Node.js 和原生依赖
 ```bash
 xattr -dr com.apple.quarantine "/Applications/DeepSeek Harness.app"
 ```
+
+### Windows
+
+1. 下载并运行 `setup.exe`；
+2. 完成安装后从开始菜单打开 DeepSeek Harness；
+3. 在 Harness 中配置需要使用的模型或 API 凭据。
+
+MSI 主要用于企业或批量部署。Windows 10/11 通常已内置应用所需的 Microsoft Edge WebView2 Runtime。
 
 ## 🧭 它如何工作
 
@@ -161,7 +173,7 @@ pnpm build:macos
 src-tauri/target/release/bundle/dmg/DeepSeek Harness_<version>_aarch64.dmg
 ```
 
-### 构建 Intel
+### 构建 Intel Mac
 
 ```bash
 pnpm build:macos:intel
@@ -171,6 +183,20 @@ pnpm build:macos:intel
 
 ```text
 src-tauri/target/x86_64-apple-darwin/release/bundle/dmg/DeepSeek Harness_<version>_x64.dmg
+```
+
+### 构建 Windows x64
+
+Windows 安装包由原生 Windows GitHub Actions Runner 构建：
+
+```text
+Actions → Build Windows x64 → Run workflow
+```
+
+也可以在 Windows x64 开发机运行：
+
+```bash
+pnpm build:windows
 ```
 
 构建流程会自动：
@@ -187,8 +213,8 @@ src-tauri/target/x86_64-apple-darwin/release/bundle/dmg/DeepSeek Harness_<versio
 
 欢迎通过 [Issues](https://github.com/mapan0424/deepseek-harness-desktop/issues) 提交：
 
-- macOS 兼容性问题
-- Intel 或 Apple Silicon 运行反馈
+- macOS 或 Windows 兼容性问题
+- Intel、Apple Silicon 或 Windows x64 运行反馈
 - 桌面体验建议
 - 构建与分发改进
 - 上游 Harness 升级适配
