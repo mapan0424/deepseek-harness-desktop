@@ -202,4 +202,11 @@ function requireBuffer(path) {
 
 async function sha256(path) { const hash = createHash("sha256"); await pipeline(createReadStream(path), hash); return hash.digest("hex"); }
 function escapePowerShell(value) { return value.replaceAll("'", "''"); }
-function run(command, args) { return new Promise((resolvePromise, reject) => { const child = spawn(command, args, { cwd: projectRoot, stdio: "inherit", shell: false }); child.once("error", reject); child.once("exit", (code) => code === 0 ? resolvePromise() : reject(new Error(`${command} exited with code ${code}`))); }); }
+function run(command, args) {
+  return new Promise((resolvePromise, reject) => {
+    const throughShell = process.platform === "win32" && /\.(cmd|bat)$/i.test(command);
+    const child = spawn(command, args, { cwd: projectRoot, stdio: "inherit", shell: throughShell });
+    child.once("error", reject);
+    child.once("exit", (code) => code === 0 ? resolvePromise() : reject(new Error(`${command} exited with code ${code}`)));
+  });
+}
