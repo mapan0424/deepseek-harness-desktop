@@ -1,0 +1,5 @@
+# Harness Insights is installed into the Web profile's standard out-of-tree
+# node_modules directory by Harness Desktop before this overlay is applied.
+- insert:
+    - id: harness-desktop-insights
+      name: '@harness-desktop/insights'

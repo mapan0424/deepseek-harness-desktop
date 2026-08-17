@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { readdir, stat } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { verifyRuntimeCompatibility } from "./patch-runtime-compat.mjs";
+import { verifyBundledPlugins } from "./install-bundled-plugins.mjs";
 
 const [bundleArg] = process.argv.slice(2);
 if (!bundleArg) throw new Error("Usage: node scripts/verify-windows-bundle.mjs <bundle-directory>");
@@ -16,6 +17,7 @@ assertPeX64(app);
 assertPeX64(node);
 await scanNativeFiles(join(runtime, "node_modules"));
 await verifyRuntimeCompatibility(runtime);
+await verifyBundledPlugins(runtime);
 if (existsSync(join(runtime, "node_modules", "node-addon-require-builtin-win32-x64-msvc"))) {
   throw new Error("Optional native internal-loader package should not be shipped in the Windows bundle.");
 }

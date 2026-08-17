@@ -6,12 +6,13 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { pipeline } from "node:stream/promises";
 import { patchRuntimeCompatibility } from "./patch-runtime-compat.mjs";
+import { installBundledPlugins } from "./install-bundled-plugins.mjs";
 
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const resourcesRoot = join(projectRoot, "src-tauri", "resources");
 const runtimeRoot = join(resourcesRoot, "dsh-runtime");
 const cacheRoot = join(resourcesRoot, ".cache");
-const dshVersion = "0.1.0-rc.6";
+const dshVersion = "0.1.0-rc.7";
 const nodeVersion = process.env.WINDOWS_NODE_VERSION || "22.23.2";
 const nodeArchiveName = `node-v${nodeVersion}-win-x64.zip`;
 const nodeBaseUrl = `https://nodejs.org/dist/v${nodeVersion}`;
@@ -57,6 +58,7 @@ await run(npmCommand, [
 ]);
 
 await patchRuntimeCompatibility(runtimeRoot);
+await installBundledPlugins(runtimeRoot);
 await pruneWindowsRuntime();
 assertWindowsRuntime();
 await installRuntimeLegalFiles();

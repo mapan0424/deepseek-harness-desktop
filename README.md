@@ -51,8 +51,9 @@
 - 工具调用与审批流程
 - 模型、凭据和插件配置
 - Harness 上游持续演进的交互体验
+- 内置 **Harness Insights**：本地 Token、模型和工具使用洞察
 
-桌面层不重复发明 Harness，而是让它在 macOS 上运行得更自然。
+桌面层不重复发明 Harness，而是让它在桌面系统上运行得更自然。Harness Insights 以独立 Cordis 插件开发，与上游源码分离，但随安装包统一交付。
 
 ### 更像一个真正的 Mac App
 
@@ -207,7 +208,8 @@ pnpm build:windows
 - 应用 macOS 12.7.6 WebKit 兼容处理；
 - 验证 Markdown 行为、Mach-O 架构与最低系统版本；
 - 生成 npm 与 Rust/Tauri 第三方许可证报告；
-- 检查运行时只有一份，不产生首次启动缓存副本。
+- 检查运行时只有一份，不产生首次启动缓存副本；
+- 内置并验证独立的 Harness Insights 插件。
 
 ## 🤝 贡献
 

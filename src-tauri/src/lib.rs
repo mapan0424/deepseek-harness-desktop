@@ -137,6 +137,67 @@ fn capture_output<R: Read + Send + 'static>(reader: R, log: Arc<Mutex<String>>) 
     }
 }
 
+fn copy_directory(source: &std::path::Path, destination: &std::path::Path) -> Result<(), String> {
+    std::fs::create_dir_all(destination).map_err(|error| format!("创建插件目录失败：{error}"))?;
+    for entry in std::fs::read_dir(source).map_err(|error| format!("读取插件目录失败：{error}"))?
+    {
+        let entry = entry.map_err(|error| format!("读取插件文件失败：{error}"))?;
+        let source_path = entry.path();
+        let destination_path = destination.join(entry.file_name());
+        if entry
+            .file_type()
+            .map_err(|error| format!("读取插件文件类型失败：{error}"))?
+            .is_dir()
+        {
+            copy_directory(&source_path, &destination_path)?;
+        } else {
+            std::fs::copy(&source_path, &destination_path)
+                .map_err(|error| format!("复制插件文件失败：{error}"))?;
+        }
+    }
+    Ok(())
+}
+
+fn dsh_home() -> Result<PathBuf, String> {
+    if let Some(path) = std::env::var_os("DSH_HOME").filter(|value| !value.is_empty()) {
+        return Ok(PathBuf::from(path));
+    }
+    let home = std::env::var_os(if cfg!(windows) { "USERPROFILE" } else { "HOME" })
+        .ok_or_else(|| "无法定位用户目录".to_string())?;
+    Ok(PathBuf::from(home).join(".dsh"))
+}
+
+fn prepare_insights_overlay(node: &std::path::Path) -> Result<PathBuf, String> {
+    let runtime = node
+        .parent()
+        .ok_or_else(|| "无法定位内置 runtime".to_string())?;
+    let source = runtime.join("node_modules/@harness-desktop/insights");
+    let overlay = source.join("cordis.patch.yml");
+    if !overlay.is_file()
+        || !source.join("lib/index.js").is_file()
+        || !source.join("lib/client.js").is_file()
+    {
+        return Err("内置 Harness Insights 插件文件不完整".to_string());
+    }
+
+    // The Web profile resolves out-of-tree packages upward from
+    // $DSH_HOME/profiles/web, so $DSH_HOME/node_modules is its stable package
+    // root. Deploy a tiny pure-JS copy; usage data remains in Harness-owned
+    // projections and never lives inside this replaceable package directory.
+    let destination = dsh_home()?.join("node_modules/@harness-desktop/insights");
+    let temporary = destination.with_extension(format!("tmp-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&temporary);
+    copy_directory(&source, &temporary)?;
+    let _ = std::fs::remove_dir_all(&destination);
+    if let Some(parent) = destination.parent() {
+        std::fs::create_dir_all(parent)
+            .map_err(|error| format!("创建 Harness 插件根目录失败：{error}"))?;
+    }
+    std::fs::rename(&temporary, &destination)
+        .map_err(|error| format!("启用内置 Insights 插件失败：{error}"))?;
+    Ok(overlay)
+}
+
 #[tauri::command]
 fn start_dsh(
     window: tauri::WebviewWindow,
@@ -178,17 +239,24 @@ fn start_dsh(
         } else {
             entry.to_string_lossy().into_owned()
         };
-        (
-            node,
-            vec![
-                "--expose-internals".to_string(),
-                entry_arg,
-                "web".to_string(),
-                "--port".to_string(),
-                active_port.to_string(),
-            ],
-            true,
-        )
+        let mut args = vec![
+            "--expose-internals".to_string(),
+            entry_arg,
+            "web".to_string(),
+        ];
+        match prepare_insights_overlay(&node) {
+            Ok(plugin_patch) => {
+                args.push("--patch".to_string());
+                args.push(plugin_patch.to_string_lossy().into_owned());
+            }
+            Err(error) => append_log(
+                &state.log,
+                &format!("内置 Harness Insights 插件不可用，继续启动核心工作台：{error}\n"),
+            ),
+        }
+        args.push("--port".to_string());
+        args.push(active_port.to_string());
+        (node, args, true)
     } else if cfg!(debug_assertions) {
         (
             PathBuf::from(npx_path()),

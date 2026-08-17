@@ -51,8 +51,9 @@ This is not a reduced chat wrapper. It hosts the DeepSeek Harness Web UI directl
 - tool calls and approval flows
 - model, credential, and plugin configuration
 - an experience that can evolve with upstream Harness
+- bundled **Harness Insights** for local Token, model, and tool usage analytics
 
-The desktop layer does not reinvent Harness. It makes Harness feel at home on macOS.
+The desktop layer does not reinvent Harness. It makes Harness feel at home on desktop systems. Harness Insights is developed as an independent Cordis plugin, kept separate from upstream source, and delivered inside the same installer.
 
 ### A proper Mac app
 
@@ -208,6 +209,7 @@ The build pipeline automatically:
 - verifies Markdown behavior, Mach-O architecture, and deployment targets
 - generates npm and Rust/Tauri third-party license reports
 - ensures the app contains one runtime without a first-launch cache copy
+- bundles and verifies the independent Harness Insights plugin
 
 ## 🤝 Contributing
 

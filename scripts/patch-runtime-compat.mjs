@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { readFile, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
-const expectedFrontendVersion = "0.1.0-rc.6";
+const expectedFrontendVersion = "0.1.0-rc.7";
 const expectedAutolinkVersion = "2.0.1";
 
 const sourceOld = "[/(?<=^|\\s|\\p{P}|\\p{S})([-.\\w+]+)@([-\\w]+(?:\\.[-\\w]+)+)/gu, findEmail]";
