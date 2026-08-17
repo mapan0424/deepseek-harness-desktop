@@ -15,8 +15,14 @@ const context = {
   Date,
   console,
 }
-vm.runInNewContext(await readFile(new URL('../lib/client.js', import.meta.url), 'utf8'), context)
+const clientSource = await readFile(new URL('../lib/client.js', import.meta.url), 'utf8')
+vm.runInNewContext(clientSource, context)
 assert.ok(plugin)
+assert.equal(clientSource.includes('navigator.language'), false, 'locale must follow Harness, not the browser language')
+assert.equal(clientSource.includes("const inject=['slots','connection','locale']"), true)
+assert.equal(clientSource.includes("locale:NS"), true, 'settings section must declare its locale namespace')
+assert.equal(clientSource.includes('useSyncExternalStore'), true, 'the open page must react to live locale changes')
+assert.equal(clientSource.includes('Jan,Feb,Mar'), true)
 
 const zero = () => ({ inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, reasoningTokens: 0, calls: 0 })
 const now = new Date(2026, 7, 15, 12)
@@ -27,7 +33,9 @@ assert.equal(cal.weeks.length, 53)
 assert.equal(cal.weeks.every(week => week.days.length === 7), true)
 assert.equal(cal.weeks.every(week => week.startDate.getDay() === 1), true, 'every week starts on Monday')
 assert.equal(cal.weeks.at(-1).startDate.getTime(), new Date(2026, 7, 10, 12).getTime(), 'current week is the stable final column')
-assert.deepEqual(Array.from(cal.months, item => String(item.label)), ['9', '10', '11', '12', '1', '2', '3', '4', '5', '6', '7', '8'])
+assert.deepEqual(Array.from(cal.months, item => String(item.label)), ['9月', '10月', '11月', '12月', '1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月'])
+const englishCalendar = plugin.calendar({ [key]: usage }, now, 'Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec'.split(','))
+assert.deepEqual(Array.from(englishCalendar.months, item => String(item.label)), ['Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'])
 assert.equal(cal.months.every((item, index, rows) => index === 0 || item.col > rows[index - 1].col), true)
 
 const daily = plugin.modeCells(cal, 'daily')
