@@ -114,8 +114,10 @@ async function pruneWindowsRuntime() {
 function assertWindowsRuntime() {
   const required = [
     join(runtimeRoot, "node.exe"),
-    join(runtimeRoot, "node_modules", "node-pty", "prebuilds", "win32-x64", "pty.node"),
-    join(runtimeRoot, "node_modules", "node-pty", "prebuilds", "win32-x64", "winpty-agent.exe"),
+    join(runtimeRoot, "node_modules", "node-pty", "prebuilds", "win32-x64", "conpty.node"),
+    join(runtimeRoot, "node_modules", "node-pty", "prebuilds", "win32-x64", "conpty_console_list.node"),
+    join(runtimeRoot, "node_modules", "node-pty", "prebuilds", "win32-x64", "conpty", "OpenConsole.exe"),
+    join(runtimeRoot, "node_modules", "node-pty", "prebuilds", "win32-x64", "conpty", "conpty.dll"),
     join(runtimeRoot, "node_modules", "@img", "sharp-win32-x64"),
     join(runtimeRoot, "node_modules", "@koromix", "koffi-win32-x64"),
     join(runtimeRoot, "node_modules", "@vscode", "ripgrep-win32-x64"),
