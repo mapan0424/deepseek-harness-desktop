@@ -10,6 +10,7 @@ on:
       - "scripts/patch-runtime-compat.mjs"
       - "scripts/test-runtime-compat.mjs"
       - "scripts/verify-windows-bundle.mjs"
+      - "packages/harness-insights/**"
       - "src/**"
       - "src-tauri/**"
       - "package.json"
