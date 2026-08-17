@@ -64,6 +64,9 @@ jobs:
       - name: Verify Markdown compatibility behavior
         run: pnpm test:runtime:compat
 
+      - name: Verify Harness Insights
+        run: pnpm test:insights
+
       - name: Generate Rust license report
         run: pnpm prepare:licenses
 
