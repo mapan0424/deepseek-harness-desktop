@@ -669,13 +669,39 @@ fn show_recovery_page(app: &tauri::AppHandle, detail: &str) {
         let _ = window.hide();
     }
     if let Some(window) = app.get_webview_window("recovery") {
+        let _ = window.set_decorations(true);
+        let _ = window.set_shadow(true);
+        let _ = window.set_size(Size::Logical(LogicalSize::new(560.0, 420.0)));
+        let _ = window.eval("document.body.classList.add('recovery-visible')");
         let _ = window.center();
         let _ = window.unminimize();
         let _ = window.show();
-        // Do not steal focus while the user may still be typing in the failed
-        // workspace. Recovery requires an explicit interaction with this window.
-    } else {
-        append_log(&app.state::<DshProcess>().log, "预加载的恢复窗口不可用\n");
+        return;
+    }
+    match tauri::WebviewWindowBuilder::new(
+        app,
+        "recovery",
+        tauri::WebviewUrl::App("recovery.html".into()),
+    )
+    .title("DeepSeek Harness — 恢复工作台")
+    .inner_size(560.0, 420.0)
+    .resizable(false)
+    .center()
+    .on_page_load(|window, payload| {
+        if matches!(payload.event(), tauri::webview::PageLoadEvent::Finished) {
+            let _ = window.eval("document.body.classList.add('recovery-visible')");
+        }
+    })
+    .build()
+    {
+        Ok(_) => {
+            // Do not steal focus while the user may still be typing in the failed
+            // workspace. Recovery requires an explicit interaction with this window.
+        }
+        Err(error) => append_log(
+            &app.state::<DshProcess>().log,
+            &format!("创建恢复窗口失败：{error}\n"),
+        ),
     }
 }
 
@@ -686,17 +712,19 @@ fn setup_recovery_window(app: &tauri::AppHandle) -> Result<(), String> {
         tauri::WebviewUrl::App("recovery.html".into()),
     )
     .title("DeepSeek Harness — 恢复工作台")
-    .inner_size(560.0, 420.0)
+    .inner_size(1.0, 1.0)
     .resizable(false)
+    .decorations(false)
+    .shadow(false)
     .position(-10_000.0, -10_000.0)
     .visible(true)
-    .build()
-    .map(|window| {
-        std::thread::spawn(move || {
-            std::thread::sleep(Duration::from_secs(2));
+    .on_page_load(|window, payload| {
+        if matches!(payload.event(), tauri::webview::PageLoadEvent::Finished) {
             let _ = window.hide();
-        });
+        }
     })
+    .build()
+    .map(|_| ())
     .map_err(|error| format!("预加载恢复窗口失败：{error}"))
 }
 
