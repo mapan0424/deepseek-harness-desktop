@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DeepSeek Harness — 恢复工作台</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script type="module" src="/recovery.js" defer></script>
+  </head>
+  <body>
+    <section class="boot-screen" id="boot-screen" aria-live="polite">
+      <div class="boot-mark"><img src="assets/whale-logo.svg" alt="DeepSeek Harness" /></div>
+      <p class="boot-kicker">DEEPSEEK HARNESS · 非官方客户端</p>
+      <h1>工作台需要恢复</h1>
+      <p class="boot-status" id="boot-status">后台服务已停止，自动恢复未成功。</p>
+      <div class="boot-progress"><span id="boot-progress-bar" style="width: 100%"></span></div>
+      <button class="retry-button" id="boot-retry" tabindex="-1" disabled>重新启动</button>
+    </section>
+  </body>
+</html>

@@ -2,17 +2,27 @@ use std::io::{BufRead, BufReader, Read, Write};
 use std::net::{SocketAddr, TcpListener, TcpStream};
 use std::path::PathBuf;
 use std::process::{Child, Command, Stdio};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::sync::Mutex;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use serde_json::{json, Value};
-use tauri::{LogicalSize, Manager, Size};
+use tauri::image::Image;
+use tauri::menu::{Menu, MenuItem};
+use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
+use tauri::{LogicalSize, Manager, PhysicalPosition, Size};
 
 struct DshProcess {
     child: Mutex<Option<Child>>,
     port: Mutex<Option<u16>>,
     log: Arc<Mutex<String>>,
+    quitting: AtomicBool,
+    automatic_restart_used: AtomicBool,
+    workspace_opened: AtomicBool,
+    recovering: AtomicBool,
+    recovery_required: AtomicBool,
+    restart_confirmation: Mutex<Option<(String, Instant)>>,
 }
 
 fn npx_path() -> String {
@@ -171,7 +181,7 @@ fn prepare_insights_overlay(node: &std::path::Path) -> Result<PathBuf, String> {
     let runtime = node
         .parent()
         .ok_or_else(|| "无法定位内置 runtime".to_string())?;
-    let source = runtime.join("node_modules/@harness-desktop/insights");
+    let source = runtime.join("node_modules/@anarkhgatsby/deepseek-harness-insights");
     let overlay = source.join("cordis.patch.yml");
     if !overlay.is_file()
         || !source.join("lib/index.js").is_file()
@@ -184,7 +194,7 @@ fn prepare_insights_overlay(node: &std::path::Path) -> Result<PathBuf, String> {
     // $DSH_HOME/profiles/web, so $DSH_HOME/node_modules is its stable package
     // root. Deploy a tiny pure-JS copy; usage data remains in Harness-owned
     // projections and never lives inside this replaceable package directory.
-    let destination = dsh_home()?.join("node_modules/@harness-desktop/insights");
+    let destination = dsh_home()?.join("node_modules/@anarkhgatsby/deepseek-harness-insights");
     let temporary = destination.with_extension(format!("tmp-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&temporary);
     copy_directory(&source, &temporary)?;
@@ -198,39 +208,19 @@ fn prepare_insights_overlay(node: &std::path::Path) -> Result<PathBuf, String> {
     Ok(overlay)
 }
 
-#[tauri::command]
-fn start_dsh(
-    window: tauri::WebviewWindow,
-    app: tauri::AppHandle,
-    state: tauri::State<'_, DshProcess>,
-    port: u16,
-) -> Result<String, String> {
-    require_splash(&window)?;
-    if !(1024..=65535).contains(&port) {
-        return Err("端口必须在 1024 到 65535 之间".to_string());
+fn spawn_dsh(
+    app: &tauri::AppHandle,
+    state: &DshProcess,
+    active_port: u16,
+    clear_log: bool,
+) -> Result<(), String> {
+    if clear_log {
+        if let Ok(mut log) = state.log.lock() {
+            log.clear();
+        }
     }
 
-    let mut process = state
-        .child
-        .lock()
-        .map_err(|_| "无法取得 dsh 进程锁".to_string())?;
-
-    if process.is_some() {
-        let active_port = state
-            .port
-            .lock()
-            .map_err(|_| "无法取得 dsh 端口锁".to_string())?
-            .unwrap_or(port);
-        return Ok(format!("http://127.0.0.1:{active_port}"));
-    }
-
-    let active_port = find_available_port(port)?;
-    if let Ok(mut log) = state.log.lock() {
-        log.clear();
-    }
-
-    let (program, args, using_bundled_runtime) = if let Some((node, entry)) = bundled_runtime(&app)
-    {
+    let (program, args, using_bundled_runtime) = if let Some((node, entry)) = bundled_runtime(app) {
         // Passing a Windows drive-qualified script path through the installed
         // process chain can be reduced to `C:` by Node's entry-point parser.
         // Run from the embedded runtime and use a relative script path there.
@@ -315,12 +305,98 @@ fn start_dsh(
         std::thread::spawn(move || capture_output(stderr, log));
     }
 
-    *process = Some(child);
+    *state
+        .child
+        .lock()
+        .map_err(|_| "无法取得 dsh 进程锁".to_string())? = Some(child);
     *state
         .port
         .lock()
         .map_err(|_| "无法取得 dsh 端口锁".to_string())? = Some(active_port);
+    Ok(())
+}
+
+#[tauri::command]
+fn start_dsh(
+    window: tauri::WebviewWindow,
+    app: tauri::AppHandle,
+    state: tauri::State<'_, DshProcess>,
+    port: u16,
+) -> Result<String, String> {
+    require_splash(&window)?;
+    if !(1024..=65535).contains(&port) {
+        return Err("端口必须在 1024 到 65535 之间".to_string());
+    }
+    if state.recovery_required.load(Ordering::SeqCst) {
+        return Err("dsh 自动恢复已停止，请从恢复页面手动重新启动。".to_string());
+    }
+    if state.workspace_opened.load(Ordering::SeqCst) {
+        return Err("工作台运行期间仅允许后台恢复 dsh。".to_string());
+    }
+
+    if state
+        .child
+        .lock()
+        .map_err(|_| "无法取得 dsh 进程锁".to_string())?
+        .is_some()
+    {
+        let active_port = state
+            .port
+            .lock()
+            .map_err(|_| "无法取得 dsh 端口锁".to_string())?
+            .unwrap_or(port);
+        return Ok(format!("http://127.0.0.1:{active_port}"));
+    }
+
+    let active_port = find_available_port(port)?;
+    spawn_dsh(&app, &state, active_port, true)?;
     Ok(format!("http://127.0.0.1:{active_port}"))
+}
+
+#[tauri::command]
+fn request_restart_confirmation(
+    window: tauri::WebviewWindow,
+    state: tauri::State<'_, DshProcess>,
+) -> Result<String, String> {
+    require_recovery(&window)?;
+    if !state.recovery_required.load(Ordering::SeqCst) {
+        return Err("当前不需要恢复 dsh。".to_string());
+    }
+    let token = format!("{}-{}", std::process::id(), chrono_like_timestamp());
+    *state
+        .restart_confirmation
+        .lock()
+        .map_err(|_| "无法创建恢复确认".to_string())? = Some((token.clone(), Instant::now()));
+    Ok(token)
+}
+
+#[tauri::command]
+fn restart_dsh(
+    window: tauri::WebviewWindow,
+    app: tauri::AppHandle,
+    state: tauri::State<'_, DshProcess>,
+    port: u16,
+    confirmation: String,
+) -> Result<String, String> {
+    require_recovery(&window)?;
+    let mut pending_confirmation = state
+        .restart_confirmation
+        .lock()
+        .map_err(|_| "无法读取恢复确认".to_string())?;
+    let confirmed = pending_confirmation
+        .as_ref()
+        .is_some_and(|(token, issued)| {
+            token == &confirmation && issued.elapsed() >= Duration::from_secs(3)
+        });
+    if !confirmed {
+        return Err("请等待确认倒计时结束后再次点击。".to_string());
+    }
+    *pending_confirmation = None;
+    drop(pending_confirmation);
+    state.recovery_required.store(false, Ordering::SeqCst);
+    state.workspace_opened.store(false, Ordering::SeqCst);
+    state.automatic_restart_used.store(false, Ordering::SeqCst);
+    start_dsh(window, app, state, port)
 }
 
 #[tauri::command]
@@ -384,25 +460,55 @@ fn open_workspace(
     let url = format!("http://127.0.0.1:{active_port}")
         .parse()
         .map_err(|error| format!("生成本地工作台地址失败：{error}"))?;
-    window
+    let workspace_window = if window.label() == "recovery" {
+        window
+            .app_handle()
+            .get_webview_window("splash")
+            .unwrap_or_else(|| window.clone())
+    } else {
+        window.clone()
+    };
+    workspace_window
         .set_title("DeepSeek Harness — 非官方客户端")
         .map_err(|error| format!("更新窗口标题失败：{error}"))?;
-    window
+    workspace_window
         .set_resizable(true)
         .map_err(|error| format!("启用窗口缩放失败：{error}"))?;
-    window
+    workspace_window
         .set_min_size(Some(Size::Logical(LogicalSize::new(960.0, 640.0))))
         .map_err(|error| format!("设置窗口最小尺寸失败：{error}"))?;
-    window
-        .set_size(Size::Logical(LogicalSize::new(1240.0, 820.0)))
+    const WORKSPACE_WIDTH: f64 = 1240.0;
+    const WORKSPACE_HEIGHT: f64 = 820.0;
+    workspace_window
+        .set_size(Size::Logical(LogicalSize::new(
+            WORKSPACE_WIDTH,
+            WORKSPACE_HEIGHT,
+        )))
         .map_err(|error| format!("调整工作台窗口失败：{error}"))?;
-    window
-        .center()
-        .map_err(|error| format!("居中工作台窗口失败：{error}"))?;
-    window
+    if let Some(monitor) = workspace_window
+        .current_monitor()
+        .map_err(|error| format!("读取当前显示器失败：{error}"))?
+    {
+        let work_area = monitor.work_area();
+        let scale = monitor.scale_factor();
+        let target_width = (WORKSPACE_WIDTH * scale).round() as i32;
+        let target_height = (WORKSPACE_HEIGHT * scale).round() as i32;
+        let x = work_area.position.x + ((work_area.size.width as i32 - target_width).max(0) / 2);
+        let y = work_area.position.y + ((work_area.size.height as i32 - target_height).max(0) / 2);
+        workspace_window
+            .set_position(PhysicalPosition::new(x, y))
+            .map_err(|error| format!("居中工作台窗口失败：{error}"))?;
+    }
+    workspace_window
         .navigate(url)
         .map_err(|error| format!("打开工作台失败：{error}"))?;
-    window
+    if window.label() == "recovery" && workspace_window.label() != "recovery" {
+        let _ = window.hide();
+        let _ = window.eval("window.location.reload()");
+        let _ = workspace_window.show();
+    }
+    state.workspace_opened.store(true, Ordering::SeqCst);
+    workspace_window
         .set_focus()
         .map_err(|error| format!("聚焦工作台失败：{error}"))?;
     Ok(())
@@ -415,10 +521,22 @@ fn require_splash(window: &tauri::WebviewWindow) -> Result<(), String> {
     let is_app_origin = url.scheme() == "tauri"
         || ((url.scheme() == "http" || url.scheme() == "https")
             && url.host_str() == Some("tauri.localhost"));
-    if window.label() == "splash" && is_app_origin {
+    if matches!(window.label(), "splash" | "recovery") && is_app_origin {
         Ok(())
     } else {
         Err("该命令仅允许启动页面调用".to_string())
+    }
+}
+
+fn require_recovery(window: &tauri::WebviewWindow) -> Result<(), String> {
+    require_splash(window)?;
+    let url = window
+        .url()
+        .map_err(|error| format!("读取恢复页面地址失败：{error}"))?;
+    if window.label() == "recovery" && url.path() == "/recovery.html" {
+        Ok(())
+    } else {
+        Err("该命令仅允许恢复页面调用".to_string())
     }
 }
 
@@ -524,6 +642,175 @@ fn chrono_like_timestamp() -> u128 {
         .unwrap_or_default()
 }
 
+fn show_main_window(app: &tauri::AppHandle) {
+    let state = app.state::<DshProcess>();
+    let window = if state.recovery_required.load(Ordering::SeqCst) {
+        app.get_webview_window("recovery")
+    } else {
+        app.get_webview_window("splash")
+            .or_else(|| app.get_webview_window("recovery"))
+    };
+    if let Some(window) = window {
+        let _ = window.unminimize();
+        let _ = window.show();
+        let _ = window.set_focus();
+    }
+}
+
+fn show_recovery_page(app: &tauri::AppHandle, detail: &str) {
+    app.state::<DshProcess>()
+        .recovery_required
+        .store(true, Ordering::SeqCst);
+    append_log(
+        &app.state::<DshProcess>().log,
+        &format!("dsh 自动恢复失败：{detail}\n"),
+    );
+    if let Some(window) = app.get_webview_window("splash") {
+        let _ = window.hide();
+    }
+    if let Some(window) = app.get_webview_window("recovery") {
+        let _ = window.center();
+        let _ = window.unminimize();
+        let _ = window.show();
+        // Do not steal focus while the user may still be typing in the failed
+        // workspace. Recovery requires an explicit interaction with this window.
+    } else {
+        append_log(&app.state::<DshProcess>().log, "预加载的恢复窗口不可用\n");
+    }
+}
+
+fn setup_recovery_window(app: &tauri::AppHandle) -> Result<(), String> {
+    tauri::WebviewWindowBuilder::new(
+        app,
+        "recovery",
+        tauri::WebviewUrl::App("recovery.html".into()),
+    )
+    .title("DeepSeek Harness — 恢复工作台")
+    .inner_size(560.0, 420.0)
+    .resizable(false)
+    .position(-10_000.0, -10_000.0)
+    .visible(true)
+    .build()
+    .map(|window| {
+        std::thread::spawn(move || {
+            std::thread::sleep(Duration::from_secs(2));
+            let _ = window.hide();
+        });
+    })
+    .map_err(|error| format!("预加载恢复窗口失败：{error}"))
+}
+
+fn start_dsh_supervisor(app: tauri::AppHandle) {
+    std::thread::spawn(move || loop {
+        std::thread::sleep(Duration::from_millis(500));
+        let state = app.state::<DshProcess>();
+        if state.quitting.load(Ordering::SeqCst)
+            || !state.workspace_opened.load(Ordering::SeqCst)
+            || state.recovering.load(Ordering::SeqCst)
+        {
+            continue;
+        }
+
+        let exited = {
+            let Ok(mut process) = state.child.lock() else {
+                continue;
+            };
+            let Some(child) = process.as_mut() else {
+                continue;
+            };
+            match child.try_wait() {
+                Ok(Some(status)) => {
+                    *process = None;
+                    Some(status.to_string())
+                }
+                Ok(None) => None,
+                Err(error) => Some(format!("无法读取退出状态：{error}")),
+            }
+        };
+        let Some(exit_detail) = exited else {
+            continue;
+        };
+
+        append_log(&state.log, &format!("dsh 意外退出：{exit_detail}\n"));
+        let restart_was_used = state.automatic_restart_used.swap(true, Ordering::SeqCst);
+        if restart_was_used {
+            state.recovery_required.store(true, Ordering::SeqCst);
+            state.workspace_opened.store(false, Ordering::SeqCst);
+            show_recovery_page(&app, &format!("dsh 再次退出：{exit_detail}"));
+            continue;
+        }
+
+        state.recovering.store(true, Ordering::SeqCst);
+        let active_port = state.port.lock().ok().and_then(|port| *port);
+        std::thread::sleep(Duration::from_secs(2));
+        if state.quitting.load(Ordering::SeqCst) {
+            state.recovering.store(false, Ordering::SeqCst);
+            continue;
+        }
+        let Some(active_port) = active_port else {
+            state.recovering.store(false, Ordering::SeqCst);
+            state.workspace_opened.store(false, Ordering::SeqCst);
+            show_recovery_page(&app, "无法取得原工作台端口");
+            continue;
+        };
+        if let Err(error) = spawn_dsh(&app, &state, active_port, false) {
+            state.recovering.store(false, Ordering::SeqCst);
+            state.workspace_opened.store(false, Ordering::SeqCst);
+            show_recovery_page(&app, &error);
+            continue;
+        }
+
+        let mut recovered = false;
+        let mut failure = None;
+        for _ in 0..120 {
+            if state.quitting.load(Ordering::SeqCst) {
+                break;
+            }
+            std::thread::sleep(Duration::from_millis(500));
+            let exited_again = {
+                let Ok(mut process) = state.child.lock() else {
+                    failure = Some("无法取得 dsh 进程锁".to_string());
+                    break;
+                };
+                match process.as_mut() {
+                    Some(child) => match child.try_wait() {
+                        Ok(Some(status)) => {
+                            *process = None;
+                            Some(format!("dsh 恢复后再次退出：{status}"))
+                        }
+                        Ok(None) => None,
+                        Err(error) => Some(format!("读取恢复进程状态失败：{error}")),
+                    },
+                    None => Some("dsh 恢复进程不存在".to_string()),
+                }
+            };
+            if let Some(error) = exited_again {
+                failure = Some(error);
+                break;
+            }
+            if port_is_ready(active_port) {
+                recovered = true;
+                break;
+            }
+        }
+
+        state.recovering.store(false, Ordering::SeqCst);
+        if recovered {
+            let window = app
+                .get_webview_window("splash")
+                .or_else(|| app.get_webview_window("recovery"));
+            if let Some(window) = window {
+                if let Ok(url) = format!("http://127.0.0.1:{active_port}").parse() {
+                    let _ = window.navigate(url);
+                }
+            }
+        } else if !state.quitting.load(Ordering::SeqCst) {
+            state.workspace_opened.store(false, Ordering::SeqCst);
+            show_recovery_page(&app, failure.as_deref().unwrap_or("dsh 自动恢复启动超时"));
+        }
+    });
+}
+
 #[tauri::command]
 fn stop_dsh(
     window: tauri::WebviewWindow,
@@ -541,7 +828,77 @@ fn stop_dsh(
     if let Ok(mut active_port) = state.port.lock() {
         *active_port = None;
     }
+    state.workspace_opened.store(false, Ordering::SeqCst);
+    state.recovering.store(false, Ordering::SeqCst);
 
+    Ok(())
+}
+
+fn tray_icon(_app: &tauri::AppHandle) -> Result<Image<'static>, String> {
+    #[cfg(target_os = "macos")]
+    {
+        const TRAY_TEMPLATE: &[u8] = include_bytes!("../icons/tray-template.rgba");
+        if TRAY_TEMPLATE.len() != 44 * 44 * 4 {
+            return Err("macOS 托盘模板图标尺寸无效".to_string());
+        }
+        Ok(Image::new(TRAY_TEMPLATE, 44, 44))
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    _app.default_window_icon()
+        .cloned()
+        .ok_or_else(|| "缺少托盘图标".to_string())
+}
+
+fn setup_tray(app: &tauri::AppHandle) -> Result<(), String> {
+    let open = MenuItem::with_id(
+        app,
+        "tray-open",
+        "打开 DeepSeek Harness",
+        true,
+        None::<&str>,
+    )
+    .map_err(|error| format!("创建托盘打开菜单失败：{error}"))?;
+    let quit = MenuItem::with_id(
+        app,
+        "tray-quit",
+        "退出 DeepSeek Harness",
+        true,
+        None::<&str>,
+    )
+    .map_err(|error| format!("创建托盘退出菜单失败：{error}"))?;
+    let menu = Menu::with_items(app, &[&open, &quit])
+        .map_err(|error| format!("创建托盘菜单失败：{error}"))?;
+    let icon = tray_icon(app)?;
+
+    TrayIconBuilder::with_id("main-tray")
+        .icon(icon)
+        .icon_as_template(cfg!(target_os = "macos"))
+        .tooltip("DeepSeek Harness")
+        .menu(&menu)
+        .show_menu_on_left_click(false)
+        .on_menu_event(|app, event| match event.id().as_ref() {
+            "tray-open" => show_main_window(app),
+            "tray-quit" => {
+                app.state::<DshProcess>()
+                    .quitting
+                    .store(true, Ordering::SeqCst);
+                app.exit(0);
+            }
+            _ => {}
+        })
+        .on_tray_icon_event(|tray, event| {
+            if let TrayIconEvent::Click {
+                button: MouseButton::Left,
+                button_state: MouseButtonState::Up,
+                ..
+            } = event
+            {
+                show_main_window(tray.app_handle());
+            }
+        })
+        .build(app)
+        .map_err(|error| format!("创建托盘图标失败：{error}"))?;
     Ok(())
 }
 
@@ -576,6 +933,9 @@ const ABORT_SIGNAL_POLYFILL: &str = include_str!("../resources/abort-signal-poly
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
+            show_main_window(app);
+        }))
         .plugin(tauri_plugin_opener::init())
         .plugin(
             tauri::plugin::Builder::<tauri::Wry, ()>::new("webkit-compat")
@@ -586,9 +946,23 @@ pub fn run() {
             child: Mutex::new(None),
             port: Mutex::new(None),
             log: Arc::new(Mutex::new(String::new())),
+            quitting: AtomicBool::new(false),
+            automatic_restart_used: AtomicBool::new(false),
+            workspace_opened: AtomicBool::new(false),
+            recovering: AtomicBool::new(false),
+            recovery_required: AtomicBool::new(false),
+            restart_confirmation: Mutex::new(None),
+        })
+        .setup(|app| {
+            setup_tray(app.handle())?;
+            setup_recovery_window(app.handle())?;
+            start_dsh_supervisor(app.handle().clone());
+            Ok(())
         })
         .invoke_handler(tauri::generate_handler![
             start_dsh,
+            request_restart_confirmation,
+            restart_dsh,
             dsh_status,
             open_workspace,
             dsh_api_request,
@@ -596,14 +970,37 @@ pub fn run() {
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
-        .run(|app_handle, event| {
-            if let tauri::RunEvent::Exit = event {
+        .run(|app_handle, event| match event {
+            tauri::RunEvent::WindowEvent {
+                label,
+                event: tauri::WindowEvent::CloseRequested { api, .. },
+                ..
+            } if matches!(label.as_str(), "splash" | "recovery") => {
                 let state = app_handle.state::<DshProcess>();
+                if !state.quitting.load(Ordering::SeqCst) {
+                    api.prevent_close();
+                    if let Some(window) = app_handle.get_webview_window(&label) {
+                        let _ = window.hide();
+                    }
+                }
+            }
+            #[cfg(target_os = "macos")]
+            tauri::RunEvent::Reopen { .. } => show_main_window(app_handle),
+            tauri::RunEvent::ExitRequested { .. } => {
+                app_handle
+                    .state::<DshProcess>()
+                    .quitting
+                    .store(true, Ordering::SeqCst);
+            }
+            tauri::RunEvent::Exit => {
+                let state = app_handle.state::<DshProcess>();
+                state.quitting.store(true, Ordering::SeqCst);
                 let _ = state.child.lock().map(|mut process| {
                     if let Some(mut child) = process.take() {
                         let _ = terminate_child(&mut child);
                     }
                 });
             }
+            _ => {}
         });
 }

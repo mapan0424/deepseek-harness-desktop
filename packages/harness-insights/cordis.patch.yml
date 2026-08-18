@@ -1,5 +1,6 @@
-# Harness Insights is installed into the Web profile's standard out-of-tree
-# node_modules directory by Harness Desktop before this overlay is applied.
+# This layer is activated by `dsh plugin` after the package is installed into a
+# Harness profile. The package name lets Node resolve the plugin from the
+# profile's out-of-tree node_modules directory.
 - insert:
-    - id: harness-desktop-insights
-      name: '@harness-desktop/insights'
+    - id: deepseek-harness-insights
+      name: '@anarkhgatsby/deepseek-harness-insights'

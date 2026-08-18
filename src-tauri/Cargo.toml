@@ -1,6 +1,6 @@
 [package]
 name = "deepseek-harness-macos"
-version = "0.1.5"
+version = "0.1.6"
 description = "Unofficial Tauri desktop client for DeepSeek Harness"
 authors = ["mapan0424"]
 license = "MIT"
@@ -20,7 +20,8 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = [] }
+tauri = { version = "2", features = ["tray-icon"] }
 tauri-plugin-opener = "2"
+tauri-plugin-single-instance = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

@@ -131,7 +131,7 @@ export const usageInsightsProjectionDefinition = {
   },
 }
 
-export const name = 'harness-desktop-insights'
+export const name = 'deepseek-harness-insights'
 export const inject = ['sessionProjections']
 
 async function backfillHistory(ctx, signal) {

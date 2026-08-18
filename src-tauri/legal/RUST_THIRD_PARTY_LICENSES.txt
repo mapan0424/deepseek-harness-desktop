@@ -5,7 +5,7 @@ Generated from Cargo.lock and the exact Cargo dependency graph used by this buil
 Each component remains subject to its own terms. Repository values below are
 provided by crate metadata and are not endorsements.
 
-Generated package count: 470
+Generated package count: 481
 
 --------------------------------------------------------------------------------
 adler2 2.0.1
@@ -6911,6 +6911,33 @@ PackageDownloadLocation: git+ssh://github.com/tauri-apps/tauri.git
 Creator: Person: Daniel Thompson-Yvetot
 
 --------------------------------------------------------------------------------
+tauri-plugin-single-instance 2.4.3
+Declared license: Apache-2.0 OR MIT
+Repository: https://github.com/tauri-apps/plugins-workspace
+
+--- LICENSE.spdx ---
+SPDXVersion: SPDX-2.1
+DataLicense: CC0-1.0
+PackageName: tauri
+DataFormat: SPDXRef-1
+PackageSupplier: Organization: The Tauri Programme in the Commons Conservancy
+PackageHomePage: https://tauri.app
+PackageLicenseDeclared: Apache-2.0
+PackageLicenseDeclared: MIT
+PackageCopyrightText: 2019-2022, The Tauri Programme in the Commons Conservancy
+PackageSummary: <text>Tauri is a rust project that enables developers to make secure
+and small desktop applications using a web frontend.
+                </text>
+PackageComment: <text>The package includes the following libraries; see
+Relationship information.
+                </text>
+Created: 2019-05-20T09:00:00Z
+PackageDownloadLocation: git://github.com/tauri-apps/tauri
+PackageDownloadLocation: git+https://github.com/tauri-apps/tauri.git
+PackageDownloadLocation: git+ssh://github.com/tauri-apps/tauri.git
+Creator: Person: Daniel Thompson-Yvetot
+
+--------------------------------------------------------------------------------
 tauri-runtime 2.11.3
 Declared license: Apache-2.0 OR MIT
 Repository: https://github.com/tauri-apps/tauri
@@ -7938,6 +7965,12 @@ Repository: https://github.com/microsoft/windows-rs
 License file: none supplied in the installed crate; see declared SPDX expression above.
 
 --------------------------------------------------------------------------------
+windows_aarch64_gnullvm 0.53.1
+Declared license: MIT OR Apache-2.0
+Repository: https://github.com/microsoft/windows-rs
+License file: none supplied in the installed crate; see declared SPDX expression above.
+
+--------------------------------------------------------------------------------
 windows_aarch64_msvc 0.42.2
 Declared license: MIT OR Apache-2.0
 Repository: https://github.com/microsoft/windows-rs
@@ -7945,6 +7978,12 @@ License file: none supplied in the installed crate; see declared SPDX expression
 
 --------------------------------------------------------------------------------
 windows_aarch64_msvc 0.52.6
+Declared license: MIT OR Apache-2.0
+Repository: https://github.com/microsoft/windows-rs
+License file: none supplied in the installed crate; see declared SPDX expression above.
+
+--------------------------------------------------------------------------------
+windows_aarch64_msvc 0.53.1
 Declared license: MIT OR Apache-2.0
 Repository: https://github.com/microsoft/windows-rs
 License file: none supplied in the installed crate; see declared SPDX expression above.
@@ -7962,7 +8001,19 @@ Repository: https://github.com/microsoft/windows-rs
 License file: none supplied in the installed crate; see declared SPDX expression above.
 
 --------------------------------------------------------------------------------
+windows_i686_gnu 0.53.1
+Declared license: MIT OR Apache-2.0
+Repository: https://github.com/microsoft/windows-rs
+License file: none supplied in the installed crate; see declared SPDX expression above.
+
+--------------------------------------------------------------------------------
 windows_i686_gnullvm 0.52.6
+Declared license: MIT OR Apache-2.0
+Repository: https://github.com/microsoft/windows-rs
+License file: none supplied in the installed crate; see declared SPDX expression above.
+
+--------------------------------------------------------------------------------
+windows_i686_gnullvm 0.53.1
 Declared license: MIT OR Apache-2.0
 Repository: https://github.com/microsoft/windows-rs
 License file: none supplied in the installed crate; see declared SPDX expression above.
@@ -7980,6 +8031,12 @@ Repository: https://github.com/microsoft/windows-rs
 License file: none supplied in the installed crate; see declared SPDX expression above.
 
 --------------------------------------------------------------------------------
+windows_i686_msvc 0.53.1
+Declared license: MIT OR Apache-2.0
+Repository: https://github.com/microsoft/windows-rs
+License file: none supplied in the installed crate; see declared SPDX expression above.
+
+--------------------------------------------------------------------------------
 windows_x86_64_gnu 0.42.2
 Declared license: MIT OR Apache-2.0
 Repository: https://github.com/microsoft/windows-rs
@@ -7987,6 +8044,12 @@ License file: none supplied in the installed crate; see declared SPDX expression
 
 --------------------------------------------------------------------------------
 windows_x86_64_gnu 0.52.6
+Declared license: MIT OR Apache-2.0
+Repository: https://github.com/microsoft/windows-rs
+License file: none supplied in the installed crate; see declared SPDX expression above.
+
+--------------------------------------------------------------------------------
+windows_x86_64_gnu 0.53.1
 Declared license: MIT OR Apache-2.0
 Repository: https://github.com/microsoft/windows-rs
 License file: none supplied in the installed crate; see declared SPDX expression above.
@@ -8004,6 +8067,12 @@ Repository: https://github.com/microsoft/windows-rs
 License file: none supplied in the installed crate; see declared SPDX expression above.
 
 --------------------------------------------------------------------------------
+windows_x86_64_gnullvm 0.53.1
+Declared license: MIT OR Apache-2.0
+Repository: https://github.com/microsoft/windows-rs
+License file: none supplied in the installed crate; see declared SPDX expression above.
+
+--------------------------------------------------------------------------------
 windows_x86_64_msvc 0.42.2
 Declared license: MIT OR Apache-2.0
 Repository: https://github.com/microsoft/windows-rs
@@ -8011,6 +8080,12 @@ License file: none supplied in the installed crate; see declared SPDX expression
 
 --------------------------------------------------------------------------------
 windows_x86_64_msvc 0.52.6
+Declared license: MIT OR Apache-2.0
+Repository: https://github.com/microsoft/windows-rs
+License file: none supplied in the installed crate; see declared SPDX expression above.
+
+--------------------------------------------------------------------------------
+windows_x86_64_msvc 0.53.1
 Declared license: MIT OR Apache-2.0
 Repository: https://github.com/microsoft/windows-rs
 License file: none supplied in the installed crate; see declared SPDX expression above.
@@ -8106,6 +8181,12 @@ Repository: https://github.com/microsoft/windows-rs
 License file: none supplied in the installed crate; see declared SPDX expression above.
 
 --------------------------------------------------------------------------------
+windows-sys 0.60.2
+Declared license: MIT OR Apache-2.0
+Repository: https://github.com/microsoft/windows-rs
+License file: none supplied in the installed crate; see declared SPDX expression above.
+
+--------------------------------------------------------------------------------
 windows-sys 0.61.2
 Declared license: MIT OR Apache-2.0
 Repository: https://github.com/microsoft/windows-rs
@@ -8119,6 +8200,12 @@ License file: none supplied in the installed crate; see declared SPDX expression
 
 --------------------------------------------------------------------------------
 windows-targets 0.52.6
+Declared license: MIT OR Apache-2.0
+Repository: https://github.com/microsoft/windows-rs
+License file: none supplied in the installed crate; see declared SPDX expression above.
+
+--------------------------------------------------------------------------------
+windows-targets 0.53.5
 Declared license: MIT OR Apache-2.0
 Repository: https://github.com/microsoft/windows-rs
 License file: none supplied in the installed crate; see declared SPDX expression above.

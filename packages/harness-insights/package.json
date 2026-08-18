@@ -1,7 +1,7 @@
 {
-  "name": "@harness-desktop/insights",
-  "version": "0.1.0",
-  "description": "Local-first usage insights for DeepSeek Harness Desktop",
+  "name": "@anarkhgatsby/deepseek-harness-insights",
+  "version": "0.1.2",
+  "description": "Local-first usage insights for DeepSeek Harness",
   "type": "module",
   "main": "./lib/index.js",
   "exports": {
@@ -9,7 +9,18 @@
     "./client": "./lib/client.js",
     "./package.json": "./package.json"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mapan0424/deepseek-harness-insights.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mapan0424/deepseek-harness-insights/issues"
+  },
+  "homepage": "https://github.com/mapan0424/deepseek-harness-insights#readme",
   "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
     "client": {
       "inject": [
         "@deepseek-ai/dsh-client-runtime",
@@ -25,6 +36,7 @@
     "lib/client.js",
     "cordis.patch.yml",
     "README.md",
+    "README.zh-CN.md",
     "LICENSE"
   ],
   "license": "MIT",

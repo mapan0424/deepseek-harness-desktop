@@ -61,7 +61,9 @@ The desktop layer does not reinvent Harness. It makes Harness feel at home on de
 - automatic startup of the local Harness service
 - automatic selection of an available port
 - direct entry into the workspace once startup completes
-- automatic cleanup of background processes when the app quits
+- close-to-tray behavior, so reopening the window does not restart Harness
+- one automatic same-port recovery when dsh exits unexpectedly, followed by a local recovery page if needed
+- automatic cleanup of background processes when the app quits from the tray or system menu
 - the macOS system WebView instead of a bundled Chromium runtime
 - no terminal window or manually managed local server
 

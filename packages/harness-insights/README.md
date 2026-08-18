@@ -1,6 +1,39 @@
 # Harness Insights
 
-A bundled Cordis plugin for DeepSeek Harness Desktop. It adds a local-first **Usage insights** settings page without modifying upstream Harness source.
+[中文文档](./README.zh-CN.md)
+
+A bundled Cordis plugin for DeepSeek Harness. It adds a local-first **Usage insights** settings page without modifying upstream Harness source.
+
+Published package: `@anarkhgatsby/deepseek-harness-insights`.
+
+## Install as a Harness bundle
+
+The package follows the official Harness bundle manifest and can be installed
+into a profile with `dsh plugin`:
+
+```bash
+dsh plugin --profile demo add @anarkhgatsby/deepseek-harness-insights
+dsh --profile demo
+```
+
+To remove it later:
+
+```bash
+dsh plugin --profile demo remove @anarkhgatsby/deepseek-harness-insights
+```
+
+The plugin is web-only and targets the `0.1.0-rc.7` Harness projection and
+client APIs. It is an independent, unofficial community plugin and is not
+published by DeepSeek.
+
+For local development, the same bundle can be installed from a checkout:
+
+```bash
+dsh plugin --profile demo add ./packages/harness-insights
+```
+
+The package also retains its `dsh.client` metadata so the browser entry is
+loaded with the required Harness client services.
 
 ## Data boundary
 
