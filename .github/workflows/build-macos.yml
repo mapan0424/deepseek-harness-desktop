@@ -1,0 +1,123 @@
+name: Build macOS
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/build-macos.yml"
+      - "scripts/**"
+      - "packages/harness-insights/**"
+      - "src/**"
+      - "src-tauri/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+  pull_request:
+    paths:
+      - ".github/workflows/build-macos.yml"
+      - "scripts/**"
+      - "packages/harness-insights/**"
+      - "src/**"
+      - "src-tauri/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: macos-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  MACOSX_DEPLOYMENT_TARGET: "12.7.6"
+
+jobs:
+  build:
+    name: macOS ${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            runner: macos-15
+            rust_target: aarch64-apple-darwin
+            build_command: pnpm build:macos
+            app_path: src-tauri/target/release/bundle/macos/DeepSeek Harness.app
+          - arch: x86_64
+            runner: macos-15-intel
+            rust_target: x86_64-apple-darwin
+            build_command: pnpm build:macos:intel
+            app_path: src-tauri/target/x86_64-apple-darwin/release/bundle/macos/DeepSeek Harness.app
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.23.2
+          cache: pnpm
+
+      - name: Read package version
+        id: metadata
+        shell: bash
+        run: echo "version=$(node -p \"require('./package.json').version\")" >> "$GITHUB_OUTPUT"
+
+      - name: Install JavaScript dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust_target }}
+
+      - name: Cache Rust build
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+          key: macos-${{ matrix.arch }}
+
+      - name: Verify Markdown compatibility behavior
+        run: pnpm test:runtime:compat
+
+      - name: Verify Harness Insights
+        run: pnpm test:insights
+
+      - name: Run Rust tests
+        run: cargo test --manifest-path src-tauri/Cargo.toml
+
+      - name: Run Rust Clippy
+        run: cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
+
+      - name: Build unsigned macOS app
+        run: ${{ matrix.build_command }}
+
+      - name: Create and verify compact DMG
+        shell: bash
+        env:
+          VERSION: ${{ steps.metadata.outputs.version }}
+        run: |
+          mkdir -p artifacts
+          dmg="artifacts/DeepSeek.Harness_${VERSION}_macos_${{ matrix.arch }}.dmg"
+          node scripts/create-macos-dmg.mjs "${{ matrix.app_path }}" "$dmg"
+          hdiutil verify "$dmg"
+          shasum -a 256 "$dmg" > artifacts/SHA256SUMS.txt
+          cat artifacts/SHA256SUMS.txt
+
+      - name: Upload macOS installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: DeepSeek-Harness-${{ steps.metadata.outputs.version }}-macos-${{ matrix.arch }}
+          path: artifacts/*
+          if-no-files-found: error
+          retention-days: 14
