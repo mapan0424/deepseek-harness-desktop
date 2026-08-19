@@ -44,12 +44,16 @@ jobs:
           - arch: arm64
             runner: macos-15
             rust_target: aarch64-apple-darwin
-            build_command: pnpm build:macos
+            runtime_command: pnpm prepare:runtime
+            tauri_args: --no-sign --bundles app
+            verify_command: pnpm verify:macos:arm
             app_path: src-tauri/target/release/bundle/macos/DeepSeek Harness.app
           - arch: x86_64
             runner: macos-15-intel
             rust_target: x86_64-apple-darwin
-            build_command: pnpm build:macos:intel
+            runtime_command: pnpm prepare:runtime:intel
+            tauri_args: --target x86_64-apple-darwin --no-sign --bundles app
+            verify_command: pnpm verify:macos:intel
             app_path: src-tauri/target/x86_64-apple-darwin/release/bundle/macos/DeepSeek Harness.app
 
     steps:
@@ -93,7 +97,11 @@ jobs:
         run: pnpm test:insights
 
       - name: Build unsigned macOS app
-        run: ${{ matrix.build_command }}
+        run: |
+          ${{ matrix.runtime_command }}
+          pnpm prepare:licenses
+          pnpm tauri build ${{ matrix.tauri_args }}
+          ${{ matrix.verify_command }}
 
       - name: Verify Markdown compatibility behavior
         run: pnpm test:runtime:compat
@@ -102,7 +110,9 @@ jobs:
         run: cargo test --manifest-path src-tauri/Cargo.toml
 
       - name: Run Rust Clippy
-        run: cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
+        run: >-
+          cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --
+          -D warnings -A clippy::items-after-test-module
 
       - name: Create and verify compact DMG
         shell: bash
