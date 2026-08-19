@@ -71,7 +71,9 @@ jobs:
       - name: Read package version
         id: metadata
         shell: bash
-        run: echo "version=$(node -p \"require('./package.json').version\")" >> "$GITHUB_OUTPUT"
+        run: |
+          version=$(node -p "require('./package.json').version")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
 
       - name: Install JavaScript dependencies
         run: pnpm install --frozen-lockfile
@@ -87,9 +89,6 @@ jobs:
           workspaces: src-tauri
           key: macos-${{ matrix.arch }}
 
-      - name: Verify Markdown compatibility behavior
-        run: pnpm test:runtime:compat
-
       - name: Verify Harness Insights
         run: pnpm test:insights
 
@@ -101,6 +100,9 @@ jobs:
 
       - name: Build unsigned macOS app
         run: ${{ matrix.build_command }}
+
+      - name: Verify Markdown compatibility behavior
+        run: pnpm test:runtime:compat
 
       - name: Create and verify compact DMG
         shell: bash
