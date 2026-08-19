@@ -7,11 +7,13 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
+use chrono::{Datelike, Local, NaiveDate};
+use serde::Serialize;
 use serde_json::{json, Value};
 use tauri::image::Image;
-use tauri::menu::{Menu, MenuItem};
+use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
-use tauri::{LogicalSize, Manager, PhysicalPosition, Size};
+use tauri::{LogicalSize, Manager, PhysicalPosition, Rect, Size};
 
 struct DshProcess {
     child: Mutex<Option<Child>>,
@@ -23,6 +25,7 @@ struct DshProcess {
     recovering: AtomicBool,
     recovery_required: AtomicBool,
     restart_confirmation: Mutex<Option<(String, Instant)>>,
+    tray_summary: Mutex<Option<MenuItem<tauri::Wry>>>,
 }
 
 fn npx_path() -> String {
@@ -528,6 +531,20 @@ fn require_splash(window: &tauri::WebviewWindow) -> Result<(), String> {
     }
 }
 
+fn require_panel(window: &tauri::WebviewWindow) -> Result<(), String> {
+    let url = window
+        .url()
+        .map_err(|error| format!("读取 Insights 浮层地址失败：{error}"))?;
+    let is_app_origin = url.scheme() == "tauri"
+        || ((url.scheme() == "http" || url.scheme() == "https")
+            && url.host_str() == Some("tauri.localhost"));
+    if window.label() == "insights-panel" && is_app_origin && url.path() == "/tray-insights.html" {
+        Ok(())
+    } else {
+        Err("该命令仅允许 Insights 浮层调用".to_string())
+    }
+}
+
 fn require_recovery(window: &tauri::WebviewWindow) -> Result<(), String> {
     require_splash(window)?;
     let url = window
@@ -537,6 +554,62 @@ fn require_recovery(window: &tauri::WebviewWindow) -> Result<(), String> {
         Ok(())
     } else {
         Err("该命令仅允许恢复页面调用".to_string())
+    }
+}
+
+fn call_dsh_api(
+    port: u16,
+    method: &str,
+    payload: Value,
+    timeout_seconds: u64,
+) -> Result<Value, String> {
+    let rpc_id = format!("native-{}-{}", std::process::id(), chrono_like_timestamp());
+    let body = json!({
+        "type": "client-request",
+        "rpcId": rpc_id,
+        "method": method,
+        "payload": payload,
+    })
+    .to_string();
+    let url = format!("http://127.0.0.1:{port}/api/{method}");
+    let curl = if cfg!(windows) {
+        "curl.exe"
+    } else {
+        "/usr/bin/curl"
+    };
+    let output = Command::new(curl)
+        .args([
+            "-sS",
+            "--fail-with-body",
+            "--max-time",
+            &timeout_seconds.to_string(),
+            "-X",
+            "POST",
+            &url,
+            "-H",
+            "content-type: application/json",
+            "-d",
+            &body,
+        ])
+        .output()
+        .map_err(|error| format!("调用 dsh 失败：{error}"))?;
+
+    if !output.status.success() {
+        return Err(String::from_utf8_lossy(&output.stderr).trim().to_string());
+    }
+    let response: Value = serde_json::from_slice(&output.stdout)
+        .map_err(|error| format!("dsh 返回了无效响应：{error}"))?;
+    match response.get("result") {
+        Some(result) if result.get("ok") == Some(&Value::Bool(true)) => {
+            Ok(result.get("value").cloned().unwrap_or(Value::Null))
+        }
+        Some(result) => Err(result
+            .get("error")
+            .and_then(|error| error.get("message"))
+            .and_then(Value::as_str)
+            .unwrap_or("dsh 请求失败")
+            .to_string()),
+        None => Err("dsh 返回缺少 result 字段".to_string()),
     }
 }
 
@@ -571,68 +644,41 @@ fn dsh_api_request(
         return Err(format!("不允许调用 dsh 接口：{method}"));
     }
 
-    let rpc_id = format!("native-{}-{}", std::process::id(), chrono_like_timestamp());
-    let body = json!({
-        "type": "client-request",
-        "rpcId": rpc_id,
-        "method": method,
-        "payload": payload,
-    })
-    .to_string();
-    let url = format!("http://127.0.0.1:{port}/api/{}", body_method(&body)?);
-
-    let curl = if cfg!(windows) {
-        "curl.exe"
-    } else {
-        "/usr/bin/curl"
-    };
-    let output = Command::new(curl)
-        .args([
-            "-sS",
-            "--fail-with-body",
-            "--max-time",
-            "60",
-            "-X",
-            "POST",
-            &url,
-            "-H",
-            "content-type: application/json",
-            "-d",
-            &body,
-        ])
-        .output()
-        .map_err(|error| format!("调用 dsh 失败：{error}"))?;
-
-    if !output.status.success() {
-        return Err(String::from_utf8_lossy(&output.stderr).trim().to_string());
-    }
-
-    let response: Value = serde_json::from_slice(&output.stdout)
-        .map_err(|error| format!("dsh 返回了无效响应：{error}"))?;
-    match response.get("result") {
-        Some(result) if result.get("ok") == Some(&Value::Bool(true)) => {
-            Ok(result.get("value").cloned().unwrap_or(Value::Null))
-        }
-        Some(result) => Err(result
-            .get("error")
-            .and_then(|error| error.get("message"))
-            .and_then(Value::as_str)
-            .unwrap_or("dsh 请求失败")
-            .to_string()),
-        None => Err("dsh 返回缺少 result 字段".to_string()),
-    }
+    call_dsh_api(port, &method, payload, 60)
 }
 
-fn body_method(body: &str) -> Result<String, String> {
-    serde_json::from_str::<Value>(body)
-        .ok()
-        .and_then(|value| {
-            value
-                .get("method")
-                .and_then(Value::as_str)
-                .map(str::to_string)
-        })
-        .ok_or_else(|| "无法生成 dsh 请求路径".to_string())
+#[tauri::command]
+fn tray_insights_snapshot(
+    window: tauri::WebviewWindow,
+    state: tauri::State<'_, DshProcess>,
+) -> Result<Value, String> {
+    require_panel(&window)?;
+    if state.recovering.load(Ordering::SeqCst) {
+        return Ok(json!({ "status": "recovering" }));
+    }
+    let port = state
+        .port
+        .lock()
+        .map_err(|_| "无法取得 dsh 端口锁".to_string())?
+        .filter(|port| port_is_ready(*port));
+    let Some(port) = port else {
+        return Ok(json!({ "status": "unavailable" }));
+    };
+    let value = call_dsh_api(port, "session.list", json!({}), 30)?;
+    Ok(json!({
+        "status": "ready",
+        "usage": weekly_usage(&value, Local::now().date_naive())
+    }))
+}
+
+#[tauri::command]
+fn tray_insights_open_main(window: tauri::WebviewWindow) -> Result<(), String> {
+    require_panel(&window)?;
+    let app = window.app_handle();
+    show_main_window(app);
+    window
+        .hide()
+        .map_err(|error| format!("隐藏 Insights 浮层失败：{error}"))
 }
 
 fn chrono_like_timestamp() -> u128 {
@@ -760,10 +806,12 @@ fn start_dsh_supervisor(app: tauri::AppHandle) {
         };
 
         append_log(&state.log, &format!("dsh 意外退出：{exit_detail}\n"));
+        set_tray_summary(&app, "Harness 正在恢复…");
         let restart_was_used = state.automatic_restart_used.swap(true, Ordering::SeqCst);
         if restart_was_used {
             state.recovery_required.store(true, Ordering::SeqCst);
             state.workspace_opened.store(false, Ordering::SeqCst);
+            set_tray_summary(&app, "用量暂不可用");
             show_recovery_page(&app, &format!("dsh 再次退出：{exit_detail}"));
             continue;
         }
@@ -783,6 +831,7 @@ fn start_dsh_supervisor(app: tauri::AppHandle) {
         };
         if let Err(error) = spawn_dsh(&app, &state, active_port, false) {
             state.recovering.store(false, Ordering::SeqCst);
+            set_tray_summary(&app, "用量暂不可用");
             state.workspace_opened.store(false, Ordering::SeqCst);
             show_recovery_page(&app, &error);
             continue;
@@ -824,6 +873,7 @@ fn start_dsh_supervisor(app: tauri::AppHandle) {
 
         state.recovering.store(false, Ordering::SeqCst);
         if recovered {
+            refresh_tray_summary_async(app.clone());
             let window = app
                 .get_webview_window("splash")
                 .or_else(|| app.get_webview_window("recovery"));
@@ -834,6 +884,7 @@ fn start_dsh_supervisor(app: tauri::AppHandle) {
             }
         } else if !state.quitting.load(Ordering::SeqCst) {
             state.workspace_opened.store(false, Ordering::SeqCst);
+            set_tray_summary(&app, "用量暂不可用");
             show_recovery_page(&app, failure.as_deref().unwrap_or("dsh 自动恢复启动超时"));
         }
     });
@@ -862,6 +913,317 @@ fn stop_dsh(
     Ok(())
 }
 
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct UsageTotals {
+    tokens: u64,
+    calls: u64,
+    input_tokens: u64,
+    output_tokens: u64,
+    cache_read_tokens: u64,
+    cache_write_tokens: u64,
+    reasoning_tokens: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct DailyUsage {
+    date: String,
+    weekday: u32,
+    totals: UsageTotals,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct WeeklyUsage {
+    week_start: String,
+    week_end: String,
+    totals: UsageTotals,
+    days: Vec<DailyUsage>,
+}
+
+fn projection_number(value: Option<&Value>) -> u64 {
+    value.and_then(Value::as_u64).unwrap_or(0)
+}
+
+fn add_projection_totals(target: &mut UsageTotals, totals: &Value) {
+    let input = projection_number(totals.get("inputTokens"));
+    let output = projection_number(totals.get("outputTokens"));
+    let cache_read = projection_number(totals.get("cacheReadTokens"));
+    let cache_write = projection_number(totals.get("cacheWriteTokens"));
+    target.input_tokens = target.input_tokens.saturating_add(input);
+    target.output_tokens = target.output_tokens.saturating_add(output);
+    target.cache_read_tokens = target.cache_read_tokens.saturating_add(cache_read);
+    target.cache_write_tokens = target.cache_write_tokens.saturating_add(cache_write);
+    target.reasoning_tokens = target
+        .reasoning_tokens
+        .saturating_add(projection_number(totals.get("reasoningTokens")));
+    target.calls = target
+        .calls
+        .saturating_add(projection_number(totals.get("calls")));
+    target.tokens = target
+        .tokens
+        .saturating_add(input)
+        .saturating_add(output)
+        .saturating_add(cache_read)
+        .saturating_add(cache_write);
+}
+
+fn weekly_usage(session_list: &Value, today: NaiveDate) -> WeeklyUsage {
+    let week_start = today - chrono::Duration::days(today.weekday().num_days_from_monday().into());
+    let mut days = (0..7)
+        .map(|offset| {
+            let date = week_start + chrono::Duration::days(offset);
+            DailyUsage {
+                date: date.format("%Y-%m-%d").to_string(),
+                weekday: offset as u32,
+                totals: UsageTotals::default(),
+            }
+        })
+        .collect::<Vec<_>>();
+    let Some(items) = session_list.get("items").and_then(Value::as_array) else {
+        return WeeklyUsage {
+            week_start: week_start.format("%Y-%m-%d").to_string(),
+            week_end: today.format("%Y-%m-%d").to_string(),
+            totals: UsageTotals::default(),
+            days,
+        };
+    };
+    for item in items {
+        let Some(day_map) = item
+            .pointer("/projections/values/harnessDesktopInsights/byDay")
+            .and_then(Value::as_object)
+        else {
+            continue;
+        };
+        for (day, totals) in day_map {
+            let Ok(date) = NaiveDate::parse_from_str(day, "%Y-%m-%d") else {
+                continue;
+            };
+            if date < week_start || date > today {
+                continue;
+            }
+            let index = date.signed_duration_since(week_start).num_days() as usize;
+            add_projection_totals(&mut days[index].totals, totals);
+        }
+    }
+    let mut totals = UsageTotals::default();
+    for day in &days {
+        totals.tokens = totals.tokens.saturating_add(day.totals.tokens);
+        totals.calls = totals.calls.saturating_add(day.totals.calls);
+        totals.input_tokens = totals.input_tokens.saturating_add(day.totals.input_tokens);
+        totals.output_tokens = totals
+            .output_tokens
+            .saturating_add(day.totals.output_tokens);
+        totals.cache_read_tokens = totals
+            .cache_read_tokens
+            .saturating_add(day.totals.cache_read_tokens);
+        totals.cache_write_tokens = totals
+            .cache_write_tokens
+            .saturating_add(day.totals.cache_write_tokens);
+        totals.reasoning_tokens = totals
+            .reasoning_tokens
+            .saturating_add(day.totals.reasoning_tokens);
+    }
+    WeeklyUsage {
+        week_start: week_start.format("%Y-%m-%d").to_string(),
+        week_end: today.format("%Y-%m-%d").to_string(),
+        totals,
+        days,
+    }
+}
+
+fn compact_count(value: u64) -> String {
+    if value < 1_000 {
+        return value.to_string();
+    }
+    let (scaled, suffix) = if value < 1_000_000 {
+        (value as f64 / 1_000.0, "K")
+    } else if value < 1_000_000_000 {
+        (value as f64 / 1_000_000.0, "M")
+    } else {
+        (value as f64 / 1_000_000_000.0, "B")
+    };
+    if scaled >= 100.0 || scaled.fract() < 0.05 {
+        format!("{scaled:.0}{suffix}")
+    } else {
+        format!("{scaled:.1}{suffix}")
+    }
+}
+
+fn weekly_usage_label(usage: &WeeklyUsage) -> String {
+    if usage.totals.calls == 0 {
+        "本周 · 暂无调用".to_string()
+    } else {
+        format!(
+            "本周 · {} Token · {} 次调用",
+            compact_count(usage.totals.tokens),
+            compact_count(usage.totals.calls)
+        )
+    }
+}
+
+fn set_tray_summary(app: &tauri::AppHandle, text: &str) {
+    if let Ok(summary) = app.state::<DshProcess>().tray_summary.lock() {
+        if let Some(item) = summary.as_ref() {
+            let _ = item.set_text(text);
+        }
+    }
+}
+
+fn refresh_tray_summary(app: &tauri::AppHandle) {
+    let state = app.state::<DshProcess>();
+    if state.recovering.load(Ordering::SeqCst) {
+        set_tray_summary(app, "Harness 正在恢复…");
+        return;
+    }
+    let port = state.port.lock().ok().and_then(|port| *port);
+    let Some(port) = port.filter(|port| port_is_ready(*port)) else {
+        set_tray_summary(app, "用量暂不可用");
+        return;
+    };
+    match call_dsh_api(port, "session.list", json!({}), 30) {
+        Ok(value) => {
+            let usage = weekly_usage(&value, Local::now().date_naive());
+            set_tray_summary(app, &weekly_usage_label(&usage));
+        }
+        Err(_) => set_tray_summary(app, "用量暂不可用"),
+    }
+}
+
+fn refresh_tray_summary_async(app: tauri::AppHandle) {
+    std::thread::spawn(move || refresh_tray_summary(&app));
+}
+
+fn start_tray_summary_worker(app: tauri::AppHandle) {
+    std::thread::spawn(move || {
+        let delays = [Duration::from_secs(8), Duration::from_secs(22)];
+        for delay in delays {
+            std::thread::sleep(delay);
+            if app.state::<DshProcess>().quitting.load(Ordering::SeqCst) {
+                return;
+            }
+            refresh_tray_summary(&app);
+        }
+        loop {
+            std::thread::sleep(Duration::from_secs(300));
+            if app.state::<DshProcess>().quitting.load(Ordering::SeqCst) {
+                return;
+            }
+            refresh_tray_summary(&app);
+        }
+    });
+}
+
+fn panel_position(
+    app: &tauri::AppHandle,
+    click: PhysicalPosition<f64>,
+    rect: Rect,
+) -> PhysicalPosition<i32> {
+    const PANEL_WIDTH: i32 = 360;
+    const PANEL_HEIGHT: i32 = 460;
+    let monitor = app
+        .monitor_from_point(click.x, click.y)
+        .ok()
+        .flatten()
+        .or_else(|| app.primary_monitor().ok().flatten());
+    let Some(monitor) = monitor else {
+        return PhysicalPosition::new(click.x.round() as i32, click.y.round() as i32);
+    };
+    let area = monitor.work_area();
+    let scale = monitor.scale_factor();
+    let tray_position = rect.position.to_physical::<i32>(scale);
+    let tray_size = rect.size.to_physical::<u32>(scale);
+    let center_x = tray_position.x + tray_size.width as i32 / 2;
+    let panel_width = (PANEL_WIDTH as f64 * scale).round() as i32;
+    let panel_height = (PANEL_HEIGHT as f64 * scale).round() as i32;
+    let mut x = center_x - panel_width / 2;
+    let mut y = if cfg!(target_os = "macos") {
+        tray_position.y + tray_size.height as i32 + (6.0 * scale).round() as i32
+    } else {
+        tray_position.y - panel_height - (8.0 * scale).round() as i32
+    };
+    let min_x = area.position.x;
+    let max_x = area.position.x + area.size.width as i32 - panel_width;
+    let min_y = area.position.y;
+    let max_y = area.position.y + area.size.height as i32 - panel_height;
+    x = x.clamp(min_x, max_x.max(min_x));
+    y = y.clamp(min_y, max_y.max(min_y));
+    PhysicalPosition::new(x, y)
+}
+
+fn toggle_insights_panel(app: &tauri::AppHandle, click: PhysicalPosition<f64>, rect: Rect) {
+    let position = panel_position(app, click, rect);
+    if let Some(panel) = app.get_webview_window("insights-panel") {
+        if panel.is_visible().unwrap_or(false) {
+            let _ = panel.hide();
+            return;
+        }
+        let _ = panel.set_size(Size::Logical(LogicalSize::new(360.0, 460.0)));
+        let _ = panel.set_shadow(false);
+        let _ = panel.set_position(position);
+        let _ = panel.eval("document.body.classList.add('panel-visible')");
+        let _ = panel.show();
+        let _ = panel.set_focus();
+        let _ = panel.eval("window.dispatchEvent(new Event('tray-panel-open'))");
+        return;
+    }
+    match tauri::WebviewWindowBuilder::new(
+        app,
+        "insights-panel",
+        tauri::WebviewUrl::App("tray-insights.html".into()),
+    )
+    .title("Harness Insights")
+    .inner_size(360.0, 460.0)
+    .resizable(false)
+    .decorations(false)
+    .transparent(true)
+    .always_on_top(true)
+    .skip_taskbar(true)
+    .on_page_load(|window, payload| {
+        if matches!(payload.event(), tauri::webview::PageLoadEvent::Finished) {
+            let _ = window.eval("document.body.classList.add('panel-visible')");
+        }
+    })
+    .build()
+    {
+        Ok(panel) => {
+            let _ = panel.set_position(position);
+            let _ = panel.set_focus();
+        }
+        Err(error) => append_log(
+            &app.state::<DshProcess>().log,
+            &format!("创建 Insights 浮层失败：{error}\n"),
+        ),
+    }
+}
+
+fn setup_insights_panel(app: &tauri::AppHandle) -> Result<(), String> {
+    tauri::WebviewWindowBuilder::new(
+        app,
+        "insights-panel",
+        tauri::WebviewUrl::App("tray-insights.html".into()),
+    )
+    .title("Harness Insights")
+    .inner_size(1.0, 1.0)
+    .resizable(false)
+    .decorations(false)
+    .shadow(false)
+    .transparent(true)
+    .always_on_top(true)
+    .skip_taskbar(true)
+    .position(-10_000.0, -10_000.0)
+    .visible(true)
+    .on_page_load(|window, payload| {
+        if matches!(payload.event(), tauri::webview::PageLoadEvent::Finished) {
+            let _ = window.hide();
+        }
+    })
+    .build()
+    .map(|_| ())
+    .map_err(|error| format!("预加载 Insights 浮层失败：{error}"))
+}
+
 fn tray_icon(_app: &tauri::AppHandle) -> Result<Image<'static>, String> {
     #[cfg(target_os = "macos")]
     {
@@ -879,6 +1241,16 @@ fn tray_icon(_app: &tauri::AppHandle) -> Result<Image<'static>, String> {
 }
 
 fn setup_tray(app: &tauri::AppHandle) -> Result<(), String> {
+    let summary = MenuItem::with_id(
+        app,
+        "tray-summary",
+        "正在统计本周用量…",
+        false,
+        None::<&str>,
+    )
+    .map_err(|error| format!("创建托盘摘要菜单失败：{error}"))?;
+    let separator = PredefinedMenuItem::separator(app)
+        .map_err(|error| format!("创建托盘分隔线失败：{error}"))?;
     let open = MenuItem::with_id(
         app,
         "tray-open",
@@ -895,7 +1267,7 @@ fn setup_tray(app: &tauri::AppHandle) -> Result<(), String> {
         None::<&str>,
     )
     .map_err(|error| format!("创建托盘退出菜单失败：{error}"))?;
-    let menu = Menu::with_items(app, &[&open, &quit])
+    let menu = Menu::with_items(app, &[&summary, &separator, &open, &quit])
         .map_err(|error| format!("创建托盘菜单失败：{error}"))?;
     let icon = tray_icon(app)?;
 
@@ -917,16 +1289,23 @@ fn setup_tray(app: &tauri::AppHandle) -> Result<(), String> {
         })
         .on_tray_icon_event(|tray, event| {
             if let TrayIconEvent::Click {
+                position,
+                rect,
                 button: MouseButton::Left,
                 button_state: MouseButtonState::Up,
                 ..
             } = event
             {
-                show_main_window(tray.app_handle());
+                toggle_insights_panel(tray.app_handle(), position, rect);
             }
         })
         .build(app)
         .map_err(|error| format!("创建托盘图标失败：{error}"))?;
+    *app.state::<DshProcess>()
+        .tray_summary
+        .lock()
+        .map_err(|_| "无法保存托盘摘要菜单".to_string())? = Some(summary);
+    start_tray_summary_worker(app.clone());
     Ok(())
 }
 
@@ -956,6 +1335,82 @@ fn terminate_child(child: &mut Child) -> Result<(), String> {
     Ok(())
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn session(days: Value) -> Value {
+        json!({
+            "projections": {
+                "values": {
+                    "harnessDesktopInsights": { "byDay": days }
+                }
+            }
+        })
+    }
+
+    #[test]
+    fn aggregates_current_local_week_across_sessions() {
+        let list = json!({ "items": [
+            session(json!({
+                "2026-08-16": { "inputTokens": 99, "calls": 9 },
+                "2026-08-17": { "inputTokens": 1000, "outputTokens": 200, "cacheReadTokens": 300, "cacheWriteTokens": 40, "reasoningTokens": 500, "calls": 2 },
+                "2026-08-18": { "inputTokens": 60, "outputTokens": 10, "cacheReadTokens": 20, "cacheWriteTokens": 5, "calls": 1 },
+                "2026-08-20": { "inputTokens": 9999, "calls": 10 },
+                "unknown": { "inputTokens": 9999, "calls": 10 }
+            })),
+            session(json!({
+                "2026-08-17": { "inputTokens": 50, "outputTokens": 5, "cacheReadTokens": 0, "cacheWriteTokens": 0, "calls": 1 }
+            })),
+            json!({})
+        ]});
+        let usage = weekly_usage(&list, NaiveDate::from_ymd_opt(2026, 8, 18).unwrap());
+        assert_eq!(usage.week_start, "2026-08-17");
+        assert_eq!(usage.week_end, "2026-08-18");
+        assert_eq!(usage.totals.tokens, 1_690);
+        assert_eq!(usage.totals.calls, 4);
+        assert_eq!(usage.totals.reasoning_tokens, 500);
+        assert_eq!(usage.days[0].totals.tokens, 1_595);
+        assert_eq!(usage.days[1].totals.tokens, 95);
+        assert_eq!(usage.days.len(), 7);
+    }
+
+    #[test]
+    fn week_start_crosses_month_boundary() {
+        let list = json!({ "items": [session(json!({
+            "2026-03-29": { "inputTokens": 100, "calls": 1 },
+            "2026-03-30": { "inputTokens": 200, "calls": 2 },
+            "2026-04-01": { "outputTokens": 300, "calls": 3 }
+        }))]});
+        let usage = weekly_usage(&list, NaiveDate::from_ymd_opt(2026, 4, 1).unwrap());
+        assert_eq!(usage.week_start, "2026-03-30");
+        assert_eq!(usage.totals.tokens, 500);
+        assert_eq!(usage.totals.calls, 5);
+        assert_eq!(usage.days[0].totals.tokens, 200);
+        assert_eq!(usage.days[2].totals.tokens, 300);
+    }
+
+    #[test]
+    fn formats_compact_tray_values() {
+        assert_eq!(compact_count(999), "999");
+        assert_eq!(compact_count(1_000), "1K");
+        assert_eq!(compact_count(12_400), "12.4K");
+        assert_eq!(compact_count(1_250_000), "1.2M");
+        let empty = weekly_usage(
+            &json!({ "items": [] }),
+            NaiveDate::from_ymd_opt(2026, 8, 18).unwrap(),
+        );
+        assert_eq!(weekly_usage_label(&empty), "本周 · 暂无调用");
+        let mut populated = empty;
+        populated.totals.tokens = 12_400;
+        populated.totals.calls = 34;
+        assert_eq!(
+            weekly_usage_label(&populated),
+            "本周 · 12.4K Token · 34 次调用"
+        );
+    }
+}
+
 const ABORT_SIGNAL_POLYFILL: &str = include_str!("../resources/abort-signal-polyfill.js");
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -980,10 +1435,12 @@ pub fn run() {
             recovering: AtomicBool::new(false),
             recovery_required: AtomicBool::new(false),
             restart_confirmation: Mutex::new(None),
+            tray_summary: Mutex::new(None),
         })
         .setup(|app| {
             setup_tray(app.handle())?;
             setup_recovery_window(app.handle())?;
+            setup_insights_panel(app.handle())?;
             start_dsh_supervisor(app.handle().clone());
             Ok(())
         })
@@ -991,6 +1448,8 @@ pub fn run() {
             start_dsh,
             request_restart_confirmation,
             restart_dsh,
+            tray_insights_snapshot,
+            tray_insights_open_main,
             dsh_status,
             open_workspace,
             dsh_api_request,
@@ -1003,13 +1462,22 @@ pub fn run() {
                 label,
                 event: tauri::WindowEvent::CloseRequested { api, .. },
                 ..
-            } if matches!(label.as_str(), "splash" | "recovery") => {
+            } if matches!(label.as_str(), "splash" | "recovery" | "insights-panel") => {
                 let state = app_handle.state::<DshProcess>();
                 if !state.quitting.load(Ordering::SeqCst) {
                     api.prevent_close();
                     if let Some(window) = app_handle.get_webview_window(&label) {
                         let _ = window.hide();
                     }
+                }
+            }
+            tauri::RunEvent::WindowEvent {
+                label,
+                event: tauri::WindowEvent::Focused(false),
+                ..
+            } if label == "insights-panel" => {
+                if let Some(panel) = app_handle.get_webview_window("insights-panel") {
+                    let _ = panel.hide();
                 }
             }
             #[cfg(target_os = "macos")]

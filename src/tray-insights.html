@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Harness Insights</title>
+    <link rel="stylesheet" href="tray-insights.css" />
+    <script type="module" src="/tray-insights.js" defer></script>
+  </head>
+  <body class="tray-insights-page">
+    <main class="panel" aria-live="polite">
+      <header class="header">
+        <div class="brand">
+          <span class="mark"><img src="assets/whale-logo.svg" alt="" /></span>
+          <div>
+            <p class="eyebrow">HARNESS INSIGHTS</p>
+            <h1>本周用量</h1>
+          </div>
+        </div>
+        <span class="range" id="range">—</span>
+      </header>
+
+      <section class="metrics" aria-label="本周摘要">
+        <article class="metric">
+          <span>总 Token</span>
+          <strong id="tokens">—</strong>
+        </article>
+        <article class="metric">
+          <span>模型调用</span>
+          <strong id="calls">—</strong>
+        </article>
+      </section>
+
+      <section class="activity">
+        <div class="section-head">
+          <h2>每日活动</h2>
+          <span id="activity-total">周一至今天</span>
+        </div>
+        <div class="chart" id="chart" aria-label="最近一周 Token 柱状图"></div>
+      </section>
+
+      <section class="breakdown">
+        <div class="breakdown-row"><span><i class="dot input"></i>未缓存输入</span><b id="input">—</b></div>
+        <div class="breakdown-row"><span><i class="dot output"></i>输出</span><b id="output">—</b></div>
+        <div class="breakdown-row"><span><i class="dot cache"></i>缓存读取</span><b id="cache-read">—</b></div>
+        <div class="breakdown-row"><span><i class="dot write"></i>缓存写入</span><b id="cache-write">—</b></div>
+        <div class="breakdown-row"><span><i class="dot reasoning"></i>推理</span><b id="reasoning">—</b></div>
+      </section>
+
+      <div class="status hidden" id="status"></div>
+      <button class="open-button" id="open-insights">打开 DeepSeek Harness <span>↗</span></button>
+      <p class="privacy">本地投影 · 不读取消息正文 · 不上传</p>
+    </main>
+  </body>
+</html>

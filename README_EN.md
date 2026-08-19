@@ -62,6 +62,8 @@ The desktop layer does not reinvent Harness. It makes Harness feel at home on de
 - automatic selection of an available port
 - direct entry into the workspace once startup completes
 - close-to-tray behavior, so reopening the window does not restart Harness
+- left-click tray panel for weekly Tokens, model calls, a seven-day chart, and Token breakdown
+- right-click tray summary with open and quit actions
 - one automatic same-port recovery when dsh exits unexpectedly, followed by a local recovery page if needed
 - automatic cleanup of background processes when the app quits from the tray or system menu
 - the macOS system WebView instead of a bundled Chromium runtime
