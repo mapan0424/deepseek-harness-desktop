@@ -1,6 +1,6 @@
 [package]
 name = "deepseek-harness-macos"
-version = "0.1.8"
+version = "0.1.9"
 description = "Unofficial Tauri desktop client for DeepSeek Harness"
 authors = ["mapan0424"]
 license = "MIT"

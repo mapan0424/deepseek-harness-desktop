@@ -1,7 +1,7 @@
 {
   "name": "harness-desktop-macos",
   "private": true,
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "Unofficial Tauri desktop client for DeepSeek Harness",
   "license": "MIT",
   "repository": "https://github.com/mapan0424/deepseek-harness-desktop",

@@ -733,6 +733,7 @@ fn show_recovery_page(app: &tauri::AppHandle, detail: &str) {
     .inner_size(560.0, 420.0)
     .resizable(false)
     .center()
+    .disable_drag_drop_handler()
     .on_page_load(|window, payload| {
         if matches!(payload.event(), tauri::webview::PageLoadEvent::Finished) {
             let _ = window.eval("document.body.classList.add('recovery-visible')");
@@ -760,6 +761,7 @@ fn setup_recovery_window(app: &tauri::AppHandle) -> Result<(), String> {
     .title("DeepSeek Harness — 恢复工作台")
     .inner_size(1.0, 1.0)
     .resizable(false)
+    .disable_drag_drop_handler()
     .decorations(false)
     .shadow(false)
     .position(-10_000.0, -10_000.0)
