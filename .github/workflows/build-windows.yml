@@ -45,6 +45,13 @@ jobs:
           node-version: 22.23.2
           cache: pnpm
 
+      - name: Read package version
+        id: metadata
+        shell: pwsh
+        run: |
+          $version = node -p "require('./package.json').version"
+          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
       - name: Install JavaScript dependencies
         run: pnpm install --frozen-lockfile
 
@@ -87,7 +94,7 @@ jobs:
           $files += Get-ChildItem "src-tauri/target/x86_64-pc-windows-msvc/release/bundle/msi" -Filter *.msi
           if ($files.Count -lt 2) { throw "Expected NSIS and MSI installers." }
           foreach ($file in $files) {
-            $name = if ($file.Extension -eq ".exe") { "DeepSeek.Harness_0.1.8_windows_x86_64-setup.exe" } else { "DeepSeek.Harness_0.1.8_windows_x86_64.msi" }
+            $name = if ($file.Extension -eq ".exe") { "DeepSeek.Harness_${{ steps.metadata.outputs.version }}_windows_x86_64-setup.exe" } else { "DeepSeek.Harness_${{ steps.metadata.outputs.version }}_windows_x86_64.msi" }
             Copy-Item $file.FullName (Join-Path artifacts $name)
           }
           Get-ChildItem artifacts -File | Sort-Object Name | ForEach-Object {
@@ -99,7 +106,7 @@ jobs:
       - name: Upload Windows installers
         uses: actions/upload-artifact@v4
         with:
-          name: DeepSeek-Harness-0.1.8-Windows-x86_64
+          name: DeepSeek-Harness-${{ steps.metadata.outputs.version }}-Windows-x86_64
           path: artifacts/*
           if-no-files-found: error
           retention-days: 14
