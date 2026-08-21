@@ -1,5 +1,5 @@
-import { existsSync } from "node:fs";
-import { readdir, readFile, rm } from "node:fs/promises";
+import { existsSync, lstatSync } from "node:fs";
+import { chmod, readdir, readFile, rm, unlink, writeFile } from "node:fs/promises";
 import { delimiter, join } from "node:path";
 import { spawnSync } from "node:child_process";
 
@@ -39,6 +39,21 @@ export async function pruneBundledPnpmNativeModules(runtimeRoot, target) {
       await rm(join(platformPackages, entry.name), { recursive: true, force: true });
     }
   }
+}
+
+// Tauri may dereference resource symlinks while copying the App bundle. The
+// generated pnpm launcher then loses its original `../dist` base directory.
+// Materialize a wrapper from `.bin` so it remains valid after that copy step.
+export async function materializeBundledPnpmLauncher(runtimeRoot) {
+  const binRoot = bundledPnpmBinRoot(runtimeRoot);
+  const launcher = join(binRoot, "pnpm");
+  if (process.platform === "win32") {
+    await writeFile(join(binRoot, "pnpm.cmd"), "@ECHO OFF\r\nnode \"%~dp0\\..\\pnpm\\bin\\pnpm.mjs\" %*\r\n");
+    return;
+  }
+  if (lstatSync(launcher).isSymbolicLink()) await unlink(launcher);
+  await writeFile(launcher, "#!/usr/bin/env node\nawait import(\"../pnpm/bin/pnpm.mjs\");\n");
+  await chmod(launcher, 0o755);
 }
 
 export async function verifyBundledPnpm(runtimeRoot) {
