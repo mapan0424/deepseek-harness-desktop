@@ -2,6 +2,18 @@ name: Build macOS
 
 on:
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      sign:
+        description: Sign updater archives for a GitHub Release
+        required: false
+        default: false
+        type: boolean
+    secrets:
+      TAURI_SIGNING_PRIVATE_KEY:
+        required: false
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD:
+        required: false
   push:
     branches: [main]
     paths:
@@ -47,14 +59,14 @@ jobs:
             runner: macos-15
             rust_target: aarch64-apple-darwin
             runtime_command: pnpm prepare:runtime
-            tauri_args: --no-sign --bundles app
+            tauri_args: --config src-tauri/tauri.updater.conf.json --no-sign --bundles app
             verify_command: pnpm verify:macos:arm
             app_path: src-tauri/target/release/bundle/macos/DeepSeek Harness.app
           - arch: x86_64
             runner: macos-15-intel
             rust_target: x86_64-apple-darwin
             runtime_command: pnpm prepare:runtime:intel
-            tauri_args: --target x86_64-apple-darwin --no-sign --bundles app
+            tauri_args: --config src-tauri/tauri.updater.conf.json --target x86_64-apple-darwin --no-sign --bundles app
             verify_command: pnpm verify:macos:intel
             app_path: src-tauri/target/x86_64-apple-darwin/release/bundle/macos/DeepSeek Harness.app
 
@@ -116,16 +128,41 @@ jobs:
           cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --
           -D warnings -A clippy::items-after-test-module
 
-      - name: Create and verify compact DMG
+      - name: Prepare updater archive
         shell: bash
         env:
           VERSION: ${{ steps.metadata.outputs.version }}
         run: |
           mkdir -p artifacts
+          source_archive="${{ matrix.app_path }}.tar.gz"
+          updater_archive="artifacts/DeepSeek.Harness_${VERSION}_macos_${{ matrix.arch }}.app.tar.gz"
+          test -f "$source_archive"
+          cp "$source_archive" "$updater_archive"
+
+      - name: Sign updater archive
+        if: ${{ inputs.sign }}
+        shell: bash
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          VERSION: ${{ steps.metadata.outputs.version }}
+        run: |
+          updater_archive="artifacts/DeepSeek.Harness_${VERSION}_macos_${{ matrix.arch }}.app.tar.gz"
+          test -n "$TAURI_SIGNING_PRIVATE_KEY"
+          test -n "$TAURI_SIGNING_PRIVATE_KEY_PASSWORD"
+          pnpm tauri signer sign "$updater_archive"
+          test -s "$updater_archive.sig"
+
+      - name: Create and verify compact DMG
+        shell: bash
+        env:
+          VERSION: ${{ steps.metadata.outputs.version }}
+        run: |
           dmg="artifacts/DeepSeek.Harness_${VERSION}_macos_${{ matrix.arch }}.dmg"
+          updater_archive="artifacts/DeepSeek.Harness_${VERSION}_macos_${{ matrix.arch }}.app.tar.gz"
           node scripts/create-macos-dmg.mjs "${{ matrix.app_path }}" "$dmg"
           hdiutil verify "$dmg"
-          shasum -a 256 "$dmg" > artifacts/SHA256SUMS.txt
+          (cd artifacts && shasum -a 256 "$(basename "$dmg")" "$(basename "$updater_archive")") > artifacts/SHA256SUMS.txt
           cat artifacts/SHA256SUMS.txt
 
       - name: Upload macOS installer

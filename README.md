@@ -75,17 +75,17 @@ Harness 服务只监听本机 `127.0.0.1`。会话、设置、工作区和凭据
 
 模型请求的目标和数据处理方式取决于你在 Harness 中选择的模型服务与配置。
 
-### 覆盖更多仍有价值的设备
+### 旧设备兼容矩阵
 
-Apple Silicon、Intel Mac 和 Windows x64 使用各自独立的安装包、Node.js 与原生依赖，避免混合架构带来的体积和兼容性问题。
+不把仍在使用的 Intel Mac 排除在外。每种架构都有独立的安装包、Node.js 运行时和原生依赖，减少混合架构带来的体积与兼容性问题。
 
-- macOS 最低支持 **12.7.6**
-- Apple Silicon：`arm64`
-- Intel Mac：`x86_64`
-- Windows 10 / 11：`x86_64`
-- 持续适配不同系统 WebView 与原生模块差异
+| 平台 | 发布包 | 状态 | 自动化验证 |
+| --- | --- | --- | --- |
+| macOS 12.7.6+ Apple Silicon | `DeepSeek.Harness_*_macos_arm64.dmg` | 支持 | arm64 App、最低系统版本、原生模块、内置运行时与 Markdown/WebKit 兼容性 |
+| macOS 12.7.6+ Intel | `DeepSeek.Harness_*_macos_x86_64.dmg` | 支持 | Intel App、x86_64 原生模块、最低系统版本、内置运行时与 Markdown/WebKit 兼容性 |
+| Windows 10 / 11 x64 | `setup.exe` 或 `*.msi` | 支持 | x86_64 安装包、展开后的运行时、原生依赖、Markdown 与 bundle 完整性 |
 
-构建流程会验证 Markdown、原生模块架构和系统目标，让旧 Intel Mac 与主流 Windows PC 也能获得完整的 Harness 体验。
+macOS 12.7.6 是当前发行包声明的最低版本；Intel 和 Apple Silicon 使用对应架构的 DMG。矩阵反映发行包和自动化检查结果，具体性能与 WebKit 行为仍可能受设备型号和系统补丁版本影响。
 
 ## 🚀 下载与安装
 
@@ -117,6 +117,12 @@ xattr -dr com.apple.quarantine "/Applications/DeepSeek Harness.app"
 3. 在 Harness 中配置需要使用的模型或 API 凭据。
 
 MSI 主要用于企业或批量部署。Windows 10/11 通常已内置应用所需的 Microsoft Edge WebView2 Runtime。
+
+### 自动更新
+
+从 `v0.2.0` 起，已安装的桌面 App 会在启动完成后延迟检查 GitHub Releases。发现新版本时，App 会先显示更新说明；确认后自动下载、停止本地 dsh、安装并重启到新版本。macOS Apple Silicon、macOS Intel 和 Windows x64 都使用各自架构的签名更新包。
+
+`v0.1.9` 及更早版本没有自动更新能力，需要手动安装一次 `v0.2.0`；之后的版本即可在 App 内完成后续更新。
 
 ## 🧭 它如何工作
 
