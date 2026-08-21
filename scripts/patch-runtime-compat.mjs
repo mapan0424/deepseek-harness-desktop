@@ -2,24 +2,16 @@ import { existsSync } from "node:fs";
 import { readFile, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
-const expectedFrontendVersion = "0.1.0-rc.7";
-const expectedAutolinkVersion = "2.0.1";
+const expectedFrontendVersion = "0.1.1-rc.2";
 
-const sourceOld = "[/(?<=^|\\s|\\p{P}|\\p{S})([-.\\w+]+)@([-\\w]+(?:\\.[-\\w]+)+)/gu, findEmail]";
-const sourceNew = "[/([-.\\w+]+)@([-\\w]+(?:\\.[-\\w]+)+)/gu, findEmail]";
 const bundleOld = 'new RegExp("(?<=^|\\\\s|\\\\p{P}|\\\\p{S})([-.\\\\w+]+)@([-\\\\w]+(?:\\\\.[-\\\\w]+)+)","gu")';
 const bundleNew = 'new RegExp("([-.\\\\w+]+)@([-\\\\w]+(?:\\\\.[-\\\\w]+)+)","gu")';
 
 export async function patchRuntimeCompatibility(runtimeRoot) {
   const modules = join(runtimeRoot, "node_modules");
   const frontendRoot = join(modules, "@deepseek-ai", "dsh-web-frontend");
-  const autolinkRoot = join(modules, "mdast-util-gfm-autolink-literal");
 
   await assertPackageVersion(frontendRoot, "@deepseek-ai/dsh-web-frontend", expectedFrontendVersion);
-  await assertPackageVersion(autolinkRoot, "mdast-util-gfm-autolink-literal", expectedAutolinkVersion);
-
-  const sourcePath = join(autolinkRoot, "lib", "index.js");
-  await patchExactFile(sourcePath, sourceOld, sourceNew, "mdast GFM email autolink source");
 
   const assetsRoot = join(frontendRoot, "dist", "assets");
   const assetNames = (await readdir(assetsRoot)).filter((name) => name.endsWith(".js")).sort();
@@ -46,10 +38,6 @@ export async function patchRuntimeCompatibility(runtimeRoot) {
 
 export async function verifyRuntimeCompatibility(runtimeRoot) {
   const modules = join(runtimeRoot, "node_modules");
-  const sourcePath = join(modules, "mdast-util-gfm-autolink-literal", "lib", "index.js");
-  const source = await readFile(sourcePath, "utf8");
-  assertCounts(sourcePath, source, sourceOld, sourceNew, 0, 1);
-
   const assetsRoot = join(modules, "@deepseek-ai", "dsh-web-frontend", "dist", "assets");
   if (!existsSync(assetsRoot)) throw new Error(`Missing frontend assets: ${assetsRoot}`);
   let oldCount = 0;
