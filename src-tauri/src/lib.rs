@@ -50,6 +50,7 @@ fn npx_path() -> String {
 fn node_search_path(runtime_root: Option<&std::path::Path>) -> std::ffi::OsString {
     let mut paths = Vec::new();
     if let Some(runtime_root) = runtime_root {
+        paths.push(runtime_root.join("node_modules/.bin"));
         paths.push(runtime_root.to_path_buf());
     }
     if !cfg!(windows) {
@@ -1492,6 +1493,14 @@ mod tests {
                 }
             }
         })
+    }
+
+    #[test]
+    fn bundled_runtime_tools_precede_system_path() {
+        let runtime = std::path::Path::new("/tmp/dsh-runtime");
+        let paths = std::env::split_paths(&node_search_path(Some(runtime))).collect::<Vec<_>>();
+        assert_eq!(paths[0], runtime.join("node_modules/.bin"));
+        assert_eq!(paths[1], runtime);
     }
 
     #[test]

@@ -13,6 +13,7 @@
     "prepare:runtime:windows": "node scripts/prepare-runtime-windows.mjs",
     "prepare:licenses": "node scripts/prepare-rust-licenses.mjs",
     "test:runtime:compat": "node scripts/test-runtime-compat.mjs",
+    "test:bundled-pnpm": "node scripts/test-bundled-pnpm.mjs",
     "test:updater": "node scripts/test-updater-manifest.mjs",
     "test:insights": "node packages/harness-insights/tests/projection.test.mjs && node packages/harness-insights/tests/client-activity.test.mjs && node packages/harness-insights/tests/manifest.test.mjs",
     "verify:macos:arm": "node scripts/verify-macos-bundle.mjs 'src-tauri/target/release/bundle/macos/DeepSeek Harness.app' arm64",
