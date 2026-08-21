@@ -14,6 +14,8 @@ use tauri::image::Image;
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{LogicalSize, Manager, PhysicalPosition, Rect, Size};
+use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
+use tauri_plugin_updater::UpdaterExt;
 
 struct DshProcess {
     child: Mutex<Option<Child>>,
@@ -1337,6 +1339,147 @@ fn terminate_child(child: &mut Child) -> Result<(), String> {
     Ok(())
 }
 
+fn stop_dsh_for_update(state: &DshProcess) {
+    if let Ok(mut process) = state.child.lock() {
+        if let Some(mut child) = process.take() {
+            let _ = terminate_child(&mut child);
+        }
+    }
+    if let Ok(mut port) = state.port.lock() {
+        *port = None;
+    }
+    state.workspace_opened.store(false, Ordering::SeqCst);
+}
+
+fn update_notes(body: Option<&String>) -> String {
+    let Some(body) = body
+        .map(String::as_str)
+        .map(str::trim)
+        .filter(|body| !body.is_empty())
+    else {
+        return "包含最新功能、兼容性改进和问题修复。".to_string();
+    };
+
+    let mut notes = body.chars().take(800).collect::<String>();
+    if body.chars().count() > 800 {
+        notes.push('…');
+    }
+    notes
+}
+
+fn show_update_error(
+    app: &tauri::AppHandle,
+    detail: impl Into<String>,
+    restart_current_version: bool,
+) {
+    let recovery = if restart_current_version {
+        "\n\nApp 将重启当前版本以恢复工作台。"
+    } else {
+        ""
+    };
+    let message = format!(
+        "自动更新失败。你可以继续使用当前版本，或从 GitHub Releases 手动下载。\n\n{}{}",
+        detail.into(),
+        recovery,
+    );
+    app.dialog()
+        .message(message)
+        .title("DeepSeek Harness 更新")
+        .kind(MessageDialogKind::Error)
+        .buttons(MessageDialogButtons::OkCustom("知道了".to_string()))
+        .blocking_show();
+}
+
+fn start_update_checker(app: tauri::AppHandle) {
+    if cfg!(debug_assertions) {
+        return;
+    }
+
+    std::thread::spawn(move || {
+        // Let the workspace and local dsh service finish starting before using a
+        // native dialog or making a network request.
+        std::thread::sleep(Duration::from_secs(8));
+        if app.state::<DshProcess>().quitting.load(Ordering::SeqCst) {
+            return;
+        }
+
+        let check_result: Result<Option<tauri_plugin_updater::Update>, String> =
+            tauri::async_runtime::block_on(async {
+                let updater = app.updater().map_err(|error| error.to_string())?;
+                updater.check().await.map_err(|error| error.to_string())
+            });
+        let update = match check_result {
+            Ok(Some(update)) => update,
+            Ok(None) => return,
+            Err(error) => {
+                append_log(
+                    &app.state::<DshProcess>().log,
+                    &format!("自动检查更新失败：{error}\n"),
+                );
+                return;
+            }
+        };
+
+        let prompt = format!(
+            "新版本 v{} 可用。\n\n{}\n\n现在下载并安装，完成后 App 会自动重启？",
+            update.version,
+            update_notes(update.body.as_ref()),
+        );
+        if !app
+            .dialog()
+            .message(prompt)
+            .title("DeepSeek Harness 有新版本")
+            .kind(MessageDialogKind::Info)
+            .buttons(MessageDialogButtons::OkCancelCustom(
+                "更新".to_string(),
+                "稍后".to_string(),
+            ))
+            .blocking_show()
+        {
+            return;
+        }
+
+        set_tray_summary(&app, &format!("正在下载 v{} 更新…", update.version));
+        let mut downloaded = 0_u64;
+        let download_result = tauri::async_runtime::block_on(update.download(
+            {
+                let app = app.clone();
+                move |chunk_length, content_length| {
+                    downloaded += chunk_length as u64;
+                    if let Some(total) = content_length.filter(|total| *total > 0) {
+                        let percent = ((downloaded * 100) / total).min(100);
+                        set_tray_summary(&app, &format!("正在下载更新… {percent}%"));
+                    } else {
+                        set_tray_summary(&app, "正在下载更新…");
+                    }
+                }
+            },
+            {
+                let app = app.clone();
+                move || set_tray_summary(&app, "正在准备安装更新…")
+            },
+        ));
+        let bytes = match download_result {
+            Ok(bytes) => bytes,
+            Err(error) => {
+                set_tray_summary(&app, "更新检查完成");
+                show_update_error(&app, error.to_string(), false);
+                return;
+            }
+        };
+
+        stop_dsh_for_update(&app.state::<DshProcess>());
+        if let Err(error) = update.install(bytes) {
+            set_tray_summary(&app, "更新检查完成");
+            show_update_error(&app, error.to_string(), true);
+            app.restart();
+        }
+
+        set_tray_summary(&app, "正在重启到新版本…");
+        app.restart();
+    });
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1411,6 +1554,20 @@ mod tests {
             "本周 · 12.4K Token · 34 次调用"
         );
     }
+
+    #[test]
+    fn formats_and_limits_update_notes() {
+        assert_eq!(update_notes(None), "包含最新功能、兼容性改进和问题修复。");
+        assert_eq!(
+            update_notes(Some(&"  修复更新流程  ".to_string())),
+            "修复更新流程"
+        );
+
+        let long_notes = "更".repeat(801);
+        let formatted = update_notes(Some(&long_notes));
+        assert_eq!(formatted.chars().count(), 801);
+        assert!(formatted.ends_with('…'));
+    }
 }
 
 const ABORT_SIGNAL_POLYFILL: &str = include_str!("../resources/abort-signal-polyfill.js");
@@ -1421,7 +1578,9 @@ pub fn run() {
         .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
             show_main_window(app);
         }))
+        .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(
             tauri::plugin::Builder::<tauri::Wry, ()>::new("webkit-compat")
                 .js_init_script_on_all_frames(ABORT_SIGNAL_POLYFILL)
@@ -1444,6 +1603,7 @@ pub fn run() {
             setup_recovery_window(app.handle())?;
             setup_insights_panel(app.handle())?;
             start_dsh_supervisor(app.handle().clone());
+            start_update_checker(app.handle().clone());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

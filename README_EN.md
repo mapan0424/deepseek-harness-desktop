@@ -75,17 +75,17 @@ The Harness service listens only on `127.0.0.1`. Sessions, settings, workspaces,
 
 Where model requests go—and how providers process them—depends on the model service you configure in Harness.
 
-### Built for more useful machines
+### Legacy-device compatibility matrix
 
-Apple Silicon, Intel Mac, and Windows x64 each receive dedicated installers, Node.js runtimes, and native dependencies. Keeping architectures separate avoids unnecessary size and compatibility compromises.
+Intel Macs that are still useful should not be left behind. Each architecture receives its own installer, Node.js runtime, and native dependencies, reducing the size and compatibility problems caused by mixed-architecture bundles.
 
-- minimum macOS version: **12.7.6**
-- Apple Silicon: `arm64`
-- Intel Mac: `x86_64`
-- Windows 10 / 11: `x86_64`
-- compatibility work across system WebViews and native modules
+| Platform | Release package | Status | Automated verification |
+| --- | --- | --- | --- |
+| macOS 12.7.6+ Apple Silicon | `DeepSeek.Harness_*_macos_arm64.dmg` | Supported | arm64 app, minimum OS, native modules, embedded runtime, and Markdown/WebKit compatibility |
+| macOS 12.7.6+ Intel | `DeepSeek.Harness_*_macos_x86_64.dmg` | Supported | Intel app, x86_64 native modules, minimum OS, embedded runtime, and Markdown/WebKit compatibility |
+| Windows 10 / 11 x64 | `setup.exe` or `*.msi` | Supported | x86_64 installers, expanded runtime, native dependencies, Markdown, and bundle integrity |
 
-The build pipeline verifies Markdown behavior, native architecture, and platform targets so older Intel Macs and mainstream Windows PCs can keep a complete Harness experience.
+macOS 12.7.6 is the minimum version declared by the current release. Intel and Apple Silicon use their matching DMG. This matrix describes release artifacts and automated checks; performance and WebKit behavior can still vary by device model and system patch level.
 
 ## 🚀 Download and install
 
@@ -117,6 +117,12 @@ xattr -dr com.apple.quarantine "/Applications/DeepSeek Harness.app"
 3. Configure your preferred model or API credentials in Harness.
 
 MSI is primarily intended for enterprise or managed deployment. Windows 10 and 11 normally include the required Microsoft Edge WebView2 Runtime.
+
+### Automatic updates
+
+Starting with `v0.2.0`, an installed desktop app checks GitHub Releases after startup has settled. When a newer release is available, the app shows its notes first; after confirmation it downloads the signed package, stops the local dsh process, installs the update, and restarts. macOS Apple Silicon, macOS Intel, and Windows x64 each use their matching signed updater package.
+
+`v0.1.9` and earlier do not have updater support, so they require one manual install of `v0.2.0`. Later releases can be installed from inside the app.
 
 ## 🧭 How it works
 

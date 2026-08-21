@@ -2,6 +2,18 @@ name: Build Windows x64
 
 on:
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      sign:
+        description: Sign updater installers for a GitHub Release
+        required: false
+        default: false
+        type: boolean
+    secrets:
+      TAURI_SIGNING_PRIVATE_KEY:
+        required: false
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD:
+        required: false
   push:
     branches: [main]
     paths:
@@ -83,7 +95,7 @@ jobs:
         run: pnpm prepare:licenses
 
       - name: Build NSIS and MSI installers
-        run: pnpm tauri build --config src-tauri/tauri.windows.conf.json --target x86_64-pc-windows-msvc --no-sign
+        run: pnpm tauri build --config src-tauri/tauri.windows.conf.json --config src-tauri/tauri.updater.conf.json --target x86_64-pc-windows-msvc --no-sign
 
       - name: Verify expanded Windows bundle
         shell: pwsh
@@ -106,6 +118,20 @@ jobs:
             "$hash  $($_.Name)"
           } | Set-Content -Encoding ascii artifacts/SHA256SUMS.txt
           Get-Content artifacts/SHA256SUMS.txt
+
+      - name: Sign updater installers
+        if: ${{ inputs.sign }}
+        shell: pwsh
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:TAURI_SIGNING_PRIVATE_KEY)) { throw "TAURI_SIGNING_PRIVATE_KEY is required for release signing." }
+          if ([string]::IsNullOrWhiteSpace($env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD)) { throw "TAURI_SIGNING_PRIVATE_KEY_PASSWORD is required for release signing." }
+          Get-ChildItem artifacts -File | Where-Object { $_.Extension -in @('.exe', '.msi') } | ForEach-Object {
+            pnpm tauri signer sign $_.FullName
+            if (-not (Test-Path "$($_.FullName).sig")) { throw "Missing signature for $($_.Name)" }
+          }
 
       - name: Upload Windows installers
         uses: actions/upload-artifact@v4

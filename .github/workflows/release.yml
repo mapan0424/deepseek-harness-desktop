@@ -1,0 +1,137 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-macos:
+    uses: ./.github/workflows/build-macos.yml
+    with:
+      sign: true
+    secrets: inherit
+
+  build-windows:
+    uses: ./.github/workflows/build-windows.yml
+    with:
+      sign: true
+    secrets: inherit
+
+  publish:
+    name: Publish GitHub Release
+    needs: [build-macos, build-windows]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Read and validate release version
+        id: metadata
+        shell: bash
+        run: |
+          version=$(node -p "require('./package.json').version")
+          tag="${GITHUB_REF_NAME}"
+          test "$tag" = "v$version" || {
+            echo "Tag $tag does not match package version $version" >&2
+            exit 1
+          }
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Download platform artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: DeepSeek-Harness-${{ steps.metadata.outputs.version }}-*
+          path: downloaded
+          merge-multiple: false
+
+      - name: Assemble signed release assets
+        shell: bash
+        env:
+          VERSION: ${{ steps.metadata.outputs.version }}
+        run: |
+          mkdir -p release-assets
+          find downloaded -type f \( \
+            -name '*.dmg' -o \
+            -name '*.app.tar.gz' -o \
+            -name '*.exe' -o \
+            -name '*.msi' -o \
+            -name '*.sig' \
+          \) -exec cp {} release-assets/ \;
+
+          expected=(
+            "DeepSeek.Harness_${VERSION}_macos_arm64.dmg"
+            "DeepSeek.Harness_${VERSION}_macos_arm64.app.tar.gz"
+            "DeepSeek.Harness_${VERSION}_macos_x86_64.dmg"
+            "DeepSeek.Harness_${VERSION}_macos_x86_64.app.tar.gz"
+            "DeepSeek.Harness_${VERSION}_windows_x86_64-setup.exe"
+            "DeepSeek.Harness_${VERSION}_windows_x86_64.msi"
+          )
+          for file in "${expected[@]}"; do
+            test -s "release-assets/$file" || { echo "Missing release asset: $file" >&2; exit 1; }
+          done
+
+          for file in \
+            "${expected[1]}" \
+            "${expected[3]}" \
+            "${expected[4]}" \
+            "${expected[5]}"; do
+            test -s "release-assets/$file.sig" || { echo "Missing updater signature: $file.sig" >&2; exit 1; }
+          done
+
+      - name: Generate updater manifest and checksums
+        shell: bash
+        env:
+          VERSION: ${{ steps.metadata.outputs.version }}
+          TAG: ${{ steps.metadata.outputs.tag }}
+        run: |
+          notes='自动更新、macOS 12.7.6 与 Intel 兼容性改进，以及桌面端稳定性修复。'
+          node scripts/create-updater-manifest.mjs \
+            --version "$VERSION" \
+            --tag "$TAG" \
+            --root release-assets \
+            --output release-assets/latest.json \
+            --notes "$notes"
+
+          (
+            cd release-assets
+            for file in *.dmg *.app.tar.gz *.exe *.msi; do
+              test -f "$file" || continue
+              sha256sum "$file"
+            done | sort -k2 > SHA256SUMS.txt
+          )
+
+          if [ "$VERSION" = "0.2.0" ]; then
+            release_notes=$'自动更新已启用：App 启动后检查新版本，确认后下载、安装并重启。\n\nmacOS 12.7.6+ Apple Silicon 与 Intel 使用对应架构的 updater 包；Windows x64 同时提供 NSIS 与 MSI updater 包。Release 资产包含签名文件、latest.json 和 SHA256 校验清单。\n\n首次使用自动更新需要从 v0.1.9 手动升级到本版本。'
+          else
+            release_notes=$'Release 资产包含签名文件、latest.json 和 SHA256 校验清单。'
+          fi
+          printf '%s\n' "$release_notes" > release-notes.md
+
+      - name: Publish GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.metadata.outputs.tag }}
+          VERSION: ${{ steps.metadata.outputs.version }}
+        run: |
+          notes=$(<release-notes.md)
+          gh release create "$TAG" release-assets/* \
+            --repo "${GITHUB_REPOSITORY}" \
+            --verify-tag \
+            --title "DeepSeek Harness Desktop v$VERSION" \
+            --notes "$notes" \
+            --generate-notes \
+            --latest
