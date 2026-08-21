@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { readFile } from "node:fs/promises";
+import { readdir, readFile, rm } from "node:fs/promises";
 import { delimiter, join } from "node:path";
 import { spawnSync } from "node:child_process";
 
@@ -17,6 +17,28 @@ export function bundledPnpmBinRoot(runtimeRoot) {
 
 export function bundledPnpmEntry(runtimeRoot) {
   return join(bundledPnpmRoot(runtimeRoot), "bin", "pnpm.mjs");
+}
+
+// pnpm ships the native reflink bindings for every supported platform inside
+// its bundled dist tree. Keep only the binding for the runtime being built so
+// architecture verification cannot mistake unused foreign binaries for app
+// dependencies (and so the packaged runtime stays small).
+export async function pruneBundledPnpmNativeModules(runtimeRoot, target) {
+  const platformPackages = join(bundledPnpmRoot(runtimeRoot), "dist", "node_modules", "@reflink");
+  if (!existsSync(platformPackages)) return;
+  const keep = target === "darwin-arm64"
+    ? "reflink-darwin-arm64"
+    : target === "darwin-x64"
+      ? "reflink-darwin-x64"
+      : target === "win32-x64"
+        ? "reflink-win32-x64-msvc"
+        : null;
+  if (!keep) throw new Error(`Unsupported bundled pnpm native target: ${target}`);
+  for (const entry of await readdir(platformPackages, { withFileTypes: true })) {
+    if (entry.isDirectory() && entry.name.startsWith("reflink-") && entry.name !== keep) {
+      await rm(join(platformPackages, entry.name), { recursive: true, force: true });
+    }
+  }
 }
 
 export async function verifyBundledPnpm(runtimeRoot) {

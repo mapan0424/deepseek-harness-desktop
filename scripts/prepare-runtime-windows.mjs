@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import { pipeline } from "node:stream/promises";
 import { patchRuntimeCompatibility } from "./patch-runtime-compat.mjs";
 import { installBundledPlugins } from "./install-bundled-plugins.mjs";
-import { bundledPnpmVersion, verifyBundledPnpm } from "./bundled-pnpm.mjs";
+import { bundledPnpmVersion, pruneBundledPnpmNativeModules, verifyBundledPnpm } from "./bundled-pnpm.mjs";
 
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const resourcesRoot = join(projectRoot, "src-tauri", "resources");
@@ -61,6 +61,7 @@ await run(npmCommand, [
 await patchRuntimeCompatibility(runtimeRoot);
 await installBundledPlugins(runtimeRoot);
 await pruneWindowsRuntime();
+await pruneBundledPnpmNativeModules(runtimeRoot, "win32-x64");
 await verifyBundledPnpm(runtimeRoot, join(runtimeRoot, "node.exe"));
 assertWindowsRuntime();
 await installRuntimeLegalFiles();
