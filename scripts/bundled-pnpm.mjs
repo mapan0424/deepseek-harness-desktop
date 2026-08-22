@@ -39,6 +39,17 @@ export async function pruneBundledPnpmNativeModules(runtimeRoot, target) {
       await rm(join(platformPackages, entry.name), { recursive: true, force: true });
     }
   }
+
+  if (target === "win32-x64") {
+    const vendorRoot = join(bundledPnpmRoot(runtimeRoot), "dist", "vendor");
+    if (existsSync(vendorRoot)) {
+      for (const entry of await readdir(vendorRoot, { withFileTypes: true })) {
+        if (entry.isFile() && /-x86\.exe$/i.test(entry.name)) {
+          await rm(join(vendorRoot, entry.name), { force: true });
+        }
+      }
+    }
+  }
 }
 
 // Tauri may dereference resource symlinks while copying the App bundle. The
