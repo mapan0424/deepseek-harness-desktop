@@ -120,6 +120,9 @@ jobs:
       - name: Verify Markdown compatibility behavior
         run: pnpm test:runtime:compat
 
+      - name: Verify bundled pnpm
+        run: pnpm test:bundled-pnpm
+
       - name: Run Rust tests
         run: cargo test --manifest-path src-tauri/Cargo.toml
 
