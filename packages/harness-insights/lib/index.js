@@ -88,7 +88,7 @@ function modelKey(message) {
 
 export const usageInsightsProjectionDefinition = {
   key: 'harnessDesktopInsights',
-  schema: usageInsightsSchema,
+  stateSchema: usageInsightsSchema,
   stateVersion: 1,
   init: () => ({
     totals: zeroTotals(),
@@ -119,15 +119,18 @@ export const usageInsightsProjectionDefinition = {
       tools: state.tools,
     }
   },
-  view(state) {
-    return {
-      totals: state.totals,
-      firstUsedAt: state.firstUsedAt,
-      lastUsedAt: state.lastUsedAt,
-      byDay: state.byDay,
-      byModel: state.byModel,
-      tools: state.tools,
-    }
+  wire: {
+    viewSchema: usageInsightsSchema,
+    view(state) {
+      return {
+        totals: state.totals,
+        firstUsedAt: state.firstUsedAt,
+        lastUsedAt: state.lastUsedAt,
+        byDay: state.byDay,
+        byModel: state.byModel,
+        tools: state.tools,
+      }
+    },
   },
 }
 

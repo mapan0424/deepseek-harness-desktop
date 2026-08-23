@@ -107,12 +107,14 @@ jobs:
           workspaces: src-tauri
           key: macos-${{ matrix.arch }}
 
+      - name: Prepare self-contained macOS runtime
+        run: ${{ matrix.runtime_command }}
+
       - name: Verify Harness Insights
         run: pnpm test:insights
 
       - name: Build unsigned macOS app
         run: |
-          ${{ matrix.runtime_command }}
           pnpm prepare:licenses
           pnpm tauri build ${{ matrix.tauri_args }}
           ${{ matrix.verify_command }}

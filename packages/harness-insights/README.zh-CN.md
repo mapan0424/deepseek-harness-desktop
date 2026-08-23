@@ -4,6 +4,12 @@
 
 Harness Insights 是一个面向 DeepSeek Harness 的非官方 Cordis 插件，为 Web UI 增加本地优先的「用量洞察」设置页面，不修改 Harness 上游源码。
 
+## 界面预览
+
+插件会在 Harness 的设置中增加「用量洞察」页面，展示 Token 活动、模型调用、活跃会话、缓存命中率、活动统计和常用工具等信息。
+
+![Harness Insights 用量洞察页面](./assets/screenshots/usage-insights-zh.png)
+
 ## 安装
 
 插件遵循 Harness 官方 bundle manifest，可以直接安装到 profile：
@@ -51,10 +57,10 @@ dsh plugin --profile demo add ./packages/harness-insights
 
 ## 兼容性
 
-- Harness projection/client API：`0.1.0-rc.7`
+- Harness projection/client API：`0.1.1-rc.2`
 - 运行平台：Web UI
 - 插件类型：npm bundle
-- 当前版本：`0.1.2`
+- 当前版本：`0.1.3`
 
 Harness 目前仍处于 developer preview 阶段，未来版本可能存在兼容性变化。
 

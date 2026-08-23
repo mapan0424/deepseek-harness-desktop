@@ -5,7 +5,7 @@ Generated from Cargo.lock and the exact Cargo dependency graph used by this buil
 Each component remains subject to its own terms. Repository values below are
 provided by crate metadata and are not endorsements.
 
-Generated package count: 481
+Generated package count: 516
 
 --------------------------------------------------------------------------------
 adler2 2.0.1
@@ -58,6 +58,12 @@ License file: none supplied in the installed crate; see declared SPDX expression
 anyhow 1.0.104
 Declared license: MIT OR Apache-2.0
 Repository: https://github.com/dtolnay/anyhow
+License file: none supplied in the installed crate; see declared SPDX expression above.
+
+--------------------------------------------------------------------------------
+arbitrary 1.4.2
+Declared license: MIT OR Apache-2.0
+Repository: https://github.com/rust-fuzz/arbitrary/
 License file: none supplied in the installed crate; see declared SPDX expression above.
 
 --------------------------------------------------------------------------------
@@ -1907,6 +1913,12 @@ Repository: https://github.com/jhpratt/deranged
 License file: none supplied in the installed crate; see declared SPDX expression above.
 
 --------------------------------------------------------------------------------
+derive_arbitrary 1.4.2
+Declared license: MIT OR Apache-2.0
+Repository: https://github.com/rust-fuzz/arbitrary
+License file: none supplied in the installed crate; see declared SPDX expression above.
+
+--------------------------------------------------------------------------------
 derive_more 2.1.1
 Declared license: MIT
 Repository: https://github.com/JelteF/derive_more
@@ -2879,6 +2891,12 @@ Repository: https://github.com/Diggsey/rust-field-offset
 License file: none supplied in the installed crate; see declared SPDX expression above.
 
 --------------------------------------------------------------------------------
+filetime 0.2.29
+Declared license: MIT/Apache-2.0
+Repository: https://github.com/alexcrichton/filetime
+License file: none supplied in the installed crate; see declared SPDX expression above.
+
+--------------------------------------------------------------------------------
 find-msvc-tools 0.1.10
 Declared license: MIT OR Apache-2.0
 Repository: https://github.com/rust-lang/cc-rs
@@ -3581,6 +3599,12 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
 --------------------------------------------------------------------------------
+hyper-rustls 0.27.9
+Declared license: Apache-2.0 OR ISC OR MIT
+Repository: https://github.com/rustls/hyper-rustls
+License file: none supplied in the installed crate; see declared SPDX expression above.
+
+--------------------------------------------------------------------------------
 hyper-util 0.1.20
 Declared license: MIT
 Repository: https://github.com/hyperium/hyper-util
@@ -4277,6 +4301,18 @@ Repository: https://github.com/jni-rs/jni-rs
 License file: none supplied in the installed crate; see declared SPDX expression above.
 
 --------------------------------------------------------------------------------
+jni 0.22.4
+Declared license: MIT OR Apache-2.0
+Repository: https://github.com/jni-rs/jni-rs
+License file: none supplied in the installed crate; see declared SPDX expression above.
+
+--------------------------------------------------------------------------------
+jni-macros 0.22.4
+Declared license: MIT OR Apache-2.0
+Repository: https://github.com/jni-rs/jni-rs
+License file: none supplied in the installed crate; see declared SPDX expression above.
+
+--------------------------------------------------------------------------------
 jni-sys 0.3.1
 Declared license: MIT OR Apache-2.0
 Repository: https://github.com/jni-rs/jni-sys
@@ -4507,6 +4543,72 @@ Repository: https://github.com/hyperium/mime
 License file: none supplied in the installed crate; see declared SPDX expression above.
 
 --------------------------------------------------------------------------------
+minisign-verify 0.2.5
+Declared license: MIT
+Repository: https://github.com/jedisct1/rust-minisign-verify
+
+--- LICENSE ---
+Copyright (c) 2019-2025 Frank Denis
+
+Permission is hereby granted, free of charge, to any
+person obtaining a copy of this software and associated
+documentation files (the "Software"), to deal in the
+Software without restriction, including without
+limitation the rights to use, copy, modify, merge,
+publish, distribute, sublicense, and/or sell copies of
+the Software, and to permit persons to whom the Software
+is furnished to do so, subject to the following
+conditions:
+
+The above copyright notice and this permission notice
+shall be included in all copies or substantial portions
+of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF
+ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
+TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
+SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
+IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE.
+
+--
+
+Code in the src/crypto folder is derived from the rust-crypto project:
+https://github.com/DaGenix/rust-crypto
+
+Original ISC license follows:
+
+Copyright (c) 2006-2009 Graydon Hoare
+Copyright (c) 2009-2013 Mozilla Foundation
+
+Permission is hereby granted, free of charge, to any
+person obtaining a copy of this software and associated
+documentation files (the "Software"), to deal in the
+Software without restriction, including without
+limitation the rights to use, copy, modify, merge,
+publish, distribute, sublicense, and/or sell copies of
+the Software, and to permit persons to whom the Software
+is furnished to do so, subject to the following
+conditions:
+
+The above copyright notice and this permission notice
+shall be included in all copies or substantial portions
+of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF
+ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
+TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
+SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
+IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE.
+
+--------------------------------------------------------------------------------
 miniz_oxide 0.8.9
 Declared license: MIT OR Zlib OR Apache-2.0
 Repository: https://github.com/Frommi/miniz_oxide/tree/master/miniz_oxide
@@ -4711,6 +4813,12 @@ Repository: https://github.com/madsmtm/objc2
 License file: none supplied in the installed crate; see declared SPDX expression above.
 
 --------------------------------------------------------------------------------
+objc2-osa-kit 0.3.2
+Declared license: Zlib OR Apache-2.0 OR MIT
+Repository: https://github.com/madsmtm/objc2
+License file: none supplied in the installed crate; see declared SPDX expression above.
+
+--------------------------------------------------------------------------------
 objc2-quartz-core 0.3.2
 Declared license: Zlib OR Apache-2.0 OR MIT
 Repository: https://github.com/madsmtm/objc2
@@ -4771,6 +4879,12 @@ HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
 WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
+
+--------------------------------------------------------------------------------
+openssl-probe 0.2.1
+Declared license: MIT OR Apache-2.0
+Repository: https://github.com/rustls/openssl-probe
+License file: none supplied in the installed crate; see declared SPDX expression above.
 
 --------------------------------------------------------------------------------
 option-ext 0.2.0
@@ -5156,6 +5270,12 @@ Exhibit B - "Incompatible With Secondary Licenses" Notice
 ordered-stream 0.2.0
 Declared license: MIT OR Apache-2.0
 Repository: https://github.com/danieldg/ordered-stream
+License file: none supplied in the installed crate; see declared SPDX expression above.
+
+--------------------------------------------------------------------------------
+osakit 0.3.1
+Declared license: MIT OR Apache-2.0
+Repository: https://github.com/mdevils/rust-osakit
 License file: none supplied in the installed crate; see declared SPDX expression above.
 
 --------------------------------------------------------------------------------
@@ -5686,6 +5806,50 @@ Repository: https://github.com/seanmonstar/reqwest
 License file: none supplied in the installed crate; see declared SPDX expression above.
 
 --------------------------------------------------------------------------------
+rfd 0.16.0
+Declared license: MIT
+Repository: https://github.com/PolyMeilex/rfd
+
+--- LICENSE ---
+MIT License
+
+Copyright (c) 2022 Bartłomiej Maryńczak
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+--------------------------------------------------------------------------------
+ring 0.17.14
+Declared license: Apache-2.0 AND ISC
+Repository: https://github.com/briansmith/ring
+
+--- LICENSE ---
+*ring* uses an "ISC" license, like BoringSSL used to use, for new code
+files. See LICENSE-other-bits for the text of that license.
+
+See LICENSE-BoringSSL for code that was sourced from BoringSSL under the
+Apache 2.0 license. Some code that was sourced from BoringSSL under the ISC
+license. In each case, the license info is at the top of the file.
+
+See src/polyfill/once_cell/LICENSE-APACHE and src/polyfill/once_cell/LICENSE-MIT
+for the license to code that was sourced from the once_cell project.
+
+--------------------------------------------------------------------------------
 rustc_version 0.4.1
 Declared license: MIT OR Apache-2.0
 Repository: https://github.com/djc/rustc-version-rs
@@ -5704,6 +5868,72 @@ Repository: https://github.com/bytecodealliance/rustix
 License file: none supplied in the installed crate; see declared SPDX expression above.
 
 --------------------------------------------------------------------------------
+rustls 0.23.43
+Declared license: Apache-2.0 OR ISC OR MIT
+Repository: https://github.com/rustls/rustls
+License file: none supplied in the installed crate; see declared SPDX expression above.
+
+--------------------------------------------------------------------------------
+rustls-native-certs 0.8.4
+Declared license: Apache-2.0 OR ISC OR MIT
+Repository: https://github.com/rustls/rustls-native-certs
+
+--- LICENSE ---
+Rustls is distributed under the following three licenses:
+
+- Apache License version 2.0.
+- MIT license.
+- ISC license.
+
+These are included as LICENSE-APACHE, LICENSE-MIT and LICENSE-ISC
+respectively.  You may use this software under the terms of any
+of these licenses, at your option.
+
+--------------------------------------------------------------------------------
+rustls-pki-types 1.15.1
+Declared license: MIT OR Apache-2.0
+Repository: https://github.com/rustls/pki-types
+License file: none supplied in the installed crate; see declared SPDX expression above.
+
+--------------------------------------------------------------------------------
+rustls-platform-verifier 0.7.0
+Declared license: MIT OR Apache-2.0
+Repository: https://github.com/rustls/rustls-platform-verifier
+License file: none supplied in the installed crate; see declared SPDX expression above.
+
+--------------------------------------------------------------------------------
+rustls-platform-verifier-android 0.1.1
+Declared license: MIT OR Apache-2.0
+Repository: https://github.com/rustls/rustls-platform-verifier
+License file: none supplied in the installed crate; see declared SPDX expression above.
+
+--------------------------------------------------------------------------------
+rustls-webpki 0.103.14
+Declared license: ISC
+Repository: https://github.com/rustls/webpki
+
+--- LICENSE ---
+Except as otherwise noted, this project is licensed under the following
+(ISC-style) terms:
+
+Copyright 2015 Brian Smith.
+
+Permission to use, copy, modify, and/or distribute this software for any
+purpose with or without fee is hereby granted, provided that the above
+copyright notice and this permission notice appear in all copies.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHORS DISCLAIM ALL WARRANTIES
+WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR
+ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+The files under third-party/chromium are licensed as described in
+third-party/chromium/LICENSE.
+
+--------------------------------------------------------------------------------
 rustversion 1.0.23
 Declared license: MIT OR Apache-2.0
 Repository: https://github.com/dtolnay/rustversion
@@ -5718,6 +5948,20 @@ Repository: https://github.com/BurntSushi/same-file
 This project is dual-licensed under the Unlicense and MIT licenses.
 
 You may use this code under the terms of either license.
+
+--------------------------------------------------------------------------------
+schannel 0.1.29
+Declared license: MIT
+Repository: https://github.com/steffengy/schannel-rs
+
+--- LICENSE.md ---
+Copyright (c) 2015 steffengy
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 --------------------------------------------------------------------------------
 schemars 0.8.22
@@ -5838,6 +6082,18 @@ Repository: https://github.com/bluss/scopeguard
 License file: none supplied in the installed crate; see declared SPDX expression above.
 
 --------------------------------------------------------------------------------
+security-framework 3.7.0
+Declared license: MIT OR Apache-2.0
+Repository: https://github.com/kornelski/rust-security-framework
+License file: none supplied in the installed crate; see declared SPDX expression above.
+
+--------------------------------------------------------------------------------
+security-framework-sys 2.17.0
+Declared license: MIT OR Apache-2.0
+Repository: https://github.com/kornelski/rust-security-framework
+License file: none supplied in the installed crate; see declared SPDX expression above.
+
+--------------------------------------------------------------------------------
 selectors 0.36.1
 Declared license: MPL-2.0
 Repository: https://github.com/servo/stylo
@@ -5952,6 +6208,12 @@ Repository: https://github.com/vorner/signal-hook
 License file: none supplied in the installed crate; see declared SPDX expression above.
 
 --------------------------------------------------------------------------------
+simd_cesu8 1.2.0
+Declared license: Apache-2.0 OR MIT
+Repository: https://github.com/seancroach/simd_cesu8
+License file: none supplied in the installed crate; see declared SPDX expression above.
+
+--------------------------------------------------------------------------------
 simd-adler32 0.3.10
 Declared license: MIT
 Repository: https://github.com/mcountryman/simd-adler32
@@ -5978,6 +6240,12 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+--------------------------------------------------------------------------------
+simdutf8 0.1.5
+Declared license: MIT OR Apache-2.0
+Repository: https://github.com/rusticstuff/simdutf8
+License file: none supplied in the installed crate; see declared SPDX expression above.
 
 --------------------------------------------------------------------------------
 siphasher 1.0.3
@@ -6146,6 +6414,42 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+--------------------------------------------------------------------------------
+subtle 2.6.1
+Declared license: BSD-3-Clause
+Repository: https://github.com/dalek-cryptography/subtle
+
+--- LICENSE ---
+Copyright (c) 2016-2017 Isis Agora Lovecruft, Henry de Valence. All rights reserved.
+Copyright (c) 2016-2024 Isis Agora Lovecruft. All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
+
+1. Redistributions of source code must retain the above copyright
+notice, this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright
+notice, this list of conditions and the following disclaimer in the
+documentation and/or other materials provided with the distribution.
+
+3. Neither the name of the copyright holder nor the names of its
+contributors may be used to endorse or promote products derived from
+this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 --------------------------------------------------------------------------------
 swift-rs 1.0.7
@@ -6629,6 +6933,12 @@ PackageDownloadLocation: git+ssh://github.com/tauri-apps/tao.git
 Creator: Person: Daniel Thompson-Yvetot
 
 --------------------------------------------------------------------------------
+tar 0.4.46
+Declared license: MIT OR Apache-2.0
+Repository: https://github.com/composefs/tar-rs
+License file: none supplied in the installed crate; see declared SPDX expression above.
+
+--------------------------------------------------------------------------------
 target-lexicon 0.12.16
 Declared license: Apache-2.0 WITH LLVM-exception
 Repository: https://github.com/bytecodealliance/target-lexicon
@@ -6884,6 +7194,60 @@ Repository: https://github.com/tauri-apps/tauri
 License file: none supplied in the installed crate; see declared SPDX expression above.
 
 --------------------------------------------------------------------------------
+tauri-plugin-dialog 2.7.2
+Declared license: Apache-2.0 OR MIT
+Repository: https://github.com/tauri-apps/plugins-workspace
+
+--- LICENSE.spdx ---
+SPDXVersion: SPDX-2.1
+DataLicense: CC0-1.0
+PackageName: tauri
+DataFormat: SPDXRef-1
+PackageSupplier: Organization: The Tauri Programme in the Commons Conservancy
+PackageHomePage: https://tauri.app
+PackageLicenseDeclared: Apache-2.0
+PackageLicenseDeclared: MIT
+PackageCopyrightText: 2019-2022, The Tauri Programme in the Commons Conservancy
+PackageSummary: <text>Tauri is a rust project that enables developers to make secure
+and small desktop applications using a web frontend.
+                </text>
+PackageComment: <text>The package includes the following libraries; see
+Relationship information.
+                </text>
+Created: 2019-05-20T09:00:00Z
+PackageDownloadLocation: git://github.com/tauri-apps/tauri
+PackageDownloadLocation: git+https://github.com/tauri-apps/tauri.git
+PackageDownloadLocation: git+ssh://github.com/tauri-apps/tauri.git
+Creator: Person: Daniel Thompson-Yvetot
+
+--------------------------------------------------------------------------------
+tauri-plugin-fs 2.5.1
+Declared license: Apache-2.0 OR MIT
+Repository: https://github.com/tauri-apps/plugins-workspace
+
+--- LICENSE.spdx ---
+SPDXVersion: SPDX-2.1
+DataLicense: CC0-1.0
+PackageName: tauri
+DataFormat: SPDXRef-1
+PackageSupplier: Organization: The Tauri Programme in the Commons Conservancy
+PackageHomePage: https://tauri.app
+PackageLicenseDeclared: Apache-2.0
+PackageLicenseDeclared: MIT
+PackageCopyrightText: 2019-2022, The Tauri Programme in the Commons Conservancy
+PackageSummary: <text>Tauri is a rust project that enables developers to make secure
+and small desktop applications using a web frontend.
+                </text>
+PackageComment: <text>The package includes the following libraries; see
+Relationship information.
+                </text>
+Created: 2019-05-20T09:00:00Z
+PackageDownloadLocation: git://github.com/tauri-apps/tauri
+PackageDownloadLocation: git+https://github.com/tauri-apps/tauri.git
+PackageDownloadLocation: git+ssh://github.com/tauri-apps/tauri.git
+Creator: Person: Daniel Thompson-Yvetot
+
+--------------------------------------------------------------------------------
 tauri-plugin-opener 2.5.4
 Declared license: Apache-2.0 OR MIT
 Repository: https://github.com/tauri-apps/plugins-workspace
@@ -6912,6 +7276,33 @@ Creator: Person: Daniel Thompson-Yvetot
 
 --------------------------------------------------------------------------------
 tauri-plugin-single-instance 2.4.3
+Declared license: Apache-2.0 OR MIT
+Repository: https://github.com/tauri-apps/plugins-workspace
+
+--- LICENSE.spdx ---
+SPDXVersion: SPDX-2.1
+DataLicense: CC0-1.0
+PackageName: tauri
+DataFormat: SPDXRef-1
+PackageSupplier: Organization: The Tauri Programme in the Commons Conservancy
+PackageHomePage: https://tauri.app
+PackageLicenseDeclared: Apache-2.0
+PackageLicenseDeclared: MIT
+PackageCopyrightText: 2019-2022, The Tauri Programme in the Commons Conservancy
+PackageSummary: <text>Tauri is a rust project that enables developers to make secure
+and small desktop applications using a web frontend.
+                </text>
+PackageComment: <text>The package includes the following libraries; see
+Relationship information.
+                </text>
+Created: 2019-05-20T09:00:00Z
+PackageDownloadLocation: git://github.com/tauri-apps/tauri
+PackageDownloadLocation: git+https://github.com/tauri-apps/tauri.git
+PackageDownloadLocation: git+ssh://github.com/tauri-apps/tauri.git
+Creator: Person: Daniel Thompson-Yvetot
+
+--------------------------------------------------------------------------------
+tauri-plugin-updater 2.10.1
 Declared license: Apache-2.0 OR MIT
 Repository: https://github.com/tauri-apps/plugins-workspace
 
@@ -7136,6 +7527,12 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+--------------------------------------------------------------------------------
+tokio-rustls 0.26.4
+Declared license: MIT OR Apache-2.0
+Repository: https://github.com/rustls/tokio-rustls
+License file: none supplied in the installed crate; see declared SPDX expression above.
 
 --------------------------------------------------------------------------------
 tokio-util 0.7.19
@@ -7593,6 +7990,26 @@ Repository: https://github.com/unicode-rs/unicode-segmentation
 License file: none supplied in the installed crate; see declared SPDX expression above.
 
 --------------------------------------------------------------------------------
+untrusted 0.9.0
+Declared license: ISC
+Repository: https://github.com/briansmith/untrusted
+
+--- LICENSE.txt ---
+// Copyright 2015-2016 Brian Smith.
+//
+// Permission to use, copy, modify, and/or distribute this software for any
+// purpose with or without fee is hereby granted, provided that the above
+// copyright notice and this permission notice appear in all copies.
+//
+// THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHORS DISCLAIM ALL WARRANTIES
+// WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+// MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR
+// ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+// WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+// ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+// OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+--------------------------------------------------------------------------------
 url 2.5.8
 Declared license: MIT OR Apache-2.0
 Repository: https://github.com/servo/rust-url
@@ -7873,6 +8290,74 @@ FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
 COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
 IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+--------------------------------------------------------------------------------
+webpki-root-certs 1.0.9
+Declared license: CDLA-Permissive-2.0
+Repository: https://github.com/rustls/webpki-roots
+
+--- LICENSE ---
+# Community Data License Agreement - Permissive - Version 2.0
+
+This is the Community Data License Agreement - Permissive, Version
+2.0 (the "agreement"). Data Provider(s) and Data Recipient(s) agree
+as follows:
+
+## 1. Provision of the Data
+
+1.1. A Data Recipient may use, modify, and share the Data made
+available by Data Provider(s) under this agreement if that Data
+Recipient follows the terms of this agreement.
+
+1.2. This agreement does not impose any restriction on a Data
+Recipient's use, modification, or sharing of any portions of the
+Data that are in the public domain or that may be used, modified,
+or shared under any other legal exception or limitation.
+
+## 2. Conditions for Sharing Data
+
+2.1. A Data Recipient may share Data, with or without modifications, so
+long as the Data Recipient makes available the text of this agreement
+with the shared Data.
+
+## 3. No Restrictions on Results
+
+3.1. This agreement does not impose any restriction or obligations
+with respect to the use, modification, or sharing of Results.
+
+## 4. No Warranty; Limitation of Liability
+
+4.1. All Data Recipients receive the Data subject to the following
+terms:
+
+THE DATA IS PROVIDED ON AN "AS IS" BASIS, WITHOUT REPRESENTATIONS,
+WARRANTIES OR CONDITIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED
+INCLUDING, WITHOUT LIMITATION, ANY WARRANTIES OR CONDITIONS OF TITLE,
+NON-INFRINGEMENT, MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
+
+NO DATA PROVIDER SHALL HAVE ANY LIABILITY FOR ANY DIRECT, INDIRECT,
+INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING
+WITHOUT LIMITATION LOST PROFITS), HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE DATA OR RESULTS,
+EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
+
+## 5. Definitions
+
+5.1. "Data" means the material received by a Data Recipient under
+this agreement.
+
+5.2. "Data Provider" means any person who is the source of Data
+provided under this agreement and in reliance on a Data Recipient's
+agreement to its terms.
+
+5.3. "Data Recipient" means any person who receives Data directly
+or indirectly from a Data Provider and agrees to the terms of this
+agreement.
+
+5.4. "Results" means any outcome obtained by computational analysis
+of Data, including for example machine learning models and models'
+insights.
 
 --------------------------------------------------------------------------------
 webview2-com 0.38.2
@@ -8175,6 +8660,12 @@ Repository: https://github.com/microsoft/windows-rs
 License file: none supplied in the installed crate; see declared SPDX expression above.
 
 --------------------------------------------------------------------------------
+windows-sys 0.52.0
+Declared license: MIT OR Apache-2.0
+Repository: https://github.com/microsoft/windows-rs
+License file: none supplied in the installed crate; see declared SPDX expression above.
+
+--------------------------------------------------------------------------------
 windows-sys 0.59.0
 Declared license: MIT OR Apache-2.0
 Repository: https://github.com/microsoft/windows-rs
@@ -8362,6 +8853,12 @@ License file: none supplied in the installed crate; see declared SPDX expression
 x11-dl 2.21.0
 Declared license: MIT
 Repository: https://github.com/AltF02/x11-rs.git
+License file: none supplied in the installed crate; see declared SPDX expression above.
+
+--------------------------------------------------------------------------------
+xattr 1.6.1
+Declared license: MIT OR Apache-2.0
+Repository: https://github.com/Stebalien/xattr
 License file: none supplied in the installed crate; see declared SPDX expression above.
 
 --------------------------------------------------------------------------------
@@ -8705,6 +9202,12 @@ Portions of ICU4X may have been adapted from ICU4C and/or ICU4J.
 ICU 1.8.1 to ICU 57.1 © 1995-2016 International Business Machines Corporation and others.
 
 --------------------------------------------------------------------------------
+zeroize 1.9.0
+Declared license: Apache-2.0 OR MIT
+Repository: https://github.com/RustCrypto/utils
+License file: none supplied in the installed crate; see declared SPDX expression above.
+
+--------------------------------------------------------------------------------
 zerotrie 0.2.4
 Declared license: Unicode-3.0
 Repository: https://github.com/unicode-org/icu4x
@@ -8862,6 +9365,37 @@ SPDX-License-Identifier: Unicode-3.0
 
 Portions of ICU4X may have been adapted from ICU4C and/or ICU4J.
 ICU 1.8.1 to ICU 57.1 © 1995-2016 International Business Machines Corporation and others.
+
+--------------------------------------------------------------------------------
+zip 4.6.1
+Declared license: MIT
+Repository: https://github.com/zip-rs/zip2.git
+
+--- LICENSE ---
+The MIT License (MIT)
+
+Copyright (c) 2014 Mathijs van de Nes
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+Some files in the "tests/data" subdirectory of this repository are under other
+licences; see files named LICENSE.*.txt for details.
 
 --------------------------------------------------------------------------------
 zmij 1.0.23

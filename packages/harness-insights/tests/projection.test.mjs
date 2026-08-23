@@ -38,7 +38,7 @@ state = def.apply(state, { type: 'tool/call', time: 4, data: { name: 'browser', 
 state = def.apply(state, { type: 'tool/call', time: 5, data: { name: 'browser', callId: 'y' } })
 state = def.apply(state, { type: 'tool/call', time: 6, data: { name: 'bash', callId: 'z' } })
 
-const view = def.view(state)
+const view = def.wire.view(state)
 assert.deepEqual(view.totals, {
   inputTokens: 140,
   outputTokens: 28,
@@ -52,6 +52,7 @@ assert.equal(view.byModel['openai / gpt-test'].cacheReadTokens, 12)
 assert.equal(view.byDay['2026-08-15'].calls, 2)
 assert.equal(view.byDay['2026-08-16'].calls, 1)
 assert.deepEqual(view.tools, { browser: 2, bash: 1 })
-assert.deepEqual(def.schema.parse(view), view)
+assert.deepEqual(def.stateSchema.parse(view), view)
+assert.deepEqual(def.wire.viewSchema.parse(def.wire.view(state)), view)
 
 console.log('Harness Insights projection tests passed.')
