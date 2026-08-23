@@ -6,6 +6,14 @@ A bundled Cordis plugin for DeepSeek Harness. It adds a local-first **Usage insi
 
 Published package: `@anarkhgatsby/deepseek-harness-insights`.
 
+## Preview
+
+The plugin adds a **Usage insights** page under Harness settings, with token
+activity, model usage, active sessions, cache hit rate, activity breakdown, and
+the most frequently used tools.
+
+![Harness Insights usage dashboard](./assets/screenshots/usage-insights-en.png)
+
 ## Install as a Harness bundle
 
 The package follows the official Harness bundle manifest and can be installed
@@ -22,7 +30,7 @@ To remove it later:
 dsh plugin --profile demo remove @anarkhgatsby/deepseek-harness-insights
 ```
 
-The plugin is web-only and targets the `0.1.0-rc.7` Harness projection and
+The plugin is web-only and targets the `0.1.1-rc.2` Harness projection and
 client APIs. It is an independent, unofficial community plugin and is not
 published by DeepSeek.
 

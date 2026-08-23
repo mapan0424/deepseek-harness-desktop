@@ -45,7 +45,7 @@ export async function verifyBundledPlugins(runtimeRoot) {
     throw new Error(`Bundled Insights plugin contains development files:\n${forbidden.join("\n")}`);
   }
   const manifest = JSON.parse(await readFile(join(root, "package.json"), "utf8"));
-  if (manifest.name !== "@anarkhgatsby/deepseek-harness-insights" || manifest.version !== "0.1.2") {
+  if (manifest.name !== "@anarkhgatsby/deepseek-harness-insights" || manifest.version !== "0.1.3") {
     throw new Error(`Unexpected bundled Insights identity: ${manifest.name}@${manifest.version}`);
   }
   const client = await readFile(join(root, "lib", "client.js"), "utf8");
