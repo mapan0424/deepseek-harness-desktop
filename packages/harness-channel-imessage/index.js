@@ -1,9 +1,9 @@
 /**
- * index.js — harness-imessage host 入口（Typert Remote Service 版）
+ * index.js — harness-channel-imessage host 入口（薄壳，托管消息总线）
  *
- * 统一三种传输（imsg / photon / relay）为同一插件，通过 `mode` 切换适配器。
- * 靠 Cordis 注入 framework 依赖：typert/settings/agents/defaultModel/agentPresets/
- * sessions/workspaceRegistry/sessionPersistence/sessionTitle/tools。
+ * 统一三种 iMessage 传输（imsg / photon / relay）为同一插件，通过 `mode` 切换适配器。
+ * 消息总线（GatewayCore）与 logger 均从共享包 `@anarkhgatsby/deepseek-harness-core` 导入，
+ * 本插件只做"平台门面"：注册 imessage settings namespace、选适配器、注册 message 工具。
  *
  * 数据落盘：$DSH_HOME/settings.yaml 的 `imessage` 段 + $DSH_HOME/imessage-gateway-state.json
  * （sender→session 映射）。client 通过 Typert remote `imessageGateway` 读写。
@@ -13,13 +13,13 @@ import z from "@deepseek-ai/schemastery";
 import { defineTool } from "@deepseek-ai/dsh-tools";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { GatewayCore } from "./lib/gateway-core.mjs";
+import { GatewayCore, createChannelLogger } from "@anarkhgatsby/deepseek-harness-core";
 import { ImsgAdapter } from "./lib/adapters/imsg.mjs";
 import { PhotonAdapter } from "./lib/adapters/photon.mjs";
 import { RelayAdapter } from "./lib/adapters/relay.mjs";
 import { MODES, DEFAULT_MODE, normalizeSettings } from "./lib/config.mjs";
 
-export const name = "harness-imessage";
+export const name = "harness-channel-imessage";
 
 // 框架依赖：typert/settings（配置 remote）+ agents/agentPresets/workspaceRegistry/
 // sessionPersistence/sessionTitle/tools（网关投递 + message 工具）。
@@ -74,21 +74,21 @@ const setResultSchema = parseObj();
 
 /** Typert MANIFEST：注册给 API gateway 的远程方法。 */
 const MANIFEST = {
-  package: "harness-imessage",
+  package: "harness-channel-imessage",
   face: "host",
   schemas: [],
   invocations: [
     {
-      id: "harness-imessage#imessageGateway/getConfig",
+      id: "harness-channel-imessage#imessageGateway/getConfig",
       service: "imessageGateway",
       namespace: "imessageGateway",
       method: "getConfig",
       invocation: { kind: "direct" },
       parameters: [],
-      result: { mode: "strict", typeSymbol: "harness-imessage#GatewayConfig", schema: getResultSchema },
+      result: { mode: "strict", typeSymbol: "harness-channel-imessage#GatewayConfig", schema: getResultSchema },
     },
     {
-      id: "harness-imessage#imessageGateway/setConfig",
+      id: "harness-channel-imessage#imessageGateway/setConfig",
       service: "imessageGateway",
       namespace: "imessageGateway",
       method: "setConfig",
@@ -98,10 +98,10 @@ const MANIFEST = {
           name: "payload",
           wire: "payload",
           source: "json",
-          codec: { mode: "strict", typeSymbol: "harness-imessage#SetPayload", schema: setPayloadSchema },
+          codec: { mode: "strict", typeSymbol: "harness-channel-imessage#SetPayload", schema: setPayloadSchema },
         },
       ],
-      result: { mode: "strict", typeSymbol: "harness-imessage#SetResult", schema: setResultSchema },
+      result: { mode: "strict", typeSymbol: "harness-channel-imessage#SetResult", schema: setResultSchema },
     },
   ],
   model: { services: [], events: [], objects: [] },
@@ -147,18 +147,7 @@ export function apply(ctx, config) {
     },
   });
 
-  const Logger = ctx.logger;
-  const ts = () => {
-    const d = new Date();
-    const p = (n) => String(n).padStart(2, "0");
-    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
-  };
-  const log = {
-    info: (m) => { console.log(`[${ts()}] [im] ${m}`); try { Logger?.info?.(m); } catch {} },
-    warn: (m) => { console.warn(`[${ts()}] [im:warn] ${m}`); try { Logger?.warn?.(m); } catch {} },
-    error: (m) => { console.error(`[${ts()}] [im:err] ${m}`); try { Logger?.error?.(m); } catch {} },
-    debug: (m) => { try { Logger?.debug?.(m); } catch {} },
-  };
+  const log = createChannelLogger("im", ctx.logger);
 
   // 选适配器：按当前 mode 解析（热更新后 adapter 由 scope.watch 重建）。
   const resolveAdapter = () => {
@@ -177,6 +166,7 @@ export function apply(ctx, config) {
 
   const adapter = resolveAdapter();
   const core = new GatewayCore({
+    tag: "im",
     adapter,
     agents: ctx.get("agents"),
     defaultModel: ctx.get("agentDefaultModel"),
@@ -191,7 +181,7 @@ export function apply(ctx, config) {
 
   // 配置 remote（配置页读写）
   new GatewayService(ctx, scope, adapter);
-  ctx.effect(() => ctx.typert.register(MANIFEST), "harness-imessage: typert manifest");
+  ctx.effect(() => ctx.typert.register(MANIFEST), "harness-channel-imessage: typert manifest");
 
   // 启动网关监听
   ctx.on("dispose", () => core.stopListener());
@@ -242,5 +232,4 @@ export function apply(ctx, config) {
   log.info("已注册全局 message 工具（iMessage 发送）");
 }
 
-export { GatewayCore };
 export { MODES, DEFAULT_MODE };

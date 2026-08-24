@@ -1,6 +1,8 @@
-# harness-imessage
+# harness-channel-imessage
 
-DeepSeek Harness 的一个统一 iMessage 通道插件。把「本地 Mac imsg」「Photon 云端托管线路」「云中继（Claw Messenger / Sendblue）」三种 iMessage 接法收敛到**一条消息总线**之后，通过 `mode` 切换传输，无需改动数据面。
+DeepSeek Harness 的一个 iMessage 通道插件（薄壳）。把「本地 Mac imsg」「Photon 云端托管线路」「云中继（Claw Messenger / Sendblue）」三种 iMessage 接法收敛到**一条消息总线**之后，通过 `mode` 切换传输，无需改动数据面。
+
+**消息总线逻辑不在本插件内**——它来自共享包 `@anarkhgatsby/deepseek-harness-core`（`GatewayCore`）。本插件只做"平台门面"：注册 `imessage` settings namespace、按 `mode` 选适配器、注册 `message` 工具。
 
 ## 设计哲学
 
@@ -18,10 +20,11 @@ DeepSeek Harness Desktop 的卖点是「给普通人开箱即用」。iMessage �
 Harness Agent
      │
      ▼
- Cordis 通道插件（host: index.js）
+ Cordis 通道插件（host: index.js）  ← harness-channel-imessage
      │  按 mode 选适配器
      ▼
- GatewayCore（统一消息总线：路由/去重/投递/流式回复/typing）
+ GatewayCore（来自 @anarkhgatsby/deepseek-harness-core）
+     │  统一消息总线：路由/去重/投递/流式回复/typing
      │  统一适配器接口 start()/send()/setTyping()/stop()
      ▼
  ┌────────────┬─────────────┬─────────────┐
@@ -34,12 +37,13 @@ Harness Agent
 
 - `index.js` — host 入口：注册 settings namespace、选适配器、启停网关、注册全局 `message` 工具、Typert remote。
 - `client.js` — web client：`TypertRemoteServiceLocator` 调 host 的 `imessageGateway` 读写配置；`modeMeta` 渲染三种模式卡片。
-- `lib/gateway-core.mjs` — 消息总线核心：路由、去重、投递 agent、取回复回发、流式回复/工具提示、typing keepalive。
-- `lib/config.mjs` — 统一配置 schema 与 `normalizeSettings`（宽松校验 + 默认值）。
+- `lib/config.mjs` — `imessage` 配置 schema 与 `normalizeSettings`（宽松校验 + 默认值）。
 - `lib/adapters/imsg.mjs` — 本地 iMessage：`imsg rpc`（JSON-RPC over stdio）。
 - `lib/adapters/photon.mjs` — Photon 云端：Spectrum WebSocket，device flow 授权。
 - `lib/adapters/relay.mjs` — 云中继：Claw Messenger / Sendblue HTTP 抽象。
 - `cordis.patch.yml` — Cordis 补丁：`--patch` 注入本插件（与 insights 同构）。
+
+> 消息总线核心（`lib/gateway-core.mjs`）已迁至 `@anarkhgatsby/deepseek-harness-core`，本插件不再内置。
 
 ## 使用（本地 imsg 优先）
 
@@ -62,11 +66,10 @@ Harness Agent
 # 语法校验
 node --check index.js
 node --check client.js
-node --check lib/gateway-core.mjs
 node --check lib/config.mjs
 node --check lib/adapters/imsg.mjs
 node --check lib/adapters/photon.mjs
 node --check lib/adapters/relay.mjs
 ```
 
-Lices: MIT。
+License: MIT。

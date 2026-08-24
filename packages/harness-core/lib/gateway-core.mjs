@@ -1,13 +1,18 @@
 /**
- * gateway-core.mjs — harness-imessage 统一消息总线 + 路由 + 投递核心
+ * gateway-core.mjs — 通用通道消息总线（每个 channel 插件共享一份）
  *
- * 与适配器解耦：核心只认识统一的适配器接口
+ * 与具体协议解耦：核心只认识统一的适配器接口
  *   start(handler) / send(to,text) / setTyping(handle,on) / stop() / describe()
  * 以及统一入站消息 { sender, text, images, raw, dedupeId }。
  *
- * 由 mode 决定使用哪个适配器（imsg / photon / relay），切换模式无需改核心。
- * 功能：按 sender 路由工作区、去重、投递给 agent、取回复、回发、
- * 流式回复、工具提示、typing 指示器、断线重连（适配器负责）。
+ * channel 插件（imessage/qq/telegram/feishu...）各自 import 本核心，把各自的
+ * adapter 与 channel 配置传进来即可，核心不关心上层是哪个 channel。
+ *
+ * 功能：按 sender 路由工作区、去重、投递给 agent、取回复、回发、流式回复、
+ * 工具提示、typing 指示器、会话持久化、per-session 串行队列（防并发竞态）。
+ *
+ * @param {string} tag  日志前缀（如 "im" / "qq"），用于区分通道输出
+ * @param {object} opts 核心依赖与配置（见构造函数）
  */
 import { createUserMessage } from "@deepseek-ai/dsh-llm";
 import { SessionId } from "@deepseek-ai/dsh-session";
@@ -32,7 +37,8 @@ function summarizeReply(events, firstSeq) {
 }
 
 export class GatewayCore {
-  constructor({ adapter, agents, defaultModel, sessions, agentPresets, workspaceRegistry, sessionPersistence, sessionTitle, log = console, statePath }) {
+  constructor({ tag = "chan", adapter, agents, defaultModel, sessions, agentPresets, workspaceRegistry, sessionPersistence, sessionTitle, log = console, statePath }) {
+    this.tag = tag;
     this.adapter = adapter;
     this.agents = agents;
     this.defaultModel = defaultModel;
@@ -96,7 +102,7 @@ export class GatewayCore {
       await writeFile(tmp, JSON.stringify(this.sessionMap, null, 2), "utf8");
       await rename(tmp, this.statePath);
     } catch (e) {
-      this.log?.warn?.(`harness-imessage: 保存状态失败: ${e instanceof Error ? e.message : e}`);
+      this.log?.warn?.(`[${this.tag}] 保存状态失败: ${e instanceof Error ? e.message : e}`);
     }
   }
 
@@ -109,7 +115,7 @@ export class GatewayCore {
       if (workspace === void 0) workspace = await registry.create(cwd);
       await workspace.attachSession(sessionId);
     } catch (e) {
-      this.log?.warn?.(`harness-imessage: attach workspace ${cwd} 失败: ${e instanceof Error ? e.message : e}`);
+      this.log?.warn?.(`[${this.tag}] attach workspace ${cwd} 失败: ${e instanceof Error ? e.message : e}`);
     }
   }
 
@@ -187,7 +193,7 @@ export class GatewayCore {
     await this.loadState();
     if (this._disposed) return;
     await this.adapter.start(this._onInbound);
-    this.log?.info?.(`harness-imessage: ${this.adapter.describe()}`);
+    this.log?.info?.(`[${this.tag}] ${this.adapter.describe()}`);
   }
 
   stopListener() {
@@ -211,14 +217,14 @@ export class GatewayCore {
     if (!this.autoReply) return;
 
     let content = text || "";
-    if (images.length > 0) {
+    if (Array.isArray(images) && images.length > 0) {
       const imgRef = images.map((p) => `[图片: ${p}]`).join(" ");
       content = content ? `${content} ${imgRef}` : `用户发来图片：${images.join("、")}`;
     }
     if (!content) return;
 
     const queueLen = (this._deliverPending.get(sender) ?? 0) + 1;
-    this.log?.info?.(`harness-imessage: 收到来自 ${sender}: ${String(content).slice(0, 80)}...（队列 ${queueLen}）`);
+    this.log?.info?.(`[${this.tag}] 收到来自 ${sender}: ${String(content).slice(0, 80)}...（队列 ${queueLen}）`);
 
     try {
       const workspace = this.workspaceFor(sender);
@@ -226,10 +232,10 @@ export class GatewayCore {
       if (reply && this.autoReply) {
         const t0 = Date.now();
         await this.adapter.send(sender, reply);
-        this.log?.info?.(`harness-imessage: send ok ${Date.now() - t0}ms`);
+        this.log?.info?.(`[${this.tag}] send ok ${Date.now() - t0}ms`);
       }
     } catch (e) {
-      this.log?.error?.(`harness-imessage: 处理消息失败 ${e instanceof Error ? e.message : e}`);
+      this.log?.error?.(`[${this.tag}] 处理消息失败 ${e instanceof Error ? e.message : e}`);
     }
   }
 
@@ -262,7 +268,7 @@ export class GatewayCore {
       id = this.newSessionId();
       this.sessionMap[sender] = id;
       await this.saveState().catch(() => {});
-      this.log?.info?.(`harness-imessage: 新会话 ${id} 绑定 ${sender}`);
+      this.log?.info?.(`[${this.tag}] 新会话 ${id} 绑定 ${sender}`);
     }
 
     const setup = await this.composeSetup(void 0);
@@ -295,7 +301,7 @@ export class GatewayCore {
       await this.sessions.flush(agent.session);
       if (streamPoller !== null) this._syncStream(agent, sender);
       const { text } = summarizeReply(agent.session.events, firstSeq);
-      this.log?.info?.(`deliver 完成 id=${id} reply=${text?.length ?? 0}字 stream=${this.streamReplies}`);
+      this.log?.info?.(`[${this.tag}] deliver 完成 id=${id} reply=${text?.length ?? 0}字 stream=${this.streamReplies}`);
       return this.streamReplies ? null : text;
     } finally {
       if (streamPoller !== null) clearInterval(streamPoller);
@@ -327,10 +333,10 @@ export class GatewayCore {
   _sendReply(sender, evt) {
     const text = this._extractMessageText(evt);
     if (!text) return;
-    this.log?.info?.(`harness-imessage: 流式发送 ${text.length}字 给 ${sender}`);
+    this.log?.info?.(`[${this.tag}] 流式发送 ${text.length}字 给 ${sender}`);
     this._sendChain = this._sendChain
       .then(() => this.adapter.send(sender, text))
-      .catch((e) => this.log?.warn?.(`harness-imessage: 流式发送失败: ${e instanceof Error ? e.message : e}`));
+      .catch((e) => this.log?.warn?.(`[${this.tag}] 流式发送失败: ${e instanceof Error ? e.message : e}`));
   }
 
   _extractToolDescription(raw) {
@@ -346,10 +352,10 @@ export class GatewayCore {
     const name = typeof data.name === "string" ? data.name : "";
     const desc = this._extractToolDescription(data.arguments);
     if (!desc) return;
-    this.log?.info?.(`harness-imessage: 工具提示 ${name}: ${desc.slice(0, 60)}`);
+    this.log?.info?.(`[${this.tag}] 工具提示 ${name}: ${desc.slice(0, 60)}`);
     this._sendChain = this._sendChain
       .then(() => this.adapter.send(sender, `🔧 ${desc}`))
-      .catch((e) => this.log?.warn?.(`harness-imessage: 工具提示发送失败: ${e instanceof Error ? e.message : e}`));
+      .catch((e) => this.log?.warn?.(`[${this.tag}] 工具提示发送失败: ${e instanceof Error ? e.message : e}`));
   }
 
   /** 主动出站（message 工具用）。 */

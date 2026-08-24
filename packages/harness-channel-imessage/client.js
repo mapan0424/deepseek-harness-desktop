@@ -1,5 +1,5 @@
 /**
- * client.js — harness-imessage web client（Typert 配置页）
+ * client.js — harness-channel-imessage web client（Typert 配置页）
  *
  * 通过 Typert remote 调用 host 的 `imessageGateway`（getConfig/setConfig），
  * 在 dsh web UI 渲染三种模式（imsg / photon / relay）的配置卡片。
