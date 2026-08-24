@@ -61,19 +61,50 @@ export class DingtalkAdapter extends EventEmitter {
     }
   }
 
+  /**
+   * 机器人文本消息。目标 to：
+   *   - 单聊：userId（如 "zhangsan"）→ 调 oToMessages/batchSend
+   *   - 群聊："group:<openConversationId>" → 调 groupMessages/send
+   * 文本载荷用 msgKey=\"sampleText\" + msgParam={\"content\":...}（钉钉机器人标准文本格式）。
+   */
   async send(to, text) {
     const cfg = this.getConfig();
     const token = await this._accessToken(cfg);
-    const convId = to; // 目标：会话ID（chatId）或 userId
-    const res = await fetch(`${BASE}/v1.0/im/robot/interactiveCards/send`, {
+    const target = String(to || "").trim();
+    if (!target) throw new Error("钉钉无目标");
+
+    const msgParam = JSON.stringify({ content: text });
+    const headers = {
+      "Content-Type": "application/json",
+      "x-acs-dingtalk-access-token": token,
+    };
+
+    if (target.startsWith("group:")) {
+      const openConversationId = target.slice("group:".length);
+      const res = await fetch(`${BASE}/v1.0/im/robot/groupMessages/send`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          msgKey: "sampleText",
+          msgParam,
+          openConversationId,
+        }),
+      });
+      if (!res.ok) throw new Error(`send group HTTP ${res.status}`);
+      return await res.json().catch(() => ({}));
+    }
+
+    // 单聊：oToMessages/batchSend（userIds 是接收者 userId 数组）
+    const res = await fetch(`${BASE}/v1.0/im/robot/oToMessages/batchSend`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-acs-dingtalk-access-token": token,
-      },
-      body: JSON.stringify({ conversationId: convId }),
+      headers,
+      body: JSON.stringify({
+        msgKey: "sampleText",
+        msgParam,
+        userIds: [target],
+      }),
     });
-    if (!res.ok) throw new Error(`send HTTP ${res.status}`);
+    if (!res.ok) throw new Error(`send oTo HTTP ${res.status}`);
     return await res.json().catch(() => ({}));
   }
 
