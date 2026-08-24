@@ -214,6 +214,34 @@ fn prepare_insights_overlay(node: &std::path::Path) -> Result<PathBuf, String> {
     Ok(overlay)
 }
 
+fn desktop_web_flags(port: u16) -> Vec<String> {
+    vec![
+        "--no-open".to_string(),
+        "--port".to_string(),
+        port.to_string(),
+    ]
+}
+
+fn bundled_web_args(
+    entry_arg: String,
+    plugin_patch: Option<&std::path::Path>,
+    port: u16,
+) -> Vec<String> {
+    let mut args = vec![
+        "--expose-internals".to_string(),
+        entry_arg,
+        "web".to_string(),
+    ];
+    if let Some(plugin_patch) = plugin_patch {
+        // `--patch` belongs to the dsh launcher. It must precede the Web app
+        // flags, which are forwarded verbatim to the web profile.
+        args.push("--patch".to_string());
+        args.push(plugin_patch.to_string_lossy().into_owned());
+    }
+    args.extend(desktop_web_flags(port));
+    args
+}
+
 fn spawn_dsh(
     app: &tauri::AppHandle,
     state: &DshProcess,
@@ -235,34 +263,30 @@ fn spawn_dsh(
         } else {
             entry.to_string_lossy().into_owned()
         };
-        let mut args = vec![
-            "--expose-internals".to_string(),
-            entry_arg,
-            "web".to_string(),
-        ];
-        match prepare_insights_overlay(&node) {
-            Ok(plugin_patch) => {
-                args.push("--patch".to_string());
-                args.push(plugin_patch.to_string_lossy().into_owned());
+        let plugin_patch = match prepare_insights_overlay(&node) {
+            Ok(plugin_patch) => Some(plugin_patch),
+            Err(error) => {
+                append_log(
+                    &state.log,
+                    &format!("内置 Harness Insights 插件不可用，继续启动核心工作台：{error}\n"),
+                );
+                None
             }
-            Err(error) => append_log(
-                &state.log,
-                &format!("内置 Harness Insights 插件不可用，继续启动核心工作台：{error}\n"),
-            ),
-        }
-        args.push("--port".to_string());
-        args.push(active_port.to_string());
+        };
+        let args = bundled_web_args(entry_arg, plugin_patch.as_deref(), active_port);
         (node, args, true)
     } else if cfg!(debug_assertions) {
         (
             PathBuf::from(npx_path()),
-            vec![
-                "--yes".to_string(),
-                "@deepseek-ai/dsh".to_string(),
-                "web".to_string(),
-                "--port".to_string(),
-                active_port.to_string(),
-            ],
+            [
+                vec![
+                    "--yes".to_string(),
+                    "@deepseek-ai/dsh".to_string(),
+                    "web".to_string(),
+                ],
+                desktop_web_flags(active_port),
+            ]
+            .concat(),
             false,
         )
     } else {
@@ -1501,6 +1525,39 @@ mod tests {
         let paths = std::env::split_paths(&node_search_path(Some(runtime))).collect::<Vec<_>>();
         assert_eq!(paths[0], runtime.join("node_modules/.bin"));
         assert_eq!(paths[1], runtime);
+    }
+
+    #[test]
+    fn desktop_web_flags_disable_default_browser_opening() {
+        assert_eq!(
+            desktop_web_flags(3080),
+            vec![
+                "--no-open".to_string(),
+                "--port".to_string(),
+                "3080".to_string(),
+            ]
+        );
+    }
+
+    #[test]
+    fn bundled_web_args_keep_launcher_patch_before_web_flags() {
+        assert_eq!(
+            bundled_web_args(
+                "lib/bin.js".to_string(),
+                Some(std::path::Path::new("insights.patch.yml")),
+                3080,
+            ),
+            vec![
+                "--expose-internals".to_string(),
+                "lib/bin.js".to_string(),
+                "web".to_string(),
+                "--patch".to_string(),
+                "insights.patch.yml".to_string(),
+                "--no-open".to_string(),
+                "--port".to_string(),
+                "3080".to_string(),
+            ]
+        );
     }
 
     #[test]
