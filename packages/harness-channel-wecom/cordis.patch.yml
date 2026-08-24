@@ -1,0 +1,6 @@
+# harness-channel-wecom bundle patch
+# 插入 host 插件行：注册 wecom settings namespace + 网关监听 + 统一消息总线。
+# 通过 --patch 注入，与同名 Harness 插件一致，随 dsh web 启停。
+- insert:
+    - id: harness-channel-wecom
+      name: '@anarkhgatsby/deepseek-harness-channel-wecom'
