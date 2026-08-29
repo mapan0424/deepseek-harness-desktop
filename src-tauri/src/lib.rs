@@ -1,6 +1,6 @@
 use std::io::{BufRead, BufReader, Read, Write};
 use std::net::{SocketAddr, TcpListener, TcpStream};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -183,7 +183,27 @@ fn dsh_home() -> Result<PathBuf, String> {
     Ok(PathBuf::from(home).join(".dsh"))
 }
 
-fn prepare_bundled_plugin_overlays(node: &std::path::Path) -> Result<Vec<PathBuf>, String> {
+fn configured_profile_bundles(profile_dir: &Path) -> std::collections::HashSet<String> {
+    let manifest = profile_dir.join("package.json");
+    let Ok(content) = std::fs::read_to_string(manifest) else {
+        return std::collections::HashSet::new();
+    };
+    let Ok(value) = serde_json::from_str::<Value>(&content) else {
+        return std::collections::HashSet::new();
+    };
+    value
+        .get("dsh")
+        .and_then(|dsh| dsh.get("profile"))
+        .and_then(|profile| profile.get("bundles"))
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_str)
+        .map(str::to_owned)
+        .collect()
+}
+
+fn prepare_bundled_plugin_overlays(node: &Path) -> Result<Vec<PathBuf>, String> {
     let runtime = node
         .parent()
         .ok_or_else(|| "无法定位内置 runtime".to_string())?;
@@ -199,7 +219,9 @@ fn prepare_bundled_plugin_overlays(node: &std::path::Path) -> Result<Vec<PathBuf
         packages.push(("@anarkhgatsby/deepseek-harness-channel-imessage", true));
     }
 
-    let dsh_node_modules = dsh_home()?.join("node_modules");
+    let home = dsh_home()?;
+    let dsh_node_modules = home.join("node_modules");
+    let configured_bundles = configured_profile_bundles(&home.join("profiles/web"));
     let mut patches = Vec::new();
     for (package_name, has_patch) in packages {
         let source = runtime.join("node_modules").join(package_name);
@@ -223,7 +245,11 @@ fn prepare_bundled_plugin_overlays(node: &std::path::Path) -> Result<Vec<PathBuf
         }
         std::fs::rename(&temporary, &destination)
             .map_err(|error| format!("启用内置插件失败 {package_name}：{error}"))?;
-        if has_patch {
+        // A user may already have installed the same package into the Web
+        // profile. Its manifest bundle will load the package's patch itself;
+        // passing that patch again through `--patch` would create duplicate
+        // loader entry IDs. Keep the user's profile-owned copy authoritative.
+        if has_patch && !configured_bundles.contains(package_name) {
             patches.push(source.join("cordis.patch.yml"));
         }
     }
@@ -1550,6 +1576,27 @@ mod tests {
                 "3080".to_string(),
             ]
         );
+    }
+
+    #[test]
+    fn configured_profile_bundles_are_read_from_manifest() {
+        let profile = std::env::temp_dir().join(format!(
+            "deepseek-harness-profile-test-{}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&profile).unwrap();
+        std::fs::write(
+            profile.join("package.json"),
+            r#"{"dsh":{"profile":{"bundles":["@anarkhgatsby/deepseek-harness-channel-config","@deepseek-ai/dsh-web-app"]}}}"#,
+        )
+        .unwrap();
+
+        let bundles = configured_profile_bundles(&profile);
+        assert!(bundles.contains("@anarkhgatsby/deepseek-harness-channel-config"));
+        assert!(bundles.contains("@deepseek-ai/dsh-web-app"));
+        assert!(!bundles.contains("@anarkhgatsby/deepseek-harness-channel-feishu"));
+
+        std::fs::remove_dir_all(profile).unwrap();
     }
 
     #[test]
