@@ -20,6 +20,9 @@ await scanNativeFiles(join(runtime, "node_modules"));
 await verifyRuntimeCompatibility(runtime);
 await verifyBundledPlugins(runtime);
 await verifyBundledPnpm(runtime);
+if (existsSync(join(runtime, "node_modules", "@anarkhgatsby", "deepseek-harness-channel-imessage"))) {
+  throw new Error("iMessage must not be shipped in the Windows bundle.");
+}
 if (existsSync(join(runtime, "node_modules", "node-addon-require-builtin-win32-x64-msvc"))) {
   throw new Error("Optional native internal-loader package should not be shipped in the Windows bundle.");
 }

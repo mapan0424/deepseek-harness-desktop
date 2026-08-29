@@ -1,0 +1,6 @@
+# This layer is activated by `dsh plugin` after the package is installed into a
+# Harness profile. The package name lets Node resolve the plugin from the
+# profile's out-of-tree node_modules directory.
+- insert:
+    - id: deepseek-harness-channel-config
+      name: '@anarkhgatsby/deepseek-harness-channel-config'
