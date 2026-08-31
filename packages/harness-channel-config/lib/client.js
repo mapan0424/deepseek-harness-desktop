@@ -67,17 +67,10 @@ window.__ModuleLoader__.load({
         fieldAutoReply: "自动回复消息",
         fieldCardReplies: "富文本卡片格式回复",
         fieldStreamReplies: "打字机流式输出",
-        fieldMode: "运行模式",
-        fieldModeLocal: "本地原生直连 (chat.db + AppleScript)",
-        fieldModePhoton: "Photon 远程中继模式",
-        fieldModeRelay: "Claw Relay 代理模式",
         fieldChatDb: "chat.db 数据库路径",
-        fieldImsgCmd: "imsg 命令 / CLI 路径",
         summaryWorkspace: "工作空间",
         summaryNotConfigured: "未配置 App ID",
         summaryModeLocal: "本地原生直连 (chat.db)",
-        summaryModePhoton: "Photon 远程中继",
-        summaryModeRelay: "Claw Relay 代理",
         imessageAuthTitle: "iMessage 需要 macOS 授权",
         imessageAuthDatabaseDenied: "未获得 chat.db 读取权限",
         imessageAuthDatabaseReady: "chat.db 读取权限已授予；自动化权限会在首次发送回复时验证",
@@ -127,17 +120,10 @@ window.__ModuleLoader__.load({
         fieldAutoReply: "Auto-reply to incoming messages",
         fieldCardReplies: "Rich card format replies",
         fieldStreamReplies: "Typewriter stream replies",
-        fieldMode: "Operating Mode",
-        fieldModeLocal: "Local Native (chat.db + AppleScript)",
-        fieldModePhoton: "Photon Remote Relay",
-        fieldModeRelay: "Claw Relay Proxy",
         fieldChatDb: "chat.db Database Path",
-        fieldImsgCmd: "imsg CLI Command Path",
         summaryWorkspace: "Workspace",
         summaryNotConfigured: "App ID not configured",
         summaryModeLocal: "Local Native (chat.db)",
-        summaryModePhoton: "Photon Remote Relay",
-        summaryModeRelay: "Claw Relay Proxy",
         imessageAuthTitle: "iMessage requires macOS authorization",
         imessageAuthDatabaseDenied: "chat.db read access is not granted",
         imessageAuthDatabaseReady: "chat.db read access is granted; automation access will be checked when sending a reply",
@@ -710,7 +696,7 @@ window.__ModuleLoader__.load({
         case "feishu":
           return Boolean(cfg.appId && String(cfg.appId).trim() && cfg.appSecret && String(cfg.appSecret).trim());
         case "imessage":
-          return Boolean((cfg.chatDb && String(cfg.chatDb).trim()) || (cfg.photonApiOrigin && String(cfg.photonApiOrigin).trim()) || (cfg.relayApiBase && String(cfg.relayApiBase).trim()) || (ch.sessions > 0));
+          return Boolean((cfg.chatDb && String(cfg.chatDb).trim()) || (ch.sessions > 0));
         case "telegram":
           return Boolean(cfg.token && String(cfg.token).trim());
         case "discord":
@@ -759,19 +745,7 @@ window.__ModuleLoader__.load({
           guide: t.imessageGuide,
           color: "#34C759",
           fields: [
-            {
-              key: "mode",
-              label: t.fieldMode,
-              type: "select",
-              options: [
-                { value: "imsg", label: t.fieldModeLocal },
-                { value: "photon", label: t.fieldModePhoton },
-                { value: "relay", label: t.fieldModeRelay },
-              ],
-              default: "imsg",
-            },
             { key: "chatDb", label: t.fieldChatDb, type: "text", required: false, placeholder: "~/Library/Messages/chat.db" },
-            { key: "imsgCmd", label: t.fieldImsgCmd, type: "text", required: false, placeholder: "imsg" },
             { key: "defaultWorkspace", label: t.fieldWorkspace, type: "text", required: false, placeholder: "~/dsh/default" },
             { key: "autoReply", label: t.fieldAutoReply, type: "boolean", default: true },
             { key: "streamReplies", label: t.fieldStreamReplies, type: "boolean", default: true },
@@ -797,9 +771,8 @@ window.__ModuleLoader__.load({
         const ws = merged.defaultWorkspace ? `${t.summaryWorkspace}: ${merged.defaultWorkspace}` : "";
         summaryText = [appIdDisplay, ws].filter(Boolean).join("   •   ");
       } else if (ch.id === "imessage") {
-        const modeDisplay = merged.mode === "photon" ? t.summaryModePhoton : merged.mode === "relay" ? t.summaryModeRelay : t.summaryModeLocal;
         const ws = merged.defaultWorkspace ? `${t.summaryWorkspace}: ${merged.defaultWorkspace}` : "";
-        summaryText = [modeDisplay, ws].filter(Boolean).join("   •   ");
+        summaryText = [t.summaryModeLocal, ws].filter(Boolean).join("   •   ");
       } else {
         summaryText = spec.desc || ch.desc;
       }
@@ -921,7 +894,7 @@ window.__ModuleLoader__.load({
           React.createElement("div", { className: "cc-modal-body" },
             guide && React.createElement("div", { className: "cc-modal-guide" }, `💡 ${guide}`),
 
-            ch.id === "imessage" && (formData.mode || "imsg") === "imsg" && ch.statusCode === "authorization-required" && React.createElement("div", { className: "cc-auth-warning", style: { margin: 0 } },
+            ch.id === "imessage" && ch.statusCode === "authorization-required" && React.createElement("div", { className: "cc-auth-warning", style: { margin: 0 } },
               React.createElement("strong", null, `⚠️ ${t.imessageAuthTitle}`),
               React.createElement("div", null, t.imessageAuthGuide),
             ),

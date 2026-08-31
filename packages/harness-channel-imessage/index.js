@@ -1,7 +1,7 @@
 /**
  * index.js — harness-channel-imessage host 入口（薄壳，托管消息总线）
  *
- * 统一三种 iMessage 传输（imsg / photon / relay）为同一插件，通过 `mode` 切换适配器。
+ * iMessage 仅使用本机 local 传输：通过 chat.db 监听，并由 Messages.app 发送消息。
  * 消息总线（GatewayCore）与 logger 均从共享包 `@anarkhgatsby/deepseek-harness-core` 导入，
  * 本插件只做"平台门面"：注册 imessage settings namespace、选适配器、注册 message 工具。
  *
@@ -14,9 +14,7 @@ import { defineTool } from "@deepseek-ai/dsh-tools";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { GatewayCore, createChannelLogger } from "@anarkhgatsby/deepseek-harness-core";
-import { ImsgAdapter } from "./lib/adapters/imsg.mjs";
-import { PhotonAdapter } from "./lib/adapters/photon.mjs";
-import { RelayAdapter } from "./lib/adapters/relay.mjs";
+import { LocalAdapter } from "./lib/adapters/local.mjs";
 import { MODES, DEFAULT_MODE, normalizeSettings } from "./lib/config.mjs";
 
 export const name = "harness-channel-imessage";
@@ -45,13 +43,9 @@ export const Config = z.object({
 /** `imessage` settings namespace schema（路由 + 通用开关 + 各通道专属配置）。 */
 const GatewaySchema = z.object({
   routes: z.dict(z.string()),
-  mode: z.string(), // imsg | photon | relay
-  imsgCmd: z.string(),
+  mode: z.string(), // 兼容旧配置，当前仅支持 local
   chatDb: z.string(),
   defaultWorkspace: z.string(),
-  photonApiOrigin: z.string(),
-  relayProvider: z.string(),
-  relayApiBase: z.string(),
   autoReply: z.boolean(),
   streamReplies: z.boolean(),
   toolCallReplies: z.boolean(),
@@ -133,12 +127,8 @@ export function apply(ctx, config) {
     base: {
       routes: {},
       mode: DEFAULT_MODE,
-      imsgCmd: "imsg",
       chatDb: join(homedir(), "Library/Messages/chat.db"),
       defaultWorkspace: join(homedir(), "dsh", "default"),
-      photonApiOrigin: "https://app.photon.codes",
-      relayProvider: "claw",
-      relayApiBase: "",
       autoReply: true,
       streamReplies: true,
       toolCallReplies: true,
@@ -149,19 +139,10 @@ export function apply(ctx, config) {
 
   const log = createChannelLogger("im", ctx.logger);
 
-  // 选适配器：按当前 mode 解析（热更新后 adapter 由 scope.watch 重建）。
+  // iMessage 仅允许本机 local 适配器；热更新时由 scope.watch 重载配置。
   const resolveAdapter = () => {
-    const snap = normalizeSettings(scope.get());
     const getConfig = () => normalizeSettings(scope.get());
-    switch (snap.mode) {
-      case "photon":
-        return new PhotonAdapter({ getConfig, log });
-      case "relay":
-        return new RelayAdapter({ getConfig, log });
-      case "imsg":
-      default:
-        return new ImsgAdapter({ getConfig, log });
-    }
+    return new LocalAdapter({ getConfig, log });
   };
 
   const adapter = resolveAdapter();
@@ -197,10 +178,10 @@ export function apply(ctx, config) {
   // 注册全局 `message_imessage` 工具
   const messageTool = defineTool({
     name: "message_imessage",
-    description: "通过当前激活的 iMessage 通道（imsg/photon/relay）向联系人发送一条文本消息。用于主动通知/提醒用户。",
+    description: "通过本机 Messages.app 的 iMessage 通道向联系人发送一条文本消息。用于主动通知/提醒用户。",
     parameters: {
       action: { type: "string", required: true, description: "操作类型，目前仅支持 send" },
-      channel: { type: "string", required: true, description: "发送渠道：imessage/photon/relay" },
+      channel: { type: "string", required: true, description: "发送渠道：imessage/local" },
       target: { type: "string", required: true, description: "目标 handle（号码如 +8613800000000 或 email）" },
       message: { type: "string", required: true, description: "要发送的文本内容" },
     },

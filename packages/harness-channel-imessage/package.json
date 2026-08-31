@@ -1,7 +1,7 @@
 {
   "name": "@anarkhgatsby/deepseek-harness-channel-imessage",
-  "version": "0.1.0",
-  "description": "Channel plugin for DeepSeek Harness: unified iMessage transport (local imsg, Photon cloud, cloud relay) behind one message bus. Thin facade on @anarkhgatsby/deepseek-harness-core.",
+  "version": "0.1.1",
+  "description": "Channel plugin for DeepSeek Harness: local-only iMessage transport through Messages.app and chat.db. Thin facade on @anarkhgatsby/deepseek-harness-core.",
   "type": "module",
   "main": "./index.js",
   "exports": {
@@ -23,13 +23,14 @@
     "client.js",
     "cordis.patch.yml",
     "lib/config.mjs",
-    "lib/adapters/imsg.mjs",
-    "lib/adapters/photon.mjs",
-    "lib/adapters/relay.mjs",
+    "lib/adapters/local.mjs",
     "README.md",
     "LICENSE"
   ],
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "@anarkhgatsby/deepseek-harness-core": "^0.1.0"
   },

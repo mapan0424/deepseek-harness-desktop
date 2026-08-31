@@ -220,7 +220,10 @@ fn prepare_bundled_plugin_overlays(node: &Path) -> Result<Vec<PathBuf>, String> 
     }
 
     let home = dsh_home()?;
-    let dsh_node_modules = home.join("node_modules");
+    // dsh resolves out-of-tree bundle names from the profile directory. Its
+    // maintained flat fallback is $DSH_HOME/profiles/node_modules, which also
+    // contains the core runtime peers required by bundled channel plugins.
+    let dsh_node_modules = home.join("profiles/node_modules");
     let configured_bundles = configured_profile_bundles(&home.join("profiles/web"));
     let mut patches = Vec::new();
     for (package_name, has_patch) in packages {
@@ -232,8 +235,9 @@ fn prepare_bundled_plugin_overlays(node: &Path) -> Result<Vec<PathBuf>, String> 
         }
 
         // The Web profile resolves out-of-tree packages upward from
-        // $DSH_HOME/profiles/web, so $DSH_HOME/node_modules is its stable
-        // package root. Keep the replaceable copy small and deterministic.
+        // $DSH_HOME/profiles/web, making $DSH_HOME/profiles/node_modules its
+        // stable package root. Keep the replaceable copy small and
+        // deterministic.
         let destination = dsh_node_modules.join(package_name);
         let temporary = destination.with_extension(format!("tmp-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&temporary);

@@ -3,6 +3,7 @@ import { cp, mkdir, readFile, rm } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { embedInsightsToolIcons } from "./embed-insights-tool-icons.mjs";
+import { patchSettingsSectionIcon } from "./patch-settings-section-icon.mjs";
 
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -20,7 +21,7 @@ const bundledPluginDefinitionsList = [
     id: "channel-config",
     source: join(projectRoot, "packages", "harness-channel-config"),
     publishedEntries: ["package.json", "cordis.patch.yml", "LICENSE", "README.md", "README.zh-CN.md", "lib"],
-    expectedVersion: "0.1.2",
+    expectedVersion: "0.1.3",
     clientId: "@anarkhgatsby/deepseek-harness-channel-config",
     clientEntry: "lib/client.js",
     patch: true,
@@ -45,7 +46,7 @@ const bundledPluginDefinitionsList = [
     id: "channel-imessage",
     source: join(projectRoot, "packages", "harness-channel-imessage"),
     publishedEntries: ["package.json", "cordis.patch.yml", "LICENSE", "README.md", "client.js", "index.js", "lib"],
-    expectedVersion: "0.1.0",
+    expectedVersion: "0.1.1",
     clientId: "@anarkhgatsby/deepseek-harness-channel-imessage",
     clientEntry: "client.js",
     patch: true,
@@ -59,6 +60,7 @@ function bundledPluginDefinitions() {
 
 export async function installBundledPlugins(runtimeRoot) {
   await embedInsightsToolIcons();
+  await patchSettingsSectionIcon(runtimeRoot);
   for (const plugin of bundledPluginDefinitions()) {
     const manifest = JSON.parse(await readFile(join(plugin.source, "package.json"), "utf8"));
     const destination = join(runtimeRoot, "node_modules", ...manifest.name.split("/"));

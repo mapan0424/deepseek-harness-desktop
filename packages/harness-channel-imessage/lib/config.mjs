@@ -1,33 +1,23 @@
 /**
  * config.mjs — harness-imessage 统一配置 schema 与校验
  *
- * 三种传输模式统一在同一 `imessage` settings namespace 下：
- *   - mode: "imsg"    本地 Mac + imsg CLI（JSON-RPC over stdio）
- *   - mode: "photon"  Photon 云端托管线路（RFC 8628 设备码授权）
- *   - mode: "relay"   云中继（Claw Messenger / Sendblue，消息 API 抽象）
- *
- * 各模式共享 base 开关；模式独有字段按需打开，前端对当前 mode 显示对应卡片。
+ * iMessage 仅使用本机 `local` 传输：chat.db 监听 + Messages.app（无 CLI、无云中继）。
+ * 配置保留 mode 字段用于兼容已有 settings，但唯一允许的值是 "local"。
  */
 import { homedir } from "node:os";
 import { join } from "node:path";
 
 /** 导出供 client 渲染的模式列表与默认。 */
-export const MODES = ["imsg", "photon", "relay"];
-export const DEFAULT_MODE = "imsg";
+export const MODES = ["local"];
+export const DEFAULT_MODE = "local";
 
-/** 当前运行环境默认 imsg 命令与 chat.db 路径（网关以 root 运行时可用环境变量覆盖）。 */
+/** 当前运行环境默认 chat.db 路径（网关以 root 运行时可用环境变量覆盖）。 */
 export function defaults() {
   return {
     mode: DEFAULT_MODE,
-    // imsg（本地）
-    imsgCmd: process.env.IMSG_CMD || "imsg",
+    // local（本机）
     chatDb: process.env.IMSG_CHAT_DB || join(homedir(), "Library/Messages/chat.db"),
     defaultWorkspace: process.env.IMSG_DEFAULT_WORKSPACE || join(homedir(), "dsh", "default"),
-    // photon（云端）
-    photonApiOrigin: process.env.DSH_IM_PHOTON_ORIGIN || "https://app.photon.codes",
-    // relay（云中继）
-    relayProvider: process.env.DSH_IM_RELAY_PROVIDER || "claw",
-    relayApiBase: process.env.DSH_IM_RELAY_API_BASE || "",
     // 通用
     autoReply: true,
     streamReplies: true,
@@ -55,19 +45,13 @@ export function normalizeSettings(input) {
     return Number.isFinite(n) && n > 0 ? n : fallback;
   };
 
-  // `local` was used by an early config UI; accept it as the local imsg mode
-  // so existing settings remain compatible after the UI is corrected.
-  const mode = input.mode === "local" ? "imsg" : MODES.includes(input.mode) ? input.mode : base.mode;
+  const mode = MODES.includes(input.mode) ? input.mode : base.mode;
 
   const out = {
     ...base,
     mode,
-    imsgCmd: pick("imsgCmd", base.imsgCmd),
     chatDb: pick("chatDb", base.chatDb),
     defaultWorkspace: pick("defaultWorkspace", base.defaultWorkspace),
-    photonApiOrigin: pick("photonApiOrigin", base.photonApiOrigin),
-    relayProvider: pick("relayProvider", base.relayProvider),
-    relayApiBase: pick("relayApiBase", base.relayApiBase),
     autoReply: bool("autoReply", base.autoReply),
     streamReplies: bool("streamReplies", base.streamReplies),
     toolCallReplies: bool("toolCallReplies", base.toolCallReplies),
