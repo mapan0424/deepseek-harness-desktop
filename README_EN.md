@@ -52,8 +52,19 @@ This is not a reduced chat wrapper. It hosts the DeepSeek Harness Web UI directl
 - model, credential, and plugin configuration
 - an experience that can evolve with upstream Harness
 - bundled **Harness Insights** for local Token, model, and tool usage analytics
+- bundled messaging channels: visual configuration, Feishu / Lark, and iMessage on macOS
 
 The desktop layer does not reinvent Harness. It makes Harness feel at home on desktop systems. Harness Insights is developed as an independent Cordis plugin, kept separate from upstream source, and delivered inside the same installer.
+
+### Messaging channels
+
+The installer includes the validated channel plugins. After launching Harness, configure them from the **Message Channels** settings page:
+
+- **Visual configuration** for channel parameters, authorization state, and sessions;
+- **Feishu / Lark** after configuring an enterprise custom app;
+- **iMessage** on macOS, including the local Messages/chat.db mode. The first use requires Full Disk Access and Automation permissions.
+
+The Windows installer does not ship the iMessage plugin, and iMessage is hidden from its configuration page because Messages.app is macOS-only.
 
 ### A proper Mac app
 

@@ -1,6 +1,6 @@
 use std::io::{BufRead, BufReader, Read, Write};
 use std::net::{SocketAddr, TcpListener, TcpStream};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -183,35 +183,81 @@ fn dsh_home() -> Result<PathBuf, String> {
     Ok(PathBuf::from(home).join(".dsh"))
 }
 
-fn prepare_insights_overlay(node: &std::path::Path) -> Result<PathBuf, String> {
+fn configured_profile_bundles(profile_dir: &Path) -> std::collections::HashSet<String> {
+    let manifest = profile_dir.join("package.json");
+    let Ok(content) = std::fs::read_to_string(manifest) else {
+        return std::collections::HashSet::new();
+    };
+    let Ok(value) = serde_json::from_str::<Value>(&content) else {
+        return std::collections::HashSet::new();
+    };
+    value
+        .get("dsh")
+        .and_then(|dsh| dsh.get("profile"))
+        .and_then(|profile| profile.get("bundles"))
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_str)
+        .map(str::to_owned)
+        .collect()
+}
+
+fn prepare_bundled_plugin_overlays(node: &Path) -> Result<Vec<PathBuf>, String> {
     let runtime = node
         .parent()
         .ok_or_else(|| "无法定位内置 runtime".to_string())?;
-    let source = runtime.join("node_modules/@anarkhgatsby/deepseek-harness-insights");
-    let overlay = source.join("cordis.patch.yml");
-    if !overlay.is_file()
-        || !source.join("lib/index.js").is_file()
-        || !source.join("lib/client.js").is_file()
-    {
-        return Err("内置 Harness Insights 插件文件不完整".to_string());
+    let mut packages = vec![
+        ("@anarkhgatsby/deepseek-harness-insights", true),
+        ("@anarkhgatsby/deepseek-harness-channel-config", true),
+        ("@anarkhgatsby/deepseek-harness-core", false),
+        ("@anarkhgatsby/deepseek-harness-channel-feishu", true),
+    ];
+    // iMessage relies on macOS Messages/chat.db and must not be shipped or
+    // exposed by the Windows build.
+    if !cfg!(windows) {
+        packages.push(("@anarkhgatsby/deepseek-harness-channel-imessage", true));
     }
 
-    // The Web profile resolves out-of-tree packages upward from
-    // $DSH_HOME/profiles/web, so $DSH_HOME/node_modules is its stable package
-    // root. Deploy a tiny pure-JS copy; usage data remains in Harness-owned
-    // projections and never lives inside this replaceable package directory.
-    let destination = dsh_home()?.join("node_modules/@anarkhgatsby/deepseek-harness-insights");
-    let temporary = destination.with_extension(format!("tmp-{}", std::process::id()));
-    let _ = std::fs::remove_dir_all(&temporary);
-    copy_directory(&source, &temporary)?;
-    let _ = std::fs::remove_dir_all(&destination);
-    if let Some(parent) = destination.parent() {
-        std::fs::create_dir_all(parent)
-            .map_err(|error| format!("创建 Harness 插件根目录失败：{error}"))?;
+    let home = dsh_home()?;
+    // dsh resolves out-of-tree bundle names from the profile directory. Its
+    // maintained flat fallback is $DSH_HOME/profiles/node_modules, which also
+    // contains the core runtime peers required by bundled channel plugins.
+    let dsh_node_modules = home.join("profiles/node_modules");
+    let configured_bundles = configured_profile_bundles(&home.join("profiles/web"));
+    let mut patches = Vec::new();
+    for (package_name, has_patch) in packages {
+        let source = runtime.join("node_modules").join(package_name);
+        if !source.join("package.json").is_file()
+            || (has_patch && !source.join("cordis.patch.yml").is_file())
+        {
+            return Err(format!("内置插件文件不完整：{package_name}"));
+        }
+
+        // The Web profile resolves out-of-tree packages upward from
+        // $DSH_HOME/profiles/web, making $DSH_HOME/profiles/node_modules its
+        // stable package root. Keep the replaceable copy small and
+        // deterministic.
+        let destination = dsh_node_modules.join(package_name);
+        let temporary = destination.with_extension(format!("tmp-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&temporary);
+        copy_directory(&source, &temporary)?;
+        let _ = std::fs::remove_dir_all(&destination);
+        if let Some(parent) = destination.parent() {
+            std::fs::create_dir_all(parent)
+                .map_err(|error| format!("创建 Harness 插件目录失败：{error}"))?;
+        }
+        std::fs::rename(&temporary, &destination)
+            .map_err(|error| format!("启用内置插件失败 {package_name}：{error}"))?;
+        // A user may already have installed the same package into the Web
+        // profile. Its manifest bundle will load the package's patch itself;
+        // passing that patch again through `--patch` would create duplicate
+        // loader entry IDs. Keep the user's profile-owned copy authoritative.
+        if has_patch && !configured_bundles.contains(package_name) {
+            patches.push(source.join("cordis.patch.yml"));
+        }
     }
-    std::fs::rename(&temporary, &destination)
-        .map_err(|error| format!("启用内置 Insights 插件失败：{error}"))?;
-    Ok(overlay)
+    Ok(patches)
 }
 
 fn desktop_web_flags(port: u16) -> Vec<String> {
@@ -222,19 +268,16 @@ fn desktop_web_flags(port: u16) -> Vec<String> {
     ]
 }
 
-fn bundled_web_args(
-    entry_arg: String,
-    plugin_patch: Option<&std::path::Path>,
-    port: u16,
-) -> Vec<String> {
+fn bundled_web_args(entry_arg: String, plugin_patches: &[PathBuf], port: u16) -> Vec<String> {
     let mut args = vec![
         "--expose-internals".to_string(),
         entry_arg,
         "web".to_string(),
     ];
-    if let Some(plugin_patch) = plugin_patch {
+    for plugin_patch in plugin_patches {
         // `--patch` belongs to the dsh launcher. It must precede the Web app
-        // flags, which are forwarded verbatim to the web profile.
+        // flags, which are forwarded verbatim to the web profile. dsh accepts
+        // repeatable `--patch` values, one for each bundled plugin.
         args.push("--patch".to_string());
         args.push(plugin_patch.to_string_lossy().into_owned());
     }
@@ -263,17 +306,17 @@ fn spawn_dsh(
         } else {
             entry.to_string_lossy().into_owned()
         };
-        let plugin_patch = match prepare_insights_overlay(&node) {
-            Ok(plugin_patch) => Some(plugin_patch),
+        let plugin_patches = match prepare_bundled_plugin_overlays(&node) {
+            Ok(plugin_patches) => plugin_patches,
             Err(error) => {
                 append_log(
                     &state.log,
-                    &format!("内置 Harness Insights 插件不可用，继续启动核心工作台：{error}\n"),
+                    &format!("内置桌面插件不可用，继续启动核心工作台：{error}\n"),
                 );
-                None
+                Vec::new()
             }
         };
-        let args = bundled_web_args(entry_arg, plugin_patch.as_deref(), active_port);
+        let args = bundled_web_args(entry_arg, &plugin_patches, active_port);
         (node, args, true)
     } else if cfg!(debug_assertions) {
         (
@@ -1540,11 +1583,35 @@ mod tests {
     }
 
     #[test]
+    fn configured_profile_bundles_are_read_from_manifest() {
+        let profile = std::env::temp_dir().join(format!(
+            "deepseek-harness-profile-test-{}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&profile).unwrap();
+        std::fs::write(
+            profile.join("package.json"),
+            r#"{"dsh":{"profile":{"bundles":["@anarkhgatsby/deepseek-harness-channel-config","@deepseek-ai/dsh-web-app"]}}}"#,
+        )
+        .unwrap();
+
+        let bundles = configured_profile_bundles(&profile);
+        assert!(bundles.contains("@anarkhgatsby/deepseek-harness-channel-config"));
+        assert!(bundles.contains("@deepseek-ai/dsh-web-app"));
+        assert!(!bundles.contains("@anarkhgatsby/deepseek-harness-channel-feishu"));
+
+        std::fs::remove_dir_all(profile).unwrap();
+    }
+
+    #[test]
     fn bundled_web_args_keep_launcher_patch_before_web_flags() {
         assert_eq!(
             bundled_web_args(
                 "lib/bin.js".to_string(),
-                Some(std::path::Path::new("insights.patch.yml")),
+                &[
+                    PathBuf::from("insights.patch.yml"),
+                    PathBuf::from("channels.patch.yml"),
+                ],
                 3080,
             ),
             vec![
@@ -1553,6 +1620,8 @@ mod tests {
                 "web".to_string(),
                 "--patch".to_string(),
                 "insights.patch.yml".to_string(),
+                "--patch".to_string(),
+                "channels.patch.yml".to_string(),
                 "--no-open".to_string(),
                 "--port".to_string(),
                 "3080".to_string(),
