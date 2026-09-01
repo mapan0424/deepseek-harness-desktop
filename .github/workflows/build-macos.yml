@@ -19,7 +19,7 @@ on:
     paths:
       - ".github/workflows/build-macos.yml"
       - "scripts/**"
-      - "packages/harness-insights/**"
+      - "packages/**"
       - "src/**"
       - "src-tauri/**"
       - "package.json"
