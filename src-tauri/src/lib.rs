@@ -242,6 +242,7 @@ fn prepare_bundled_plugin_overlays(node: &Path) -> Result<Vec<PathBuf>, String> 
         ("@anarkhgatsby/deepseek-harness-core", false),
         ("@anarkhgatsby/deepseek-harness-channel-feishu", true),
         ("@anarkhgatsby/deepseek-harness-channel-wecom", true),
+        ("@anarkhgatsby/deepseek-harness-locale-pack", true),
     ];
     // iMessage relies on macOS Messages/chat.db and must not be shipped or
     // exposed by the Windows build.

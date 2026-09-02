@@ -1,0 +1,3 @@
+- insert:
+    - id: deepseek-harness-locale-pack
+      name: '@anarkhgatsby/deepseek-harness-locale-pack'
