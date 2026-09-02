@@ -1,15 +1,33 @@
 :root {
   font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
-  color: #f4f6fa;
-  background: #15171b;
+  color-scheme: light dark;
+  --boot-bg: #f7f7f5;
+  --boot-title: #17191b;
+  --boot-kicker: #73777d;
+  --boot-status: #8a8f95;
+  --boot-progress-bg: #e1e2df;
+  --boot-progress-bar: #17191b;
+  --boot-logo-filter: none;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
 }
 
+@media (prefers-color-scheme: dark) {
+  :root {
+    --boot-bg: #15171b;
+    --boot-title: #f4f6fa;
+    --boot-kicker: #8a8f95;
+    --boot-status: #9ba0a6;
+    --boot-progress-bg: #2d3139;
+    --boot-progress-bar: #3370ff;
+    --boot-logo-filter: invert(1) brightness(1.2);
+  }
+}
+
 * { box-sizing: border-box; }
 html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
-body { background: #15171b; }
+body { background: var(--boot-bg); }
 body.recovery-page { opacity: 0; pointer-events: none; }
 body.recovery-page.recovery-visible { opacity: 1; pointer-events: auto; }
 .hidden { display: none !important; }
@@ -21,8 +39,9 @@ body.recovery-page.recovery-visible { opacity: 1; pointer-events: auto; }
   align-items: center;
   justify-content: center;
   flex-direction: column;
-  background: #f7f7f5;
-  color: #111315;
+  background: var(--boot-bg);
+  color: var(--boot-title);
+  transition: background-color .3s ease, color .3s ease;
 }
 
 .boot-mark {
@@ -37,18 +56,20 @@ body.recovery-page.recovery-visible { opacity: 1; pointer-events: auto; }
   display: block;
   width: 86px;
   height: auto;
+  filter: var(--boot-logo-filter);
+  transition: filter .3s ease;
 }
 
 .boot-kicker {
   margin: 24px 0 10px;
-  color: #73777d;
+  color: var(--boot-kicker);
   font: 500 10px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
   letter-spacing: .18em;
 }
 
-.boot-screen h1 { margin: 0; color: #17191b; font-size: 27px; font-weight: 600; letter-spacing: -.045em; }
-.boot-status { margin: 12px 0 24px; color: #8a8f95; font-size: 13px; }
-.boot-progress { width: 240px; height: 3px; overflow: hidden; border-radius: 4px; background: #e1e2df; }
-.boot-progress span { display: block; width: 12%; height: 100%; border-radius: 4px; background: #17191b; transition: width .5s ease; }
-.retry-button { margin-top: 20px; border: 0; background: transparent; color: #17191b; font-size: 14px; }
-.retry-button:hover { color: #777; }
+.boot-screen h1 { margin: 0; color: var(--boot-title); font-size: 27px; font-weight: 600; letter-spacing: -.045em; }
+.boot-status { margin: 12px 0 24px; color: var(--boot-status); font-size: 13px; }
+.boot-progress { width: 240px; height: 3px; overflow: hidden; border-radius: 4px; background: var(--boot-progress-bg); }
+.boot-progress span { display: block; width: 12%; height: 100%; border-radius: 4px; background: var(--boot-progress-bar); transition: width .5s ease; }
+.retry-button { margin-top: 20px; border: 0; background: transparent; color: var(--boot-title); font-size: 14px; }
+.retry-button:hover { opacity: 0.7; }

@@ -7,7 +7,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const manifest = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'))
 
 assert.equal(manifest.name, '@anarkhgatsby/deepseek-harness-insights')
-assert.equal(manifest.version, '0.1.3')
+assert.equal(manifest.version, '0.1.4')
 assert.equal(manifest.dsh?.bundle?.patch, './cordis.patch.yml')
 assert.equal(manifest.dsh?.client?.platform, 'web')
 assert.equal(manifest.repository?.url, 'https://github.com/mapan0424/deepseek-harness-insights.git')

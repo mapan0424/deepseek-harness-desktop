@@ -17,7 +17,7 @@ window.__ModuleLoader__.load({
     Object.defineProperty(exports, Symbol.toStringTag, { value: "Module" });
 
     const React = require("react");
-    const { Button } = require("@deepseek-ai/dsh-client-ui-primitives");
+    const { Button, IconSettingsOutline16, IconNewChatOutline16, IconRefreshOutline16, IconWarningOutline16 } = require("@deepseek-ai/dsh-client-ui-primitives");
 
     const STYLE_ID = "@anarkhgatsby/deepseek-harness-channel-config/main-v2";
     const NS = "harness-channel-config";
@@ -36,8 +36,11 @@ window.__ModuleLoader__.load({
         error: "读取失败",
         statusOnline: "已连接运行",
         statusInactive: "未接入",
+        statusPaused: "已暂停回复",
         statusAuthorization: "需要授权",
         statusAuthorized: "已授权接收",
+        toggleEnable: "点击开启自动回复",
+        toggleDisable: "点击暂停自动回复",
         sessionsCount: "个活跃会话",
         btnConfigure: "配置参数",
         btnQuickAdd: "+ 快速接入",
@@ -54,11 +57,16 @@ window.__ModuleLoader__.load({
         feishuLabel: "飞书",
         feishuDesc: "企业自建应用，支持富文本卡片交互、打字机流式输出与群聊/私聊回复。",
         feishuGuide: "登录飞书开放平台 (open.feishu.cn) 创建企业自建应用，开启机器人能力，获取 App ID 与 App Secret。",
+        wecomLabel: "企业微信",
+        wecomDesc: "企业微信智能机器人长连接模式，出站直连企微网关，无需公网 IP 与回调加解密。",
+        wecomGuide: "在企业微信管理后台 → 工作台 → 智能机器人 → API 模式创建机器人，连接方式选择「使用长连接」，获取 Bot ID 与 Secret，并确保可见范围包含使用成员。",
         imessageLabel: "iMessage",
         imessageDesc: "macOS 原生 AppleScript + chat.db 监听，支持本地直连无中转收发 iMessage 短信。",
         imessageGuide: "利用 macOS 本地信息数据库与 AppleScript 直接与系统「信息」应用协同，数据完全保存在本机。",
         fieldAppId: "App ID (应用唯一标识)",
         fieldAppSecret: "App Secret (应用密钥)",
+        fieldBotId: "Bot ID (机器人唯一标识)",
+        fieldWecomSecret: "Secret (长连接专用密钥)",
         fieldVerifyToken: "Verification Token (事件校验，选填)",
         fieldVerifyTokenPlaceholder: "可选事件校验 Token",
         fieldEncryptKey: "Encrypt Key (事件加密，选填)",
@@ -70,6 +78,7 @@ window.__ModuleLoader__.load({
         fieldChatDb: "chat.db 数据库路径",
         summaryWorkspace: "工作空间",
         summaryNotConfigured: "未配置 App ID",
+        summaryNotConfiguredWecom: "未配置 Bot ID",
         summaryModeLocal: "本地原生直连 (chat.db)",
         imessageAuthTitle: "iMessage 需要 macOS 授权",
         imessageAuthDatabaseDenied: "未获得 chat.db 读取权限",
@@ -89,8 +98,11 @@ window.__ModuleLoader__.load({
         error: "Failed to read",
         statusOnline: "Connected & Online",
         statusInactive: "Not Connected",
+        statusPaused: "Auto-reply Paused",
         statusAuthorization: "Authorization Required",
         statusAuthorized: "Receiving Authorized",
+        toggleEnable: "Enable auto-reply",
+        toggleDisable: "Pause auto-reply",
         sessionsCount: " active sessions",
         btnConfigure: "Configure",
         btnQuickAdd: "+ Connect",
@@ -107,11 +119,16 @@ window.__ModuleLoader__.load({
         feishuLabel: "Feishu / Lark",
         feishuDesc: "Enterprise custom bot with interactive rich cards, typewriter streaming, and group/direct chat replies.",
         feishuGuide: "Log in to Feishu Open Platform (open.feishu.cn), create an enterprise custom app, enable bot capabilities, and obtain your App ID and App Secret.",
+        wecomLabel: "WeCom",
+        wecomDesc: "WeCom intelligent bot WebSocket long-connection mode for outbound direct connect without public IP or encryption keys.",
+        wecomGuide: "Go to WeCom Admin Console → Workbench → Intelligent Bot → API Mode, select 'Long Connection', obtain Bot ID and Secret, and ensure visibility covers the users.",
         imessageLabel: "iMessage",
         imessageDesc: "Native macOS AppleScript + chat.db listener for direct, local message dispatch without third-party relays.",
         imessageGuide: "Integrates directly with macOS native Messages app via local database and AppleScript, ensuring complete privacy.",
         fieldAppId: "App ID",
         fieldAppSecret: "App Secret",
+        fieldBotId: "Bot ID",
+        fieldWecomSecret: "Secret",
         fieldVerifyToken: "Verification Token (Optional)",
         fieldVerifyTokenPlaceholder: "Optional verification token",
         fieldEncryptKey: "Encrypt Key (Optional)",
@@ -123,6 +140,7 @@ window.__ModuleLoader__.load({
         fieldChatDb: "chat.db Database Path",
         summaryWorkspace: "Workspace",
         summaryNotConfigured: "App ID not configured",
+        summaryNotConfiguredWecom: "Bot ID not configured",
         summaryModeLocal: "Local Native (chat.db)",
         imessageAuthTitle: "iMessage requires macOS authorization",
         imessageAuthDatabaseDenied: "chat.db read access is not granted",
@@ -331,6 +349,10 @@ window.__ModuleLoader__.load({
           background: var(--dsw-alias-bg-skeleton, rgba(127, 127, 127, 0.1));
           color: var(--dsw-alias-label-tertiary);
         }
+        .cc-status-pill[data-status="paused"] {
+          background: rgba(245, 158, 11, 0.14);
+          color: var(--dsw-alias-state-warning-primary, #b45309);
+        }
         .cc-status-pill[data-status="auth"] {
           background: rgba(245, 158, 11, 0.14);
           color: var(--dsw-alias-state-warning-primary, #b45309);
@@ -338,6 +360,240 @@ window.__ModuleLoader__.load({
         .cc-status-pill[data-status="authorized"] {
           background: var(--dsw-alias-state-success-tertiary);
           color: var(--dsw-alias-state-success-primary);
+        }
+        .cc-row-toggle {
+          display: inline-flex;
+          align-items: center;
+          cursor: pointer;
+          user-select: none;
+          padding: 2px;
+          border-radius: 99px;
+          transition: opacity var(--ds-transition-duration, 0.2s);
+        }
+        .cc-row-toggle:hover {
+          opacity: 0.85;
+        }
+        
+        .cc-feishu-plate {
+          fill: #ffffff;
+          stroke: rgba(0, 0, 0, 0.08);
+          stroke-width: 0.5px;
+        }
+        .cc-feishu-wing-green {
+          fill: #00d6b9;
+        }
+        .cc-feishu-wing-blue {
+          fill: #3370ff;
+        }
+        .cc-feishu-wing-darkblue {
+          fill: #1948b8;
+        }
+        .cc-wecom-plate {
+          fill: #ffffff;
+          stroke: rgba(0, 0, 0, 0.08);
+          stroke-width: 0.5px;
+        }
+        .cc-wecom-bubble-blue {
+          fill: #0082ef;
+        }
+        .cc-wecom-bubble-green {
+          fill: #34c759;
+        }
+        @media (prefers-color-scheme: dark) {
+          .cc-feishu-plate {
+            fill: #22252b !important;
+            stroke: rgba(255, 255, 255, 0.12) !important;
+          }
+          .cc-feishu-wing-green {
+            fill: #00e5c5 !important;
+          }
+          .cc-feishu-wing-blue {
+            fill: #3e82ff !important;
+          }
+          .cc-feishu-wing-darkblue {
+            fill: #669dfe !important;
+          }
+          .cc-wecom-plate {
+            fill: #22252b !important;
+            stroke: rgba(255, 255, 255, 0.12) !important;
+          }
+          .cc-wecom-bubble-blue {
+            fill: #388bfd !important;
+          }
+          .cc-wecom-bubble-green {
+            fill: #30d158 !important;
+          }
+          .cc-imessage-plate {
+            fill: #30d158 !important;
+          }
+          .cc-wecom-img-light {
+            display: none !important;
+          }
+          .cc-wecom-img-dark {
+            display: block !important;
+          }
+        }
+        body[data-ds-dark-theme] .cc-feishu-plate,
+        [data-ds-dark-theme] .cc-feishu-plate,
+        [data-theme="dark"] .cc-feishu-plate,
+        .theme-dark .cc-feishu-plate,
+        body[class*="dark"] .cc-feishu-plate {
+          fill: #22252b !important;
+          stroke: rgba(255, 255, 255, 0.12) !important;
+        }
+        body[data-ds-dark-theme] .cc-feishu-wing-green,
+        [data-ds-dark-theme] .cc-feishu-wing-green,
+        [data-theme="dark"] .cc-feishu-wing-green,
+        .theme-dark .cc-feishu-wing-green,
+        body[class*="dark"] .cc-feishu-wing-green {
+          fill: #00e5c5 !important;
+        }
+        body[data-ds-dark-theme] .cc-feishu-wing-blue,
+        [data-ds-dark-theme] .cc-feishu-wing-blue,
+        [data-theme="dark"] .cc-feishu-wing-blue,
+        .theme-dark .cc-feishu-wing-blue,
+        body[class*="dark"] .cc-feishu-wing-blue {
+          fill: #3e82ff !important;
+        }
+        body[data-ds-dark-theme] .cc-feishu-wing-darkblue,
+        [data-ds-dark-theme] .cc-feishu-wing-darkblue,
+        [data-theme="dark"] .cc-feishu-wing-darkblue,
+        .theme-dark .cc-feishu-wing-darkblue,
+        body[class*="dark"] .cc-feishu-wing-darkblue {
+          fill: #669dfe !important;
+        }
+        body[data-ds-dark-theme] .cc-wecom-plate,
+        [data-ds-dark-theme] .cc-wecom-plate,
+        [data-theme="dark"] .cc-wecom-plate,
+        .theme-dark .cc-wecom-plate,
+        body[class*="dark"] .cc-wecom-plate {
+          fill: #22252b !important;
+          stroke: rgba(255, 255, 255, 0.12) !important;
+        }
+        body[data-ds-dark-theme] .cc-wecom-bubble-blue,
+        [data-ds-dark-theme] .cc-wecom-bubble-blue,
+        [data-theme="dark"] .cc-wecom-bubble-blue,
+        .theme-dark .cc-wecom-bubble-blue,
+        body[class*="dark"] .cc-wecom-bubble-blue {
+          fill: #388bfd !important;
+        }
+        body[data-ds-dark-theme] .cc-wecom-bubble-green,
+        [data-ds-dark-theme] .cc-wecom-bubble-green,
+        [data-theme="dark"] .cc-wecom-bubble-green,
+        .theme-dark .cc-wecom-bubble-green,
+        body[class*="dark"] .cc-wecom-bubble-green {
+          fill: #30d158 !important;
+        }
+        .cc-imessage-plate {
+          fill: #34c759;
+          stroke: rgba(0, 0, 0, 0.08);
+          stroke-width: 0.5px;
+        }
+        .cc-imessage-bubble {
+          fill: #ffffff;
+        }
+        @media (prefers-color-scheme: dark) {
+          .cc-imessage-plate {
+            fill: #22252b !important;
+            stroke: rgba(255, 255, 255, 0.12) !important;
+          }
+          .cc-imessage-bubble {
+            fill: #30d158 !important;
+          }
+        }
+        body[data-ds-dark-theme] .cc-imessage-plate,
+        [data-ds-dark-theme] .cc-imessage-plate,
+        [data-theme="dark"] .cc-imessage-plate,
+        .theme-dark .cc-imessage-plate,
+        body[class*="dark"] .cc-imessage-plate {
+          fill: #22252b !important;
+          stroke: rgba(255, 255, 255, 0.12) !important;
+        }
+        body[data-ds-dark-theme] .cc-imessage-bubble,
+        [data-ds-dark-theme] .cc-imessage-bubble,
+        [data-theme="dark"] .cc-imessage-bubble,
+        .theme-dark .cc-imessage-bubble,
+        body[class*="dark"] .cc-imessage-bubble {
+          fill: #30d158 !important;
+        }
+        
+        .cc-wecom-img-light {
+          display: block !important;
+        }
+        .cc-wecom-img-dark {
+          display: none !important;
+        }
+        body[data-ds-dark-theme] .cc-wecom-img-light,
+        [data-ds-dark-theme] .cc-wecom-img-light,
+        [data-theme="dark"] .cc-wecom-img-light,
+        .theme-dark .cc-wecom-img-light,
+        body[class*="dark"] .cc-wecom-img-light {
+          display: none !important;
+        }
+        body[data-ds-dark-theme] .cc-wecom-img-dark,
+        [data-ds-dark-theme] .cc-wecom-img-dark,
+        [data-theme="dark"] .cc-wecom-img-dark,
+        .theme-dark .cc-wecom-img-dark,
+        body[class*="dark"] .cc-wecom-img-dark {
+          display: block !important;
+        }
+        
+        .cc-imessage-img-light {
+          display: block !important;
+        }
+        .cc-imessage-img-dark {
+          display: none !important;
+        }
+        @media (prefers-color-scheme: dark) {
+          .cc-imessage-img-light {
+            display: none !important;
+          }
+          .cc-imessage-img-dark {
+            display: block !important;
+          }
+        }
+        body[data-ds-dark-theme] .cc-imessage-img-light,
+        [data-ds-dark-theme] .cc-imessage-img-light,
+        [data-theme="dark"] .cc-imessage-img-light,
+        .theme-dark .cc-imessage-img-light,
+        body[class*="dark"] .cc-imessage-img-light {
+          display: none !important;
+        }
+        body[data-ds-dark-theme] .cc-imessage-img-dark,
+        [data-ds-dark-theme] .cc-imessage-img-dark,
+        [data-theme="dark"] .cc-imessage-img-dark,
+        .theme-dark .cc-imessage-img-dark,
+        body[class*="dark"] .cc-imessage-img-dark {
+          display: block !important;
+        }
+        
+        .cc-feishu-img-light {
+          display: block !important;
+        }
+        .cc-feishu-img-dark {
+          display: none !important;
+        }
+        @media (prefers-color-scheme: dark) {
+          .cc-feishu-img-light {
+            display: none !important;
+          }
+          .cc-feishu-img-dark {
+            display: block !important;
+          }
+        }
+        body[data-ds-dark-theme] .cc-feishu-img-light,
+        [data-ds-dark-theme] .cc-feishu-img-light,
+        [data-theme="dark"] .cc-feishu-img-light,
+        .theme-dark .cc-feishu-img-light,
+        body[class*="dark"] .cc-feishu-img-light {
+          display: none !important;
+        }
+        body[data-ds-dark-theme] .cc-feishu-img-dark,
+        [data-ds-dark-theme] .cc-feishu-img-dark,
+        [data-theme="dark"] .cc-feishu-img-dark,
+        .theme-dark .cc-feishu-img-dark,
+        body[class*="dark"] .cc-feishu-img-dark {
+          display: block !important;
         }
         .cc-pulse-dot {
           width: 6px;
@@ -620,57 +876,75 @@ window.__ModuleLoader__.load({
       document.head.appendChild(style);
     }
 
+    
+    const FEISHU_OFFICIAL_LIGHT = "data:image/png;base64,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";
+    const FEISHU_OFFICIAL_DARK = "data:image/png;base64,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";
+    const IMESSAGE_OFFICIAL_LIGHT = "data:image/png;base64,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";
+    const IMESSAGE_OFFICIAL_DARK = "data:image/png;base64,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";
+    const WECOM_OFFICIAL_LIGHT = "data:image/png;base64,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";
+    const WECOM_OFFICIAL_DARK = "data:image/png;base64,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";
+
     /** 平台 SVG 矢量图标渲染（官方原生品牌标准资产） */
     function ChannelIcon({ id, color, size = 22 }) {
       switch (id) {
         case "feishu":
-          return React.createElement("svg", { width: size, height: size, viewBox: "0 0 24 24", fill: "none" },
-            // 飞书官方飞鸟 Logo（青绿/天蓝/深蓝三色渐进羽翼）
-            React.createElement("path", {
-              d: "M12.9238 12.8029C12.9427 12.784 12.9616 12.7682 12.9806 12.7493C13.0184 12.7146 13.0563 12.6767 13.091 12.6389L13.1667 12.5631L13.397 12.336L14.7315 11.0173L15.0659 10.686C15.129 10.6229 15.1952 10.563 15.2615 10.5031C15.3845 10.3926 15.5076 10.2854 15.6369 10.1813C15.7536 10.0866 15.8767 9.99514 15.9997 9.9068C16.1732 9.78376 16.3499 9.67019 16.5329 9.55977C16.7127 9.45251 16.8957 9.35471 17.085 9.26322C17.2616 9.17804 17.4415 9.09917 17.6276 9.02661C17.7317 8.9856 17.8326 8.94774 17.9399 8.91304C17.9935 8.89411 18.044 8.87834 18.0977 8.86256C17.6276 7.00439 16.7632 5.3008 15.5991 3.84959C15.3719 3.56566 15.0249 3.40161 14.6589 3.40161H5.0084C4.83489 3.40161 4.76233 3.6256 4.90114 3.72656C8.18528 6.13997 10.9236 9.24114 12.9017 12.825C12.908 12.8187 12.9175 12.8124 12.9238 12.8029Z",
-              fill: "#00D6B9",
+          return React.createElement("span", {
+            className: "cc-feishu-icon-container",
+            style: { display: "inline-flex", alignItems: "center", justifyContent: "center", width: size, height: size }
+          },
+            React.createElement("img", {
+              className: "cc-feishu-img cc-feishu-img-light",
+              src: FEISHU_OFFICIAL_LIGHT,
+              width: size,
+              height: size,
+              alt: "飞书",
+              style: { width: size, height: size, display: "block" },
             }),
-            React.createElement("path", {
-              d: "M9.09696 21.2986C14.0815 21.2986 18.4225 18.5476 20.6877 14.4843C20.7666 14.3423 20.8454 14.1972 20.918 14.052C20.8044 14.2729 20.6751 14.4811 20.5394 14.6767C20.4889 14.7461 20.4385 14.8155 20.388 14.8818C20.3217 14.9669 20.2555 15.049 20.1861 15.1278C20.1324 15.1909 20.0757 15.2509 20.0189 15.3108C19.9021 15.4307 19.7823 15.5474 19.6561 15.6547C19.5867 15.7146 19.5141 15.7714 19.4415 15.8282C19.3564 15.8944 19.268 15.9575 19.1797 16.0143C19.1229 16.0522 19.0661 16.09 19.0093 16.1247C18.9494 16.1626 18.8895 16.1973 18.8264 16.232C18.7002 16.3014 18.574 16.3645 18.4446 16.4245C18.3311 16.4749 18.2175 16.5223 18.1008 16.5633C17.9746 16.6106 17.8452 16.6516 17.7159 16.6863C17.5234 16.7399 17.3247 16.7809 17.1259 16.8125C16.9808 16.8346 16.8357 16.8504 16.6874 16.863C16.5328 16.8724 16.3751 16.8787 16.2173 16.8756C16.0438 16.8724 15.8703 16.863 15.6936 16.844C15.5643 16.8314 15.435 16.8125 15.3056 16.7873C15.192 16.7683 15.0785 16.7431 14.9649 16.7178C14.9049 16.7021 14.845 16.6895 14.7851 16.6737C14.6179 16.6295 14.4538 16.5822 14.2898 16.5349C14.2077 16.5096 14.1257 16.4875 14.0437 16.4623C13.9206 16.4245 13.7976 16.3897 13.6777 16.3519C13.5768 16.3203 13.479 16.2888 13.378 16.2572C13.2834 16.2257 13.1887 16.1942 13.0941 16.1626C13.031 16.1405 12.9647 16.1184 12.9016 16.0964C12.8228 16.0711 12.7471 16.0427 12.6682 16.0143C12.6114 15.9954 12.5578 15.9765 12.501 15.9544C12.3906 15.9134 12.2802 15.8755 12.1729 15.8345C12.1098 15.8093 12.0467 15.7872 11.9836 15.7619C11.8984 15.7304 11.8132 15.6957 11.7312 15.6641C11.6429 15.6294 11.5514 15.5947 11.4631 15.5569C11.4063 15.5348 11.3463 15.5096 11.2895 15.4875C11.217 15.4591 11.1476 15.4275 11.075 15.3991C11.0214 15.3771 10.9646 15.3518 10.911 15.3297C10.8542 15.3045 10.7974 15.2793 10.7406 15.254C10.6901 15.2319 10.6428 15.2099 10.5923 15.1878C10.5482 15.1688 10.5008 15.1468 10.4567 15.1278C10.4094 15.1057 10.3652 15.0868 10.3179 15.0647C10.2705 15.0427 10.2232 15.0206 10.1759 14.9985C10.116 14.9701 10.056 14.9417 9.99608 14.9165C9.93299 14.8881 9.87304 14.8565 9.80995 14.8281C9.7437 14.7966 9.67745 14.765 9.6112 14.7303C9.55441 14.7019 9.49762 14.6735 9.44084 14.6483C6.45324 13.1592 3.80321 11.1717 1.54438 8.76145C1.43081 8.64157 1.23206 8.72044 1.23206 8.88449L1.23836 18.0933C1.23836 18.494 1.43712 18.8726 1.77153 19.0934C3.86631 20.4878 6.38699 21.2986 9.09696 21.2986Z",
-              fill: "#3370FF",
+            React.createElement("img", {
+              className: "cc-feishu-img cc-feishu-img-dark",
+              src: FEISHU_OFFICIAL_DARK,
+              width: size,
+              height: size,
+              alt: "飞书",
+              style: { width: size, height: size, display: "none" },
             }),
-            React.createElement("path", {
-              d: "M23.7322 9.29488C22.7226 8.79642 21.5838 8.5188 20.3818 8.5188C19.6688 8.5188 18.9747 8.6166 18.3217 8.80273C18.246 8.82481 18.1703 8.8469 18.0977 8.86898C18.0441 8.88476 17.9905 8.90368 17.94 8.91946C17.8359 8.95416 17.7318 8.99202 17.6276 9.03303C17.4447 9.10559 17.2617 9.18446 17.085 9.26964C16.8957 9.36113 16.7128 9.45893 16.5329 9.56619C16.35 9.67345 16.1701 9.79018 15.9998 9.91322C15.8767 10.0016 15.7569 10.093 15.637 10.1877C15.5076 10.2918 15.3846 10.3991 15.2616 10.5095C15.1953 10.5694 15.1322 10.6325 15.066 10.6925L14.7315 11.0206L13.3939 12.3424L13.1636 12.5696L13.0879 12.6453C13.05 12.6831 13.0122 12.7178 12.9775 12.7557C12.9586 12.7746 12.9396 12.7904 12.9207 12.8093C12.8923 12.8377 12.8639 12.863 12.8355 12.8882C12.804 12.9166 12.7724 12.9481 12.7409 12.9765C11.9143 13.7368 10.9931 14.3899 9.99304 14.923C10.053 14.9514 10.1129 14.9798 10.1729 15.0051C10.2202 15.0271 10.2675 15.0492 10.3148 15.0713C10.359 15.0934 10.4063 15.1123 10.4536 15.1344C10.4978 15.1533 10.5451 15.1754 10.5893 15.1943C10.6398 15.2164 10.6871 15.2385 10.7376 15.2606C10.7944 15.2858 10.8511 15.3111 10.9079 15.3363C10.9616 15.3584 11.0184 15.3836 11.072 15.4057C11.1445 15.4373 11.2139 15.4657 11.2865 15.4941C11.3433 15.5193 11.4032 15.5414 11.46 15.5635C11.5484 15.5982 11.6367 15.636 11.7282 15.6707C11.8134 15.7023 11.8954 15.737 11.9806 15.7685C12.0437 15.7938 12.1068 15.8158 12.1699 15.8411C12.2803 15.8821 12.3875 15.9231 12.498 15.961C12.5547 15.9799 12.6084 16.002 12.6652 16.0209C12.744 16.0493 12.8197 16.0745 12.8986 16.1029C12.9617 16.125 13.028 16.1471 13.0911 16.1692C13.1857 16.2007 13.2803 16.2323 13.375 16.2638C13.4728 16.2954 13.5737 16.3269 13.6747 16.3585C13.7977 16.3963 13.9176 16.4342 14.0406 16.4689C14.1227 16.4941 14.2047 16.5162 14.2867 16.5414C14.4508 16.5888 14.618 16.6361 14.782 16.6803C14.842 16.696 14.9019 16.7118 14.9618 16.7244C15.0754 16.7528 15.189 16.7749 15.3026 16.7938C15.4319 16.8159 15.5613 16.8348 15.6906 16.8506C15.8673 16.8695 16.0408 16.8822 16.2143 16.8822C16.372 16.8853 16.5298 16.879 16.6844 16.8695C16.8326 16.8601 16.9778 16.8412 17.1229 16.8191C17.3248 16.7875 17.5204 16.7465 17.7128 16.6929C17.8422 16.6582 17.9715 16.6172 18.0977 16.5698C18.2144 16.5257 18.328 16.4815 18.4416 16.4279C18.5709 16.3679 18.7003 16.3048 18.8233 16.2354C18.8833 16.2007 18.9464 16.166 19.0063 16.1282C19.0631 16.0935 19.1199 16.0556 19.1767 16.0178C19.265 15.9578 19.3533 15.8947 19.4385 15.8316C19.5111 15.7748 19.5836 15.718 19.653 15.6581C19.7792 15.5508 19.8991 15.4341 20.0158 15.3142C20.0726 15.2543 20.1294 15.1943 20.183 15.1313C20.2524 15.0524 20.3187 14.9704 20.3849 14.8852C20.4354 14.8189 20.4859 14.7495 20.5364 14.6801C20.672 14.4845 20.7982 14.2763 20.9118 14.0586L21.0411 13.7999L22.2084 11.4748L22.2053 11.4812C22.5807 10.6578 23.1012 9.91953 23.7322 9.29488Z",
-              fill: "#133C9A",
+          );
+        case "wecom":
+          return React.createElement("span", {
+            className: "cc-wecom-icon-container",
+            style: { display: "inline-flex", alignItems: "center", justifyContent: "center", width: size, height: size }
+          },
+            React.createElement("img", {
+              className: "cc-wecom-img cc-wecom-img-light",
+              src: WECOM_OFFICIAL_LIGHT,
+              width: size,
+              height: size,
+              alt: "企业微信",
+              style: { width: size, height: size, display: "block" },
+            }),
+            React.createElement("img", {
+              className: "cc-wecom-img cc-wecom-img-dark",
+              src: WECOM_OFFICIAL_DARK,
+              width: size,
+              height: size,
+              alt: "企业微信",
+              style: { width: size, height: size, display: "none" },
             }),
           );
         case "imessage":
           return React.createElement("svg", { width: size, height: size, viewBox: "0 0 24 24", fill: "none" },
-            // Apple Messages 官方圆角绿底与纯白对话气泡
-            React.createElement("rect", { width: "24", height: "24", rx: "5.5", fill: "#34C759" }),
-            React.createElement("path", {
-              d: "M12 4.5C7.306 4.5 3.5 7.858 3.5 12C3.5 14.37 4.743 16.48 6.677 17.817C6.39 18.88 5.75 19.8 4.7 20.3C6.3 20.35 8.1 19.8 9.3 18.95C10.15 19.3 11.05 19.5 12 19.5C16.694 19.5 20.5 16.142 20.5 12C20.5 7.858 16.694 4.5 12 4.5Z",
-              fill: "#FFFFFF",
+            // Apple Messages 官方圆角底板（浅色为苹果绿，深色为黑灰金属底板）
+            React.createElement("rect", {
+              className: "cc-imessage-plate",
+              width: "24",
+              height: "24",
+              rx: "5.5",
             }),
-          );
-        case "telegram":
-          return React.createElement("svg", { width: size, height: size, viewBox: "0 0 24 24", fill: "none" },
-            React.createElement("path", { d: "M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM16.64 8.8C16.49 10.37 15.84 14.21 15.51 15.98C15.37 16.73 15.1 16.98 14.83 17.01C14.25 17.06 13.81 16.63 13.25 16.26C12.37 15.68 11.87 15.32 11.02 14.76C10.03 14.11 10.67 13.75 11.23 13.17C11.38 13.02 13.92 10.71 13.97 10.5C13.98 10.47 13.98 10.38 13.93 10.33C13.87 10.28 13.79 10.3 13.73 10.31C13.65 10.33 12.35 11.19 9.83 12.89C9.46 13.15 9.12 13.27 8.82 13.26C8.48 13.25 7.84 13.07 7.36 12.91C6.77 12.72 6.3 12.61 6.34 12.28C6.36 12.11 6.6 11.93 7.05 11.75C9.84 10.54 11.7 9.74 12.63 9.35C15.29 8.24 15.84 8.05 16.2 8.05C16.28 8.05 16.46 8.07 16.57 8.16C16.66 8.24 16.69 8.35 16.7 8.43C16.69 8.49 16.65 8.68 16.64 8.8Z", fill: color || "#2AABEE" }),
-          );
-        case "discord":
-          return React.createElement("svg", { width: size, height: size, viewBox: "0 0 24 24", fill: "none" },
-            React.createElement("path", { d: "M19.27 5.33C17.94 4.71 16.5 4.26 15 4a.09.09 0 0 0-.07.03c-.18.33-.39.76-.53 1.09a16.09 16.09 0 0 0-4.8 0c-.14-.34-.35-.76-.54-1.09-.01-.02-.04-.03-.07-.03-1.5.26-2.93.71-4.27 1.33-.01 0-.02.01-.03.02-2.72 4.07-3.47 8.03-3.1 11.95 0 .02.01.04.03.05 1.8 1.32 3.53 2.12 5.24 2.65.03.01.06 0 .07-.02.4-.55.76-1.13 1.07-1.74.02-.04 0-.08-.04-.09-.57-.22-1.11-.48-1.64-.78-.04-.02-.04-.08-.01-.11.11-.08.22-.17.33-.25.02-.02.05-.02.07-.01 3.44 1.57 7.15 1.57 10.55 0 .02-.01.05-.01.07.01.11.09.22.17.33.26.04.03.04.09-.01.11-.52.31-1.07.56-1.64.78-.04.01-.05.06-.04.09.32.61.68 1.19 1.07 1.74.01.02.05.03.08.02 1.72-.53 3.45-1.33 5.25-2.65.02-.01.03-.03.03-.05.44-4.53-.73-8.46-3.1-11.95-.01-.01-.02-.02-.04-.02zM8.52 14.91c-1.03 0-1.89-.95-1.89-2.12s.84-2.12 1.89-2.12c1.06 0 1.9.96 1.89 2.12 0 1.17-.84 2.12-1.89 2.12zm6.97 0c-1.03 0-1.89-.95-1.89-2.12s.84-2.12 1.89-2.12c1.06 0 1.9.96 1.89 2.12 0 1.17-.83 2.12-1.89 2.12z", fill: color || "#5865F2" }),
-          );
-        case "slack":
-          return React.createElement("svg", { width: size, height: size, viewBox: "0 0 24 24", fill: "none" },
-            React.createElement("path", { d: "M5.04 14.7a2.27 2.27 0 1 1-2.27-2.27h2.27v2.27zm1.14 0a2.27 2.27 0 1 1 4.54 0v5.68a2.27 2.27 0 1 1-4.54 0V14.7z", fill: "#E01E5A" }),
-            React.createElement("path", { d: "M9.3 5.04a2.27 2.27 0 1 1 2.27-2.27v2.27H9.3zm0 1.14a2.27 2.27 0 1 1 0 4.54H3.62a2.27 2.27 0 1 1 0-4.54H9.3z", fill: "#36C5F0" }),
-            React.createElement("path", { d: "M18.96 9.3a2.27 2.27 0 1 1 2.27 2.27h-2.27V9.3zm-1.14 0a2.27 2.27 0 1 1-4.54 0V3.62a2.27 2.27 0 1 1 4.54 0V9.3z", fill: "#2EB67D" }),
-            React.createElement("path", { d: "M14.7 18.96a2.27 2.27 0 1 1-2.27 2.27v-2.27h2.27zm0-1.14a2.27 2.27 0 1 1 0-4.54h5.68a2.27 2.27 0 1 1 0 4.54H14.7z", fill: "#ECB22E" }),
-          );
-        case "dingtalk":
-          return React.createElement("svg", { width: size, height: size, viewBox: "0 0 24 24", fill: "none" },
-            React.createElement("path", { d: "M20 4L4 10.5L10 13L11.5 20L14.5 15.5L18.5 18.5L20 4Z", fill: color || "#007FFF" }),
-          );
-        case "wecom":
-          return React.createElement("svg", { width: size, height: size, viewBox: "0 0 24 24", fill: "none" },
-            React.createElement("circle", { cx: "9", cy: "10", r: "6", fill: color || "#0082EF", opacity: "0.85" }),
-            React.createElement("circle", { cx: "15", cy: "14", r: "5", fill: color || "#0082EF" }),
+            // 苹果官方平滑对话气泡（浅色为纯白，深色为荧光翡翠绿 #30D158）
+            React.createElement("path", {
+              className: "cc-imessage-bubble",
+              d: "M12 4.6C7.36 4.6 3.6 7.88 3.6 11.95C3.6 14.3 4.88 16.4 6.84 17.68C6.54 18.75 5.86 19.7 4.78 20.25C6.46 20.35 8.2 19.85 9.5 18.98C10.28 19.26 11.12 19.42 12 19.42C16.64 19.42 20.4 16.14 20.4 12.07C20.4 8 16.64 4.6 12 4.6Z",
+            }),
           );
         case "whatsapp":
           return React.createElement("svg", { width: size, height: size, viewBox: "0 0 24 24", fill: "none" },
@@ -695,6 +969,8 @@ window.__ModuleLoader__.load({
       switch (ch.id) {
         case "feishu":
           return Boolean(cfg.appId && String(cfg.appId).trim() && cfg.appSecret && String(cfg.appSecret).trim());
+        case "wecom":
+          return Boolean(cfg.botId && String(cfg.botId).trim() && cfg.secret && String(cfg.secret).trim());
         case "imessage":
           return Boolean((cfg.chatDb && String(cfg.chatDb).trim()) || (ch.sessions > 0));
         case "telegram":
@@ -709,8 +985,6 @@ window.__ModuleLoader__.load({
           return Boolean(cfg.signalAccount && String(cfg.signalAccount).trim());
         case "dingtalk":
           return Boolean(cfg.appKey && String(cfg.appKey).trim() && cfg.appSecret && String(cfg.appSecret).trim());
-        case "wecom":
-          return Boolean(cfg.corpId && String(cfg.corpId).trim() && cfg.corpSecret && String(cfg.corpSecret).trim());
         case "qq":
           return Boolean((cfg.appId && String(cfg.appId).trim()) || (cfg.token && String(cfg.token).trim()));
         default:
@@ -718,7 +992,7 @@ window.__ModuleLoader__.load({
       }
     }
 
-    /** 动态获取平台专属多语言配置规范（飞书与 iMessage） */
+    /** 动态获取平台专属多语言配置规范（飞书、企业微信与 iMessage） */
     function getChannelSpec(id, t) {
       if (id === "feishu") {
         return {
@@ -734,6 +1008,21 @@ window.__ModuleLoader__.load({
             { key: "defaultWorkspace", label: t.fieldWorkspace, type: "text", required: false, placeholder: "~/dsh/default" },
             { key: "autoReply", label: t.fieldAutoReply, type: "boolean", default: true },
             { key: "cardReplies", label: t.fieldCardReplies, type: "boolean", default: true },
+            { key: "streamReplies", label: t.fieldStreamReplies, type: "boolean", default: true },
+          ],
+        };
+      }
+      if (id === "wecom") {
+        return {
+          label: t.wecomLabel,
+          desc: t.wecomDesc,
+          guide: t.wecomGuide,
+          color: "#0082EF",
+          fields: [
+            { key: "botId", label: t.fieldBotId, type: "text", required: true, placeholder: "aibS9-XXXXXXXXXXXXXXXXXXXXXXXX" },
+            { key: "secret", label: t.fieldWecomSecret, type: "password", required: true, placeholder: "0Y3UNbXXXXXXXXXXXXXXXXXXXXXXXXXXXX" },
+            { key: "defaultWorkspace", label: t.fieldWorkspace, type: "text", required: false, placeholder: "~/dsh/default" },
+            { key: "autoReply", label: t.fieldAutoReply, type: "boolean", default: true },
             { key: "streamReplies", label: t.fieldStreamReplies, type: "boolean", default: true },
           ],
         };
@@ -756,20 +1045,40 @@ window.__ModuleLoader__.load({
     }
 
     /** 单个通道紧凑行条目组件（DSH 原生设计） */
-    function ChannelRow({ ch, t, onConfigure }) {
+    function ChannelRow({ ch, t, onConfigure, onToggle }) {
       const spec = getChannelSpec(ch.id, t);
       const configured = isChannelConfigured(ch);
       const label = spec.label || ch.label;
       const color = spec.color || ch.color || "#3370ff";
       const merged = { ...ch.namespace, ...ch.fileConfig };
+      const autoReply = merged.autoReply !== false;
       const needsAuthorization = ch.id === "imessage" && ch.statusCode === "authorization-required";
       const databaseAuthorized = ch.id === "imessage" && ch.statusCode === "ready";
+
+      let statusKey = "offline";
+      let statusText = t.statusInactive;
+      if (needsAuthorization) {
+        statusKey = "auth";
+        statusText = t.statusAuthorization;
+      } else if (configured) {
+        if (!autoReply) {
+          statusKey = "paused";
+          statusText = t.statusPaused;
+        } else {
+          statusKey = "online";
+          statusText = databaseAuthorized ? t.statusAuthorized : t.statusOnline;
+        }
+      }
 
       let summaryText = "";
       if (ch.id === "feishu") {
         const appIdDisplay = merged.appId ? `App ID: ${String(merged.appId).slice(0, 10)}••••` : t.summaryNotConfigured;
         const ws = merged.defaultWorkspace ? `${t.summaryWorkspace}: ${merged.defaultWorkspace}` : "";
         summaryText = [appIdDisplay, ws].filter(Boolean).join("   •   ");
+      } else if (ch.id === "wecom") {
+        const botIdDisplay = merged.botId ? `Bot ID: ${String(merged.botId).slice(0, 10)}••••` : t.summaryNotConfiguredWecom;
+        const ws = merged.defaultWorkspace ? `${t.summaryWorkspace}: ${merged.defaultWorkspace}` : "";
+        summaryText = [botIdDisplay, ws].filter(Boolean).join("   •   ");
       } else if (ch.id === "imessage") {
         const ws = merged.defaultWorkspace ? `${t.summaryWorkspace}: ${merged.defaultWorkspace}` : "";
         summaryText = [t.summaryModeLocal, ws].filter(Boolean).join("   •   ");
@@ -796,29 +1105,49 @@ window.__ModuleLoader__.load({
           ),
         ),
 
-        // 右侧：运行状态药丸 + 活跃会话数 + 配置操作按钮
+        // 右侧：运行状态药丸 + 活跃会话数 + 启停开关 + 配置操作按钮
         React.createElement("div", { className: "cc-row-right" },
           React.createElement("div", { className: "cc-row-status-box" },
             React.createElement("span", {
               className: "cc-status-pill",
-              "data-status": needsAuthorization ? "auth" : databaseAuthorized ? "authorized" : configured ? "online" : "offline",
+              "data-status": statusKey,
             },
               React.createElement("span", { className: "cc-pulse-dot" }),
-              needsAuthorization ? t.statusAuthorization : databaseAuthorized ? t.statusAuthorized : configured ? t.statusOnline : t.statusInactive,
+              statusText,
             ),
-            configured && (ch.sessions || 0) > 0 && React.createElement("span", { className: "cc-row-sessions" },
-              `💬 ${ch.sessions} ${t.sessionsCount}`,
+            configured && (ch.sessions || 0) > 0 && React.createElement("span", {
+              className: "cc-row-sessions",
+              style: { display: "inline-flex", alignItems: "center", gap: 5 },
+            },
+              React.createElement(IconNewChatOutline16, { size: 13 }),
+              `${ch.sessions} ${t.sessionsCount}`,
+            ),
+          ),
+          configured && React.createElement("div", {
+            className: "cc-row-toggle",
+            title: autoReply ? t.toggleDisable : t.toggleEnable,
+            onClick: (e) => {
+              e.stopPropagation();
+              onToggle && onToggle(ch, !autoReply);
+            },
+          },
+            React.createElement("div", { className: "cc-switch", "data-checked": String(autoReply) },
+              React.createElement("div", { className: "cc-switch-thumb" }),
             ),
           ),
           React.createElement(Button, {
             variant: "ghost",
+            icon: React.createElement(IconSettingsOutline16, null),
             onClick: () => onConfigure(ch),
             style: { minWidth: 84 },
-          }, `⚙️ ${t.btnConfigure}`),
+          }, t.btnConfigure),
         ),
         ),
         needsAuthorization && React.createElement("div", { className: "cc-auth-warning" },
-          React.createElement("strong", null, `⚠️ ${t.imessageAuthTitle}`),
+          React.createElement("strong", { style: { display: "inline-flex", alignItems: "center", gap: 6 } },
+            React.createElement(IconWarningOutline16, { size: 14 }),
+            t.imessageAuthTitle,
+          ),
           React.createElement("div", null, ch.databaseReadable ? t.imessageAuthDatabaseReady : t.imessageAuthDatabaseDenied),
           React.createElement("div", null, t.imessageAuthGuide),
         ),
@@ -984,22 +1313,72 @@ window.__ModuleLoader__.load({
       const [searchQuery, setSearchQuery] = React.useState("");
       const [editingChannel, setEditingChannel] = React.useState(null);
 
-      const load = React.useCallback(async () => {
+      const load = React.useCallback(async (retryCount = 0) => {
         setState((s) => ({ ...s, status: "loading", error: null }));
         try {
-          if (!connection?.rpc) throw new Error("connection rpc is not available");
+          if (!connection?.rpc) {
+            if (retryCount < 3) {
+              await new Promise((r) => setTimeout(r, 800));
+              return load(retryCount + 1);
+            }
+            throw new Error("通信服务连接中，请稍后刷新");
+          }
           const result = await connection.rpc.call("/api", "channelConfig/list", { args: {} });
-          if (!result?.ok) throw new Error(result?.error?.message ?? "RPC failed");
+          if (!result?.ok) {
+            if (retryCount < 2) {
+              await new Promise((r) => setTimeout(r, 800));
+              return load(retryCount + 1);
+            }
+            throw new Error(result?.error?.message ?? "RPC 服务响应异常");
+          }
           setState({ status: "ready", data: result.value, error: null });
         } catch (error) {
           setState({ status: "error", data: null, error: error instanceof Error ? error.message : String(error) });
         }
       }, [connection]);
 
+      const handleToggle = React.useCallback(async (ch, nextEnabled) => {
+        setState((prev) => {
+          if (!prev.data?.items) return prev;
+          const nextItems = prev.data.items.map((item) => {
+            if (item.id === ch.id) {
+              return {
+                ...item,
+                namespace: { ...item.namespace, autoReply: nextEnabled },
+                fileConfig: { ...item.fileConfig, autoReply: nextEnabled },
+              };
+            }
+            return item;
+          });
+          return { ...prev, data: { ...prev.data, items: nextItems } };
+        });
+
+        try {
+          const gatewayServiceName = (ch.section || ch.id) + "Gateway";
+          let res;
+          try {
+            res = await connection.rpc.call("/api", `${gatewayServiceName}/setConfig`, {
+              args: { payload: { autoReply: nextEnabled } },
+            });
+          } catch (e) { /* fallback */ }
+
+          if (!res?.ok) {
+            const currentConfig = { ...ch.namespace, ...ch.fileConfig, autoReply: nextEnabled };
+            res = await connection.rpc.call("/api", "channelConfig/save", {
+              args: { payload: { section: ch.section || ch.id, config: currentConfig } },
+            });
+          }
+          if (!res?.ok) throw new Error(res?.error?.message ?? "保存失败");
+        } catch (err) {
+          console.error("Failed to toggle channel autoReply:", err);
+          load();
+        }
+      }, [connection, load]);
+
       React.useEffect(() => { void load(); }, [load]);
 
-      // 仅展示已验证通过的飞书与 iMessage 通道，其余未验证通道默认隐藏
-      const items = (state.data?.items || []).filter((ch) => ch.id === "feishu" || ch.id === "imessage");
+      // 仅展示已验证通过的飞书、企业微信与 iMessage 通道，其余未验证通道默认隐藏
+      const items = (state.data?.items || []).filter((ch) => ch.id === "feishu" || ch.id === "imessage" || ch.id === "wecom");
       const totalSessions = items.reduce((acc, ch) => acc + (ch.sessions || 0), 0);
 
       const displayedChannels = React.useMemo(() => {
@@ -1030,7 +1409,7 @@ window.__ModuleLoader__.load({
               React.createElement("span", { className: "cc-stat-pill-val" }, `${items.length} ${t.unitChannels}`),
             ),
             React.createElement("div", { className: "cc-stat-pill-item" },
-              React.createElement("span", { style: { color: "#3370ff", fontSize: 11 } }, "💬"),
+              React.createElement(IconNewChatOutline16, { size: 14, style: { color: "var(--dsw-alias-brand-primary, #3370ff)" } }),
               React.createElement("span", null, `${t.statSessions}:`),
               React.createElement("span", { className: "cc-stat-pill-val" }, `${totalSessions} ${t.unitSessions}`),
             ),
@@ -1045,6 +1424,7 @@ window.__ModuleLoader__.load({
             }),
             React.createElement(Button, {
               variant: "ghost",
+              icon: React.createElement(IconRefreshOutline16, null),
               onClick: load,
               disabled: state.status === "loading",
             }, t.refresh),
@@ -1062,6 +1442,7 @@ window.__ModuleLoader__.load({
               ch,
               t,
               onConfigure: (targetCh) => setEditingChannel(targetCh),
+              onToggle: handleToggle,
             }),
           ),
         ),

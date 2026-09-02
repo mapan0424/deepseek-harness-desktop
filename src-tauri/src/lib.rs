@@ -30,6 +30,37 @@ struct DshProcess {
     tray_summary: Mutex<Option<MenuItem<tauri::Wry>>>,
 }
 
+fn start_local_window_controller(app: tauri::AppHandle) {
+    let listener = std::net::TcpListener::bind("127.0.0.1:27891")
+        .or_else(|_| std::net::TcpListener::bind("127.0.0.1:0"));
+    if let Ok(listener) = listener {
+        std::thread::spawn(move || {
+            for stream in listener.incoming() {
+                if let Ok(mut stream) = stream {
+                    use std::io::{Read, Write};
+                    let mut buffer = [0; 512];
+                    if let Ok(bytes_read) = stream.read(&mut buffer) {
+                        let request = String::from_utf8_lossy(&buffer[..bytes_read]);
+                        if request.contains("toggle-maximize") {
+                            if let Some(win) = app.get_webview_window("splash") {
+                                let _ = win.is_maximized().map(|is_max| {
+                                    if is_max {
+                                        let _ = win.unmaximize();
+                                    } else {
+                                        let _ = win.maximize();
+                                    }
+                                });
+                            }
+                        }
+                        let response = "HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Methods: GET, POST, OPTIONS\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok";
+                        let _ = stream.write_all(response.as_bytes());
+                    }
+                }
+            }
+        });
+    }
+}
+
 fn npx_path() -> String {
     if cfg!(windows) {
         return "npx.cmd".to_string();
@@ -212,6 +243,7 @@ fn prepare_bundled_plugin_overlays(node: &Path) -> Result<Vec<PathBuf>, String> 
         ("@anarkhgatsby/deepseek-harness-channel-config", true),
         ("@anarkhgatsby/deepseek-harness-core", false),
         ("@anarkhgatsby/deepseek-harness-channel-feishu", true),
+        ("@anarkhgatsby/deepseek-harness-channel-wecom", true),
     ];
     // iMessage relies on macOS Messages/chat.db and must not be shipped or
     // exposed by the Windows build.
@@ -1734,9 +1766,19 @@ pub fn run() {
             tray_summary: Mutex::new(None),
         })
         .setup(|app| {
+            #[cfg(target_os = "macos")]
+            if let Some(splash_win) = app.get_webview_window("splash") {
+                if let Ok(ns_win) = splash_win.ns_window() {
+                    unsafe {
+                        let obj = ns_win as *mut objc2::runtime::AnyObject;
+                        let _: () = objc2::msg_send![obj, setMovableByWindowBackground: true];
+                    }
+                }
+            }
             setup_tray(app.handle())?;
             setup_recovery_window(app.handle())?;
             setup_insights_panel(app.handle())?;
+            start_local_window_controller(app.handle().clone());
             start_dsh_supervisor(app.handle().clone());
             start_update_checker(app.handle().clone());
             Ok(())

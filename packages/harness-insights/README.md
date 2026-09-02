@@ -12,6 +12,11 @@ The plugin adds a **Usage insights** page under Harness settings, with token
 activity, model usage, active sessions, cache hit rate, activity breakdown, and
 the most frequently used tools.
 
+- **Dual-Theme Support**:
+  - ☀️ Light Mode: Pure classic emerald/forest green gradient.
+  - 🌙 Dark Mode: Codex-inspired deep obsidian canvas with vibrant neon hot-pink/magenta (`#ff3388`) saturation curve.
+- **Golden Ratio Heatmap Matrix**: Dense, breathable 2.7px grid spacing with enlarged cells.
+
 ![Harness Insights usage dashboard](./assets/screenshots/usage-insights-en.png)
 
 ## Install as a Harness bundle

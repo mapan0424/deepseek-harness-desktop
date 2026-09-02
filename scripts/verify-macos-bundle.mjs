@@ -23,6 +23,7 @@ if (existsSync(join(app, "Contents", "Resources", "resources", "dsh-runtime.tar.
   throw new Error("Obsolete dsh-runtime.tar.gz is present; this would recreate the duplicate runtime cache.");
 }
 assertMinimumSystemVersion();
+assertAppearanceAwareAppIcon();
 assertMachO(executable, expectedArch);
 assertMachO(node, expectedArch);
 await scanNativeFiles(join(runtime, "node_modules"));
@@ -39,6 +40,34 @@ function assertMinimumSystemVersion() {
   const result = spawnSync("/usr/libexec/PlistBuddy", ["-c", "Print :LSMinimumSystemVersion", plist], { encoding: "utf8" });
   if (result.status !== 0 || result.stdout.trim() !== minimumMacOS) {
     throw new Error(`LSMinimumSystemVersion must be ${minimumMacOS}, got ${result.stdout.trim() || "missing"}`);
+  }
+}
+
+function plistValue(key) {
+  const result = spawnSync(
+    "/usr/libexec/PlistBuddy",
+    ["-c", `Print :${key}`, join(app, "Contents", "Info.plist")],
+    { encoding: "utf8" },
+  );
+  return result.status === 0 ? result.stdout.trim() : "";
+}
+
+function assertAppearanceAwareAppIcon() {
+  const assetsCar = join(app, "Contents", "Resources", "Assets.car");
+  if (!existsSync(assetsCar)) {
+    throw new Error("Missing Contents/Resources/Assets.car for macOS light/dark app icons.");
+  }
+  if (plistValue("CFBundleIconName") !== "AppIcon") {
+    throw new Error("CFBundleIconName must be AppIcon so macOS can load appearance-aware icons.");
+  }
+  const info = spawnSync("xcrun", ["assetutil", "--info", assetsCar], { encoding: "utf8" });
+  if (info.status !== 0) {
+    throw new Error(`Unable to read bundled Assets.car: ${info.stderr.trim() || info.stdout.trim()}`);
+  }
+  for (const required of ["AppIcon", "NSAppearanceNameAqua", "NSAppearanceNameDarkAqua"]) {
+    if (!info.stdout.includes(required)) {
+      throw new Error(`Bundled Assets.car is missing ${required}.`);
+    }
   }
 }
 

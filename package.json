@@ -1,13 +1,14 @@
 {
   "name": "harness-desktop-macos",
   "private": true,
-  "version": "0.2.6",
+  "version": "0.2.7",
   "description": "Unofficial Tauri desktop client for DeepSeek Harness",
   "license": "MIT",
   "repository": "https://github.com/mapan0424/deepseek-harness-desktop",
   "type": "module",
   "scripts": {
     "tauri": "tauri",
+    "compile:macos-appicon": "node scripts/compile-macos-appicon.mjs",
     "prepare:runtime": "node scripts/prepare-runtime.mjs",
     "prepare:runtime:intel": "node scripts/prepare-runtime-intel.mjs",
     "prepare:runtime:windows": "node scripts/prepare-runtime-windows.mjs",

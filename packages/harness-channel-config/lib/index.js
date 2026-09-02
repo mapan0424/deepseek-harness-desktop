@@ -130,17 +130,16 @@ const CHANNELS = [
   {
     id: "wecom",
     label: "企业微信",
+    verified: true,
     section: "wecom",
     stateFile: "wecom-gateway-state.json",
     color: "#0082EF",
-    desc: "企业微信自建应用，支持应用回调接收与主动消息推送。",
-    tags: ["自建应用", "微信生态", "API回调"],
-    guide: "登录企业微信管理后台创建自建应用，获取 Corp ID、Agent ID 与 Secret。",
+    desc: "企业微信智能机器人，支持 WebSocket 长连接模式出站直连，无需公网 IP 与消息加解密。",
+    tags: ["智能机器人", "WS长连", "免加解密"],
+    guide: "在企业微信管理后台 → 工作台 → 智能机器人 → API 模式创建机器人，连接方式选择「使用长连接」，获取 Bot ID 与 Secret，并确保可见范围包含使用成员。",
     fields: [
-      { key: "corpId", label: "企业 ID (Corp ID)", type: "text", required: true, placeholder: "ww..." },
-      { key: "agentId", label: "应用 Agent ID", type: "text", required: true, placeholder: "1000002" },
-      { key: "corpSecret", label: "应用 Secret", type: "password", required: true, placeholder: "Secret..." },
-      { key: "callbackToken", label: "回调 Token", type: "password", required: false, placeholder: "Token (可选)" },
+      { key: "botId", label: "Bot ID", type: "text", required: true, placeholder: "aibS9-..." },
+      { key: "secret", label: "Secret", type: "password", required: true, placeholder: "0Y3UNb..." },
       { key: "defaultWorkspace", label: "工作空间路径", type: "text", required: false, placeholder: "~/dsh/default" },
       { key: "autoReply", label: "自动回复", type: "boolean", default: true },
       { key: "streamReplies", label: "流式打字输出", type: "boolean", default: true },
@@ -221,7 +220,7 @@ function isChannelConfigured(id, cfg, sessions) {
     case "dingtalk":
       return Boolean(cfg.appKey && String(cfg.appKey).trim() && cfg.appSecret && String(cfg.appSecret).trim());
     case "wecom":
-      return Boolean(cfg.corpId && String(cfg.corpId).trim() && cfg.corpSecret && String(cfg.corpSecret).trim());
+      return Boolean(cfg.botId && String(cfg.botId).trim() && cfg.secret && String(cfg.secret).trim());
     case "qq":
       return Boolean((cfg.appId && String(cfg.appId).trim()) || (cfg.token && String(cfg.token).trim()));
     default:
