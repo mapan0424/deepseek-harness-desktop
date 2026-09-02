@@ -35,7 +35,7 @@ To remove it later:
 dsh plugin --profile demo remove @anarkhgatsby/deepseek-harness-insights
 ```
 
-The plugin is web-only and targets the `0.1.1-rc.2` Harness projection and
+The plugin is web-only and targets the `0.1.2-alpha.5` Harness projection and
 client APIs. It is an independent, unofficial community plugin and is not
 published by DeepSeek.
 
