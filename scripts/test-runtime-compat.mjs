@@ -34,7 +34,7 @@ function findEmailAutolinks(value) {
     const previous = match.index === 0 ? "" : value[match.index - 1];
     if (previous === "/") continue;
     if (previous && !/[\s\p{P}\p{S}]/u.test(previous)) continue;
-    if ([-\d_]$/.test(match[2])) continue;
+    if (/[-\d_]$/.test(match[2])) continue;
     matches.push(match[0]);
   }
   return matches;
