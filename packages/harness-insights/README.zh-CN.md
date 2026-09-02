@@ -36,7 +36,7 @@ dsh plugin --profile demo add ./packages/harness-insights
 - 在设置中显示会话用量、模型、工具调用和活动趋势
 - 使用 Harness 的官方 session projection 接口读取结构化元数据
 - **双主题尊享调色**：
-  - ☀️ 浅色模式：经典自然翡翠绿阶梯，清新通透；
+  - ☀️ 浅色模式：经典自然翡绿碧阶梯，清新通透；
   - 🌙 黑暗模式：Codex 标志性深曜石夜空底色 + 高饱和霓虹电光热粉紫光阶（`#ff3388`）；
 - **黄金比例热力图点阵**：方块饱满充实，2.7px 黄金呼吸感间距，消除空旷感
 - 不修改 DeepSeek Harness 上游源码
@@ -60,7 +60,7 @@ dsh plugin --profile demo add ./packages/harness-insights
 
 ## 兼容性
 
-- Harness projection/client API：`0.1.1-rc.2`
+- Harness projection/client API：`0.1.2-alpha.5`
 - 运行平台：Web UI
 - 插件类型：npm bundle
 - 当前版本：`0.1.3`
