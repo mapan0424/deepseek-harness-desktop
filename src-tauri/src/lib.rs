@@ -35,26 +35,24 @@ fn start_local_window_controller(app: tauri::AppHandle) {
         .or_else(|_| std::net::TcpListener::bind("127.0.0.1:0"));
     if let Ok(listener) = listener {
         std::thread::spawn(move || {
-            for stream in listener.incoming() {
-                if let Ok(mut stream) = stream {
-                    use std::io::{Read, Write};
-                    let mut buffer = [0; 512];
-                    if let Ok(bytes_read) = stream.read(&mut buffer) {
-                        let request = String::from_utf8_lossy(&buffer[..bytes_read]);
-                        if request.contains("toggle-maximize") {
-                            if let Some(win) = app.get_webview_window("splash") {
-                                let _ = win.is_maximized().map(|is_max| {
-                                    if is_max {
-                                        let _ = win.unmaximize();
-                                    } else {
-                                        let _ = win.maximize();
-                                    }
-                                });
-                            }
+            for mut stream in listener.incoming().flatten() {
+                use std::io::{Read, Write};
+                let mut buffer = [0; 512];
+                if let Ok(bytes_read) = stream.read(&mut buffer) {
+                    let request = String::from_utf8_lossy(&buffer[..bytes_read]);
+                    if request.contains("toggle-maximize") {
+                        if let Some(win) = app.get_webview_window("splash") {
+                            let _ = win.is_maximized().map(|is_max| {
+                                if is_max {
+                                    let _ = win.unmaximize();
+                                } else {
+                                    let _ = win.maximize();
+                                }
+                            });
                         }
-                        let response = "HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Methods: GET, POST, OPTIONS\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok";
-                        let _ = stream.write_all(response.as_bytes());
                     }
+                    let response = "HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Methods: GET, POST, OPTIONS\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok";
+                    let _ = stream.write_all(response.as_bytes());
                 }
             }
         });
