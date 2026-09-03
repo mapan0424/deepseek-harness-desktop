@@ -47,13 +47,12 @@ fn start_local_window_controller(app: tauri::AppHandle) {
                         }
                     } else if request.contains("toggle-maximize") {
                         if let Some(win) = app.get_webview_window("splash") {
-                            let _ = win.is_maximized().map(|is_max| {
-                                if is_max {
-                                    let _ = win.unmaximize();
-                                } else {
-                                    let _ = win.maximize();
-                                }
-                            });
+                            let _ = win.set_resizable(true);
+                            if win.is_maximized().unwrap_or(false) {
+                                let _ = win.unmaximize();
+                            } else {
+                                let _ = win.maximize();
+                            }
                         }
                     }
                     let response = "HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Methods: GET, POST, OPTIONS\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok";
@@ -69,32 +68,44 @@ const TITLEBAR_INJECT_SCRIPT: &str = r#"
 (function() {
     if (window.__dsh_titlebar_injected) return;
     window.__dsh_titlebar_injected = true;
-    var style = document.createElement('style');
-    style.id = 'dsh-macos-titlebar-style';
-    style.textContent = '[class*="_root"][class*="Sidebar"], [class*="sidebar"], aside, .hHd-Xa_root { padding-top: 10px !important; }';
-    (document.head || document.documentElement).appendChild(style);
-
+    if (!document.getElementById('dsh-macos-titlebar-style')) {
+        var style = document.createElement('style');
+        style.id = 'dsh-macos-titlebar-style';
+        style.textContent = '[class*="_root"][class*="Sidebar"], [class*="sidebar"], aside, .hHd-Xa_root { padding-top: 12px !important; }';
+        (document.head || document.documentElement).appendChild(style);
+    }
+    var pendingDrag = null;
+    function isTitlebarHit(e) {
+        if (e.clientY > 52 || e.clientX < 78) return false;
+        var el = e.target;
+        if (!el || !el.closest) return true;
+        return !el.closest("button, a, input, textarea, select, [role='button'], [role='tab'], [role='menuitem'], [contenteditable='true'], .hi-tab");
+    }
     document.addEventListener('mousedown', function(e) {
-        if (e.button === 0 && e.clientY <= 38 && e.clientX >= 76) {
-            var target = e.target;
-            if (!target) return;
-            if (target.closest("button, a, input, textarea, select, [role='button'], [tabindex], [contenteditable='true'], .hi-tab, [data-interactive]")) {
-                return;
+        if (e.button !== 0 || !isTitlebarHit(e)) return;
+        var sx = e.screenX, sy = e.screenY;
+        function onMove(ev) {
+            if (Math.abs(ev.screenX - sx) > 4 || Math.abs(ev.screenY - sy) > 4) {
+                cleanup();
+                fetch('http://127.0.0.1:27891/start-drag', { mode: 'no-cors' }).catch(function(){});
             }
-            fetch('http://127.0.0.1:27891/start-drag', { mode: 'no-cors' }).catch(function(){});
         }
-    }, { capture: true, passive: true });
-
+        function cleanup() {
+            pendingDrag = null;
+            document.removeEventListener('mousemove', onMove, true);
+            document.removeEventListener('mouseup', cleanup, true);
+        }
+        pendingDrag = cleanup;
+        document.addEventListener('mousemove', onMove, true);
+        document.addEventListener('mouseup', cleanup, true);
+    }, true);
     document.addEventListener('dblclick', function(e) {
-        if (e.clientY <= 38 && e.clientX >= 76) {
-            var target = e.target;
-            if (!target) return;
-            if (target.closest("button, a, input, textarea, select, [role='button'], [tabindex], [contenteditable='true'], .hi-tab, [data-interactive]")) {
-                return;
-            }
-            fetch('http://127.0.0.1:27891/toggle-maximize', { mode: 'no-cors' }).catch(function(){});
-        }
-    }, { capture: true, passive: true });
+        if (!isTitlebarHit(e)) return;
+        if (pendingDrag) pendingDrag();
+        e.preventDefault();
+        e.stopPropagation();
+        fetch('http://127.0.0.1:27891/toggle-maximize', { mode: 'no-cors' }).catch(function(){});
+    }, true);
 })();
 "#;
 
@@ -228,6 +239,10 @@ fn append_log(log: &Arc<Mutex<String>>, line: &str) {
     }
 }
 
+fn captured_launch_token(state: &DshProcess) -> Option<String> {
+    state.token.lock().ok().and_then(|guard| guard.clone())
+}
+
 fn extract_token(line: &str) -> Option<String> {
     if let Some(pos) = line.find("token=") {
         let rest = &line[pos + 6..];
@@ -284,6 +299,24 @@ fn copy_directory(source: &std::path::Path, destination: &std::path::Path) -> Re
                 .map_err(|error| format!("复制插件文件失败：{error}"))?;
         }
     }
+    Ok(())
+}
+
+fn replace_plugin_directory(
+    source: &Path,
+    destination: &Path,
+    package_name: &str,
+) -> Result<(), String> {
+    let temporary = destination.with_extension(format!("tmp-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&temporary);
+    copy_directory(source, &temporary)?;
+    let _ = std::fs::remove_dir_all(destination);
+    if let Some(parent) = destination.parent() {
+        std::fs::create_dir_all(parent)
+            .map_err(|error| format!("创建 Harness 插件目录失败：{error}"))?;
+    }
+    std::fs::rename(&temporary, destination)
+        .map_err(|error| format!("启用内置插件失败 {package_name}：{error}"))?;
     Ok(())
 }
 
@@ -349,25 +382,20 @@ fn prepare_bundled_plugin_overlays(node: &Path) -> Result<Vec<PathBuf>, String> 
             return Err(format!("内置插件文件不完整：{package_name}"));
         }
 
-        // The Web profile resolves out-of-tree packages upward from
-        // $DSH_HOME/profiles/web, making $DSH_HOME/profiles/node_modules its
-        // stable package root. Keep the replaceable copy small and
-        // deterministic.
-        let destination = dsh_node_modules.join(package_name);
-        let temporary = destination.with_extension(format!("tmp-{}", std::process::id()));
-        let _ = std::fs::remove_dir_all(&temporary);
-        copy_directory(&source, &temporary)?;
-        let _ = std::fs::remove_dir_all(&destination);
-        if let Some(parent) = destination.parent() {
-            std::fs::create_dir_all(parent)
-                .map_err(|error| format!("创建 Harness 插件目录失败：{error}"))?;
+        // The Web profile resolves packages from its own node_modules first,
+        // then upward through $DSH_HOME/profiles/node_modules. Refresh both
+        // so a previously installed profile copy cannot pin a broken bundled
+        // plugin across desktop updates.
+        replace_plugin_directory(&source, &dsh_node_modules.join(package_name), package_name)?;
+        let profile_owned = home
+            .join("profiles/web/node_modules")
+            .join(package_name);
+        if profile_owned.join("package.json").is_file() {
+            replace_plugin_directory(&source, &profile_owned, package_name)?;
         }
-        std::fs::rename(&temporary, &destination)
-            .map_err(|error| format!("启用内置插件失败 {package_name}：{error}"))?;
-        // A user may already have installed the same package into the Web
-        // profile. Its manifest bundle will load the package's patch itself;
-        // passing that patch again through `--patch` would create duplicate
-        // loader entry IDs. Keep the user's profile-owned copy authoritative.
+        // If the Web profile already lists this bundle, its own patch is
+        // applied during profile composition. Passing `--patch` again would
+        // create duplicate loader entry IDs.
         if has_patch && !configured_bundles.contains(package_name) {
             patches.push(source.join("cordis.patch.yml"));
         }
@@ -410,6 +438,9 @@ fn spawn_dsh(
         if let Ok(mut log) = state.log.lock() {
             log.clear();
         }
+    }
+    if let Ok(mut token) = state.token.lock() {
+        *token = None;
     }
 
     let (program, args, using_bundled_runtime) = if let Some((node, entry)) = bundled_runtime(app) {
@@ -623,7 +654,7 @@ fn dsh_status(
         return Err(format!("dsh 已退出：{status}{detail}"));
     }
 
-    Ok(if port_is_ready(port) {
+    Ok(if port_is_ready(port) && captured_launch_token(&state).is_some() {
         "ready".to_string()
     } else {
         "starting".to_string()
@@ -752,42 +783,77 @@ fn require_recovery(window: &tauri::WebviewWindow) -> Result<(), String> {
     }
 }
 
+fn rpc_endpoint(method: &str) -> String {
+    if method.contains('/') {
+        method.to_string()
+    } else {
+        method.replace('.', "/")
+    }
+}
+
+fn rpc_payload(payload: Value) -> Value {
+    match payload.as_object() {
+        Some(object) if object.len() == 1 && object.contains_key("args") => payload,
+        _ => json!({ "args": payload }),
+    }
+}
+
 fn call_dsh_api(
     port: u16,
     method: &str,
     payload: Value,
     timeout_seconds: u64,
 ) -> Result<Value, String> {
+    let endpoint = rpc_endpoint(method);
     let rpc_id = format!("native-{}-{}", std::process::id(), chrono_like_timestamp());
     let body = json!({
         "type": "client-request",
         "rpcId": rpc_id,
-        "method": method,
-        "payload": payload,
+        "method": endpoint,
+        "payload": rpc_payload(payload),
     })
     .to_string();
-    let url = format!("http://127.0.0.1:{port}/api/{method}");
+    let url = format!("http://127.0.0.1:{port}/api/{endpoint}");
+    let cookie_jar = std::env::temp_dir().join(format!("dsh-api-{rpc_id}.jar"));
+    let origin = format!("http://127.0.0.1:{port}");
     let curl = if cfg!(windows) {
         "curl.exe"
     } else {
         "/usr/bin/curl"
     };
+    let _ = Command::new(curl)
+        .args([
+            "-sS",
+            "--max-time",
+            "5",
+            "-c",
+            cookie_jar.to_string_lossy().as_ref(),
+            &format!("{origin}/"),
+        ])
+        .output();
     let output = Command::new(curl)
         .args([
             "-sS",
             "--fail-with-body",
             "--max-time",
             &timeout_seconds.to_string(),
+            "-b",
+            cookie_jar.to_string_lossy().as_ref(),
+            "-c",
+            cookie_jar.to_string_lossy().as_ref(),
             "-X",
             "POST",
             &url,
             "-H",
             "content-type: application/json",
+            "-H",
+            &format!("origin: {origin}"),
             "-d",
             &body,
         ])
         .output()
         .map_err(|error| format!("调用 dsh 失败：{error}"))?;
+    let _ = std::fs::remove_file(&cookie_jar);
 
     if !output.status.success() {
         return Err(String::from_utf8_lossy(&output.stderr).trim().to_string());
@@ -859,7 +925,7 @@ fn tray_insights_snapshot(
     let Some(port) = port else {
         return Ok(json!({ "status": "unavailable" }));
     };
-    let value = call_dsh_api(port, "session.list", json!({}), 30)?;
+    let value = call_dsh_api(port, "session/list", json!({ "_request": {} }), 30)?;
     Ok(json!({
         "status": "ready",
         "usage": weekly_usage(&value, Local::now().date_naive())
@@ -1062,7 +1128,7 @@ fn start_dsh_supervisor(app: tauri::AppHandle) {
                 failure = Some(error);
                 break;
             }
-            if port_is_ready(active_port) {
+            if port_is_ready(active_port) && captured_launch_token(&state).is_some() {
                 recovered = true;
                 break;
             }
@@ -1694,6 +1760,32 @@ mod tests {
                 }
             }
         })
+    }
+
+    #[test]
+    fn rpc_endpoint_maps_legacy_dot_methods() {
+        assert_eq!(rpc_endpoint("session.list"), "session/list");
+        assert_eq!(rpc_endpoint("session/list"), "session/list");
+        assert_eq!(
+            rpc_payload(json!({ "_request": {} })),
+            json!({ "args": { "_request": {} } })
+        );
+        assert_eq!(
+            rpc_payload(json!({ "args": { "cursor": "x" } })),
+            json!({ "args": { "cursor": "x" } })
+        );
+    }
+
+    #[test]
+    fn extract_token_reads_dsh_web_url() {
+        assert_eq!(
+            extract_token(
+                "dsh web: http://127.0.0.1:3080/?token=Au2Qr04LeewiGO6HKvcFbnlmKEcx8mOh74JtIwjdS88"
+            )
+            .as_deref(),
+            Some("Au2Qr04LeewiGO6HKvcFbnlmKEcx8mOh74JtIwjdS88")
+        );
+        assert_eq!(extract_token("dsh web: http://127.0.0.1:3080/"), None);
     }
 
     #[test]

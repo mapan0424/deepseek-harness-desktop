@@ -5,10 +5,10 @@ import z from "@deepseek-ai/schemastery";
 
 export const name = "harness-locale-pack";
 
-export const inject = {
-  required: [],
-  optional: ["settings", "locale"],
-};
+// Cordis resolves inject as an array or { serviceName: config }.
+// `{ required, optional }` is treated as services named "required" and
+// "optional", so the host fiber never activates and dsh exits on boot.
+export const inject = ["settings"];
 
 export const EXTENDED_LOCALE_IDS = [
   "zh", "en", "zh-TW",

@@ -1095,6 +1095,160 @@ window.__ModuleLoader__.load({
     "ii": "chat.db ꀋꐛꄹ",
     "ja": "chat.db の読み取り権限がありません",
     "en": "Full Disk Access for chat.db missing"
+  },
+  "工作区内修改": {
+    "zh-TW": "工作區內修改",
+    "bo": "ལས་ཁུངས་ནང་བཟོ་བཅོས།",
+    "mn": "ᠠᠵᠢᠯ ᠤᠨ ᠣᠷᠣᠨ ᠳᠤ ᠵᠠᠰᠠᠬᠤ",
+    "ug": "خىزمەت رايونىدا ئۆزگەرتىش",
+    "ii": "ꒉꇁꉪꀋꄅ",
+    "ja": "ワークスペース内で変更",
+    "ko": "작업 영역 내 수정",
+    "fr": "Modification dans l’espace de travail",
+    "de": "Änderungen im Arbeitsbereich",
+    "ru": "Изменение в рабочей области",
+    "es": "Modificar en el área de trabajo",
+    "en": "Workspace Write"
+  },
+  "仅可查看": {
+    "zh-TW": "僅可檢視",
+    "bo": "ལྟ་ཀློག་ཁོ་ན།",
+    "mn": "ᠬᠠᠷᠠᠬᠤ ᠬᠠᠭᠠᠴᠠ",
+    "ug": "پەقەت كۆرۈش",
+    "ii": "ꀉꀋꄉ",
+    "ja": "閲覧のみ",
+    "ko": "읽기 전용",
+    "fr": "Lecture seule",
+    "de": "Nur ansehen",
+    "ru": "Только просмотр",
+    "es": "Solo lectura",
+    "en": "Read Only"
+  },
+  "完全权限": {
+    "zh-TW": "完全權限",
+    "bo": "དབང་ཚད་ཆ་ཚང་།",
+    "mn": "ᠪᠦᠷᠢᠨ ᠡᠷᠬᠡ",
+    "ug": "تولۇق ھوقۇق",
+    "ii": "ꀊꐛꄹ",
+    "ja": "フルアクセス",
+    "ko": "전체 권한",
+    "fr": "Accès complet",
+    "de": "Voller Zugriff",
+    "ru": "Полный доступ",
+    "es": "Acceso completo",
+    "en": "Full access"
+  },
+  "字号大小": {
+    "zh-TW": "字級大小",
+    "bo": "ཡིག་གཟུགས་ཆེ་ཆུང་།",
+    "mn": "ᠦᠰᠦᠭ ᠦᠨ ᠬᠡᠮᠵᠢᠶ᠎ᠡ",
+    "ug": "خەت چوڭ-كىچىكلىكى",
+    "ii": "ꑞꇁꃅꇁ",
+    "ja": "文字サイズ",
+    "ko": "글자 크기",
+    "fr": "Taille de police",
+    "de": "Schriftgröße",
+    "ru": "Размер шрифта",
+    "es": "Tamaño de fuente",
+    "en": "Font size"
+  },
+  "仅影响会话内容的字号": {
+    "zh-TW": "僅影響會話內容的字級",
+    "bo": "གྲོས་མོལ་ནང་དོན་གྱི་ཡིག་གཟུགས་ཁོ་ནར་ཤུགས་རྐྱེན་ཐེབས།",
+    "mn": "ᠶᠠᠷᠢᠯᠴᠠᠭ᠎ᠠ ᠶᠢᠨ ᠠᠭᠤᠯᠭ᠎ᠠ ᠶᠢᠨ ᠦᠰᠦᠭ ᠦᠨ ᠬᠡᠮᠵᠢᠶ᠎ᠡ ᠳᠦ ᠬᠦᠷᠲᠡᠯ᠎ᠡ",
+    "ug": "پەقەت سۆھبەت مەزمۇنىنىڭ خەت چوڭلۇقىغا تەسىر قىلىدۇ",
+    "ii": "ꐚꑞꐛꑞꇁꃅ",
+    "ja": "会話本文の文字サイズのみに影響します",
+    "ko": "대화 내용의 글자 크기에만 적용됩니다",
+    "fr": "N’affecte que le contenu de la conversation",
+    "de": "Betrifft nur den Gesprächsinhalt",
+    "ru": "Влияет только на размер шрифта переписки",
+    "es": "Solo afecta el contenido de la conversación",
+    "en": "Only affects conversation content"
+  },
+  "增大字号": {
+    "zh-TW": "增大字級",
+    "bo": "ཡིག་གཟུགས་ཆེ་རུ་གཏོང་།",
+    "mn": "ᠦᠰᠦᠭ ᠢ ᠲᠣᠮᠣᠷᠠᠭᠤᠯᠬᠤ",
+    "ug": "خەتنى چوڭايتىش",
+    "ii": "ꑞꇁꃅꇁꈴ",
+    "ja": "文字を大きく",
+    "ko": "글자 크게",
+    "fr": "Augmenter la taille",
+    "de": "Schrift vergrößern",
+    "ru": "Увеличить шрифт",
+    "es": "Aumentar tamaño",
+    "en": "Increase font size"
+  },
+  "减小字号": {
+    "zh-TW": "縮小字級",
+    "bo": "ཡིག་གཟུགས་ཆུང་དུ་གཏོང་།",
+    "mn": "ᠦᠰᠦᠭ ᠢ ᠪᠠᠭᠠᠰᠭᠠᠬᠤ",
+    "ug": "خەتنى كىچىكلىتىش",
+    "ii": "ꑞꇁꃅꇁꋍ",
+    "ja": "文字を小さく",
+    "ko": "글자 작게",
+    "fr": "Réduire la taille",
+    "de": "Schrift verkleinern",
+    "ru": "Уменьшить шрифт",
+    "es": "Reducir tamaño",
+    "en": "Decrease font size"
+  },
+  "对话显示": {
+    "zh-TW": "對話顯示",
+    "bo": "གྲོས་མོལ་འཆར་སྟོན།",
+    "mn": "ᠶᠠᠷᠢᠯᠴᠠᠭ᠎ᠠ ᠦᠵᠡᠭᠦᠯᠬᠦ",
+    "ug": "سۆھبەت كۆرسىتىش",
+    "ii": "ꑞꐛꇁꄉ",
+    "ja": "会話の表示",
+    "ko": "대화 표시",
+    "fr": "Affichage de la conversation",
+    "de": "Gesprächsanzeige",
+    "ru": "Отображение диалога",
+    "es": "Visualización de la conversación",
+    "en": "Conversation display"
+  },
+  "控制已完成轮次的过程内容": {
+    "zh-TW": "控制已完成輪次的過程內容",
+    "bo": "ལས་རིམ་རྫོགས་པའི་བརྒྱུད་རིམ་ནང་དོན་ཚོད་འཛིན།",
+    "mn": "ᠳᠡᠭᠦᠷᠰᠡᠨ ᠡᠷᠭᠢᠮ ᠦᠨ ᠶᠠᠪᠤᠴᠠ ᠠᠭᠤᠯᠭ᠎ᠠ ᠶᠢ ᠬᠢᠨᠠᠬᠤ",
+    "ug": "تاماملانغان قەدەمنىڭ جەريان مەزمۇنىنى كونترول قىلىش",
+    "ii": "ꇬꄉꑞꐛꀋꐥ",
+    "ja": "完了したターンの過程表示を制御",
+    "ko": "완료된 턴의 과정 내용 표시를 제어합니다",
+    "fr": "Contrôle le contenu de processus des tours terminés",
+    "de": "Steuert Prozessinhalte abgeschlossener Runden",
+    "ru": "Управляет отображением хода завершённых раундов",
+    "es": "Controla el contenido de proceso de los turnos completados",
+    "en": "Controls process content in completed turns"
+  },
+  "Compact": {
+    "zh-TW": "精簡",
+    "bo": "སྒྲིལ་ཆུང་།",
+    "mn": "ᠬᠤᠮᠢᠷᠠᠭᠤᠯᠤᠭᠰᠠᠨ",
+    "ug": "ئىخچام",
+    "ii": "ꀋꐥꃅ",
+    "ja": "コンパクト",
+    "ko": "간단히",
+    "fr": "Compact",
+    "de": "Kompakt",
+    "ru": "Сжатый",
+    "es": "Compacto",
+    "en": "Compact"
+  },
+  "Normal": {
+    "zh-TW": "標準",
+    "bo": "རྒྱུན་ལྡན།",
+    "mn": "ᠡᠩᠬᠢ",
+    "ug": "نورمال",
+    "ii": "ꀊꐥ",
+    "ja": "通常",
+    "ko": "기본",
+    "fr": "Normal",
+    "de": "Normal",
+    "ru": "Обычный",
+    "es": "Normal",
+    "en": "Normal"
   }
 };
     const INVERTED_INDEX = {
@@ -2033,6 +2187,14 @@ window.__ModuleLoader__.load({
   "chat.db の読み取り権限がありません": "未获得 chat.db 读取权限",
   "Full Disk Access for chat.db missing": "未获得 chat.db 读取权限"
 };
+    for (const [zh, map] of Object.entries(EXACT_DICT)) {
+      if (!(zh in INVERTED_INDEX)) INVERTED_INDEX[zh] = zh;
+      for (const value of Object.values(map)) {
+        if (typeof value === "string" && value && !(value in INVERTED_INDEX)) {
+          INVERTED_INDEX[value] = zh;
+        }
+      }
+    }
 
     let currentTargetLanguage = "zh";
     let isTranslating = false;

@@ -42,45 +42,67 @@ export async function patchRuntimeCompatibility(runtimeRoot) {
   console.log(`Patched macOS 12.7.6 GFM email autolink compatibility: ${matches[0].path}`);
 }
 
-export async function patchFrontendWindowControls(runtimeRoot) {
-  const indexPath = join(runtimeRoot, "node_modules", "@deepseek-ai", "dsh-web-frontend", "dist", "index.html");
-  if (!existsSync(indexPath)) return;
-  const html = await readFile(indexPath, "utf8");
-  if (html.includes("dsh-macos-titlebar-script")) return;
-
-  const snippet = `    <style id="dsh-macos-titlebar-style">
+const macosTitlebarSnippet = `    <style id="dsh-macos-titlebar-style">
       [class*="_root"][class*="Sidebar"], [class*="sidebar"], aside, .hHd-Xa_root {
-        padding-top: 10px !important;
+        padding-top: 12px !important;
       }
     </style>
     <script id="dsh-macos-titlebar-script">
       if (typeof navigator !== "undefined" && navigator.userAgent.includes("Mac")) {
+        window.__dsh_titlebar_injected = true;
+        var pendingDrag = null;
+        function isTitlebarHit(e) {
+          if (e.clientY > 52 || e.clientX < 78) return false;
+          var el = e.target;
+          if (!el || !el.closest) return true;
+          return !el.closest("button, a, input, textarea, select, [role='button'], [role='tab'], [role='menuitem'], [contenteditable='true'], .hi-tab");
+        }
         document.addEventListener("mousedown", function(e) {
-          if (e.button === 0 && e.clientY <= 38 && e.clientX >= 76) {
-            var target = e.target;
-            if (!target) return;
-            if (target.closest("button, a, input, textarea, select, [role='button'], [tabindex], [contenteditable='true'], .hi-tab, [data-interactive]")) {
-              return;
+          if (e.button !== 0 || !isTitlebarHit(e)) return;
+          var sx = e.screenX, sy = e.screenY;
+          function onMove(ev) {
+            if (Math.abs(ev.screenX - sx) > 4 || Math.abs(ev.screenY - sy) > 4) {
+              cleanup();
+              fetch("http://127.0.0.1:27891/start-drag", { mode: "no-cors" }).catch(function(){});
             }
-            fetch("http://127.0.0.1:27891/start-drag", { mode: "no-cors" }).catch(function(){});
           }
-        }, { capture: true, passive: true });
-
+          function cleanup() {
+            pendingDrag = null;
+            document.removeEventListener("mousemove", onMove, true);
+            document.removeEventListener("mouseup", cleanup, true);
+          }
+          pendingDrag = cleanup;
+          document.addEventListener("mousemove", onMove, true);
+          document.addEventListener("mouseup", cleanup, true);
+        }, true);
         document.addEventListener("dblclick", function(e) {
-          if (e.clientY <= 38 && e.clientX >= 76) {
-            var target = e.target;
-            if (!target) return;
-            if (target.closest("button, a, input, textarea, select, [role='button'], [tabindex], [contenteditable='true'], .hi-tab, [data-interactive]")) {
-              return;
-            }
-            fetch("http://127.0.0.1:27891/toggle-maximize", { mode: "no-cors" }).catch(function(){});
-          }
-        }, { capture: true, passive: true });
+          if (!isTitlebarHit(e)) return;
+          if (pendingDrag) pendingDrag();
+          e.preventDefault();
+          e.stopPropagation();
+          fetch("http://127.0.0.1:27891/toggle-maximize", { mode: "no-cors" }).catch(function(){});
+        }, true);
       }
     </script>
-  </head>`;
+`;
 
-  const patched = html.replace("</head>", snippet);
+export async function patchFrontendWindowControls(runtimeRoot) {
+  const indexPath = join(runtimeRoot, "node_modules", "@deepseek-ai", "dsh-web-frontend", "dist", "index.html");
+  if (!existsSync(indexPath)) return;
+  const html = await readFile(indexPath, "utf8");
+  let patched = html;
+  if (html.includes('id="dsh-macos-titlebar-script"')) {
+    patched = html.replace(
+      /\s*<style id="dsh-macos-titlebar-style">[\s\S]*?<script id="dsh-macos-titlebar-script">[\s\S]*?<\/script>\s*/,
+      `\n${macosTitlebarSnippet}`,
+    );
+    if (patched === html) {
+      console.warn("Existing macOS titlebar patch could not be replaced");
+      return;
+    }
+  } else {
+    patched = html.replace("</head>", `${macosTitlebarSnippet}  </head>`);
+  }
   await writeFile(indexPath, patched, "utf8");
   console.log(`Patched macOS native titlebar drag & maximize controls: ${indexPath}`);
 }
@@ -99,6 +121,32 @@ export async function verifyRuntimeCompatibility(runtimeRoot) {
   }
   if (oldCount !== 0 || newCount !== 1) {
     throw new Error(`Invalid prebuilt frontend compatibility state: legacy=${oldCount}, compatible=${newCount}`);
+  }
+
+  const connectionPath = join(modules, "@deepseek-ai", "dsh-client-connection", "lib", "index.js");
+  if (!existsSync(connectionPath)) {
+    throw new Error(`Missing dsh-client-connection: ${connectionPath}`);
+  }
+  const connection = await readFile(connectionPath, "utf8");
+  if (!connection.includes("/* dsh-desktop-loopback-auth */")) {
+    throw new Error("Desktop loopback auth patch is missing from dsh-client-connection");
+  }
+  const loopback = connection.slice(connection.indexOf("/* dsh-desktop-loopback-auth */"));
+  if (loopback.includes('"location": "/"') || loopback.includes("writeHead(303")) {
+    throw new Error("Desktop loopback auth must serve index with Set-Cookie, not 303 to /");
+  }
+  if (!loopback.includes("res.setHeader(\"set-cookie\"") || !loopback.includes("return true;")) {
+    throw new Error("Desktop loopback auth must set the session cookie and continue to index.html");
+  }
+
+  const indexPath = join(modules, "@deepseek-ai", "dsh-web-frontend", "dist", "index.html");
+  if (!existsSync(indexPath)) throw new Error(`Missing frontend index: ${indexPath}`);
+  const index = await readFile(indexPath, "utf8");
+  if (!index.includes("dsh-macos-titlebar-script") || !index.includes("isTitlebarHit")) {
+    throw new Error("macOS titlebar script is missing delayed-drag maximize handling");
+  }
+  if (/mousedown[\s\S]{0,400}start-drag/.test(index) && !index.includes("pendingDrag")) {
+    throw new Error("macOS titlebar mousedown still starts a drag immediately and will steal dblclick");
   }
 }
 
@@ -131,17 +179,26 @@ function count(content, needle) {
   return content.split(needle).length - 1;
 }
 
-export async function patchLocalConnectionAuth(runtimeRoot) {
-  const connectionPath = join(runtimeRoot, "node_modules", "@deepseek-ai", "dsh-client-connection", "lib", "index.js");
-  if (!existsSync(connectionPath)) return;
-  const content = await readFile(connectionPath, "utf8");
-  if (content.includes("/* dsh-desktop-loopback-auth */")) return;
-
-  const target = `\t\tif (this.isAuthenticated(req)) return true;
+const loopbackAuthServe = `\t\tif (this.isAuthenticated(req)) return true;
+\t\t/* dsh-desktop-loopback-auth */
+\t\tconst isLoopback = req.socket?.remoteAddress === "127.0.0.1" || req.socket?.remoteAddress === "::1" || req.socket?.remoteAddress === "::ffff:127.0.0.1";
+\t\tif (req.method === "GET" && url.pathname === "/" && isLoopback) {
+\t\t\tconst authority = requestAuthority(req.headers) ?? "127.0.0.1";
+\t\t\tconst issuedAt = Date.now();
+\t\t\tconst expiresAt = issuedAt + this.maxAgeMilliseconds;
+\t\t\tconst value = encodeCookie({
+\t\t\t\tversion: COOKIE_PAYLOAD_VERSION,
+\t\t\t\tauthority,
+\t\t\t\tissuedAt,
+\t\t\t\texpiresAt
+\t\t\t}, this.secret);
+\t\t\tres.setHeader("set-cookie", sessionCookie(cookieName(authority), value, expiresAt, Math.floor(this.maxAgeMilliseconds / 1e3)));
+\t\t\treturn true;
+\t\t}
 \t\tthis.writeUnauthorized(req, res);
 \t\treturn false;`;
 
-  const replacement = `\t\tif (this.isAuthenticated(req)) return true;
+const loopbackAuthRedirect = `\t\tif (this.isAuthenticated(req)) return true;
 \t\t/* dsh-desktop-loopback-auth */
 \t\tconst isLoopback = req.socket?.remoteAddress === "127.0.0.1" || req.socket?.remoteAddress === "::1" || req.socket?.remoteAddress === "::ffff:127.0.0.1";
 \t\tif (req.method === "GET" && url.pathname === "/" && isLoopback) {
@@ -166,11 +223,25 @@ export async function patchLocalConnectionAuth(runtimeRoot) {
 \t\tthis.writeUnauthorized(req, res);
 \t\treturn false;`;
 
-  if (!content.includes(target)) {
+const unpatchedIndexAuth = `\t\tif (this.isAuthenticated(req)) return true;
+\t\tthis.writeUnauthorized(req, res);
+\t\treturn false;`;
+
+export async function patchLocalConnectionAuth(runtimeRoot) {
+  const connectionPath = join(runtimeRoot, "node_modules", "@deepseek-ai", "dsh-client-connection", "lib", "index.js");
+  if (!existsSync(connectionPath)) return;
+  const content = await readFile(connectionPath, "utf8");
+  if (content.includes(loopbackAuthServe)) return;
+
+  let patched = content;
+  if (content.includes(loopbackAuthRedirect)) {
+    patched = content.replace(loopbackAuthRedirect, loopbackAuthServe);
+  } else if (content.includes(unpatchedIndexAuth)) {
+    patched = content.replace(unpatchedIndexAuth, loopbackAuthServe);
+  } else {
     console.warn("Target not found in dsh-client-connection to patch local loopback auth");
     return;
   }
-  const patched = content.replace(target, replacement);
   await writeFile(connectionPath, patched, "utf8");
   console.log(`Patched desktop loopback auto-authentication: ${connectionPath}`);
 }
