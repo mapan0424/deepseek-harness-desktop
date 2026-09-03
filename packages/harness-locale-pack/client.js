@@ -2243,11 +2243,19 @@ window.__ModuleLoader__.load({
     }
 
     // 5. 插件主生命周期
+    const inject = ["locale"];
+    exports.inject = inject;
+
     exports.apply = function apply(ctx) {
       installGlobalStyles();
 
       const STORAGE_KEY = "dsh.locale.extended_preference";
-      const localeService = ctx.get("locale") || ctx.locale;
+      let localeService;
+      try {
+        localeService = ctx.locale || ctx.get?.("locale");
+      } catch (e) {
+        localeService = ctx.reflect?.get?.("locale");
+      }
 
       if (localeService) {
         const proto = Object.getPrototypeOf(localeService);
@@ -2385,6 +2393,7 @@ window.__ModuleLoader__.load({
       console.log("[locale-pack] ✓ 成功启动即时响应式刷新与全语言双向索引多语言系统！");
     };
 
+    exports.inject = inject;
     return module.exports;
   },
 });

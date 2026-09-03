@@ -5,7 +5,10 @@ import z from "@deepseek-ai/schemastery";
 
 export const name = "harness-locale-pack";
 
-export const inject = ["settings"];
+export const inject = {
+  required: [],
+  optional: ["settings", "locale"],
+};
 
 export const EXTENDED_LOCALE_IDS = [
   "zh", "en", "zh-TW",
