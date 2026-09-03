@@ -2,10 +2,14 @@ import { existsSync } from "node:fs";
 import { readFile, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
-const expectedFrontendVersion = "0.1.1-rc.2";
+const expectedFrontendVersion = "0.1.2-alpha.5";
 
-const bundleOld = 'new RegExp("(?<=^|\\\\s|\\\\p{P}|\\\\p{S})([-.\\\\w+]+)@([-\\\\w]+(?:\\\\.[-\\\\w]+)+)","gu")';
-const bundleNew = 'new RegExp("([-.\\\\w+]+)@([-\\\\w]+(?:\\\\.[-\\\\w]+)+)","gu")';
+// 0.1.2-alpha.x ships the GFM email autolink as a regex literal (not `new RegExp("...")`).
+// macOS 12.7.6 WebKit rejects the lookbehind + Unicode property escapes, so drop the
+// lookbehind and keep the same capture groups. test-runtime-compat.mjs still enforces
+// the boundary rules in JS.
+const bundleOld = "/(?<=^|\\s|\\p{P}|\\p{S})([-.\\w+]+)@([-\\w]+(?:\\.[-\\w]+)+)/gu";
+const bundleNew = "/([-.\\w+]+)@([-\\w]+(?:\\.[-\\w]+)+)/gu";
 
 export async function patchRuntimeCompatibility(runtimeRoot) {
   const modules = join(runtimeRoot, "node_modules");
