@@ -17,9 +17,15 @@
 import { createUserMessage } from "@deepseek-ai/dsh-llm";
 import { SessionId } from "@deepseek-ai/dsh-session";
 import { installModelSelection } from "@deepseek-ai/dsh-agent";
-import { existsSync, statSync } from "node:fs";
+import { existsSync, statSync, appendFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename } from "node:path";
+
+function debugLog(tag, msg) {
+  try {
+    appendFileSync("/tmp/dsh_channel_debug.log", `[${new Date().toISOString()}] [${tag}] ${msg}\n`);
+  } catch {}
+}
 
 /** 从 Session 或事件列表中提取给定 seq 范围内的 assistant 回复。兼容 Session 实例与旧版 events 数组。 */
 function summarizeReply(sessionOrEvents, firstSeq = 0) {
@@ -548,10 +554,12 @@ export class GatewayCore {
 
     const queueLen = (this._deliverPending.get(sender) ?? 0) + 1;
     this.log?.info?.(`[${this.tag}] 收到来自 ${sender}: ${String(content).slice(0, 80)}...（队列 ${queueLen}）`);
+    debugLog(this.tag, `_handleInbound: sender=${sender} content=${String(content).slice(0, 80)}`);
 
     try {
       const workspace = this.workspaceFor(sender);
       const reply = await this.deliver(sender, workspace, content);
+      debugLog(this.tag, `_handleInbound: reply=${reply ? String(reply).slice(0, 80) : "null"}`);
       if (reply && this.autoReply) {
         const t0 = Date.now();
         // 从回复中提取文件引用（[文件: path] 等），有则随文本一起发送
@@ -560,9 +568,11 @@ export class GatewayCore {
           this.log?.info?.(`[${this.tag}] 回复附带 ${files.length} 个文件`);
         }
         await this.adapter.send(sender, replyText || reply, files.length > 0 ? { files } : undefined);
+        debugLog(this.tag, `_handleInbound: send ok ${Date.now() - t0}ms`);
         this.log?.info?.(`[${this.tag}] send ok ${Date.now() - t0}ms`);
       }
     } catch (e) {
+      debugLog(this.tag, `_handleInbound ERROR: ${e instanceof Error ? (e.stack || e.message) : e}`);
       this.log?.error?.(`[${this.tag}] 处理消息失败 ${e instanceof Error ? e.message : e}`);
     }
   }
@@ -646,14 +656,18 @@ export class GatewayCore {
       }, 200);
     }
 
+    debugLog(this.tag, `_deliver starting: id=${id} sender=${sender}`);
     try {
       await agent.whenIdle();
       const firstSeq = typeof session?.seq === "number" ? session.seq : initialSeq;
+      debugLog(this.tag, `_deliver calling agent.followup (firstSeq=${firstSeq}): ${String(message).slice(0, 60)}`);
       agent.followup(createUserMessage({
         content: [{ type: "text", text: message }],
         source: { kind: "user" },
       }));
+      debugLog(this.tag, `_deliver followup sent, awaiting agent.whenIdle()...`);
       await agent.whenIdle();
+      debugLog(this.tag, `_deliver agent is now idle, flushing session...`);
       await this.sessions.flush(agent.session).catch(() => {});
       if (streamPoller !== null) {
         try {
@@ -661,13 +675,18 @@ export class GatewayCore {
         } catch {}
       }
       const { text } = summarizeReply(agent.session, firstSeq);
+      debugLog(this.tag, `_deliver finished: id=${id} reply=${text?.length ?? 0}字 text="${String(text).slice(0, 60)}" sentCount=${this._streamSentCount}`);
       this.log?.info?.(`[${this.tag}] deliver 完成 id=${id} reply=${text?.length ?? 0}字 stream=${this.streamReplies} sentCount=${this._streamSentCount}`);
       // 双重保障：若流式开启但期间因故未发出任何回复，回退给外层兜底发送完整文本
       if (this.streamReplies && (!this._streamSentCount || this._streamSentCount === 0) && text) {
+        debugLog(this.tag, `_deliver: stream missed, fallback to full text: ${text.slice(0, 60)}`);
         this.log?.info?.(`[${this.tag}] 流式未命中任何分片，自动转为全量兜底发送`);
         return text;
       }
       return this.streamReplies ? null : text;
+    } catch (err) {
+      debugLog(this.tag, `_deliver CRASHED: ${err instanceof Error ? (err.stack || err.message) : err}`);
+      throw err;
     } finally {
       if (streamPoller !== null) clearInterval(streamPoller);
       this._streamSeenSeq.delete(id);

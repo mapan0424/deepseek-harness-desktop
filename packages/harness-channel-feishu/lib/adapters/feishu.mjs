@@ -7,8 +7,15 @@
  */
 import { EventEmitter } from "node:events";
 import { basename } from "node:path";
+import { appendFileSync } from "node:fs";
 import { encodeFrame, decodeFrame, headerMap, payloadJson } from "./feishu-ws-frame.mjs";
 import { cacheMediaBytes, classifyMedia } from "../media-cache.mjs";
+
+function debugLog(msg) {
+  try {
+    appendFileSync("/tmp/dsh_channel_debug.log", `[${new Date().toISOString()}] [feishu-adapter] ${msg}\n`);
+  } catch {}
+}
 
 const FEISHU_OPEN = "https://open.feishu.cn";
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -380,8 +387,12 @@ export class FeishuAdapter extends EventEmitter {
   /** 分发事件给网关。 */
   _dispatch(event) {
     const eventType = event?.header?.event_type;
+    debugLog(`_dispatch eventType=${eventType} eventId=${event?.header?.event_id}`);
     if (eventType === "im.message.receive_v1") {
-      this._handleMessage(event).catch((e) => this.log.warn?.(`[feishu] 消息处理失败: ${e instanceof Error ? e.message : e}`));
+      this._handleMessage(event).catch((e) => {
+        debugLog(`_handleMessage ERROR: ${e instanceof Error ? (e.stack || e.message) : e}`);
+        this.log.warn?.(`[feishu] 消息处理失败: ${e instanceof Error ? e.message : e}`);
+      });
       return;
     }
     if (eventType === "card.action.trigger") {
@@ -482,6 +493,7 @@ export class FeishuAdapter extends EventEmitter {
     }
     this.log.info?.(`[feishu] 收到消息 from=${sender} chat=${chatId} type=${msg.message_type}`);
     const messageId = msg.message_id ?? messageIdOf(event);
+    debugLog(`feishu _handleMessage: sender=${sender} chat=${chatId} type=${msg.message_type} msgId=${messageId} senderType=${e.sender?.sender_type}`);
 
     // 收到用户消息 → 立即加表情回应（"已收到"标记），不阻塞主流程
     if (messageId && e.sender?.sender_type !== "app") {
@@ -635,6 +647,7 @@ export class FeishuAdapter extends EventEmitter {
       last = await this._sendFile(to, token, f, targetType);
     }
 
+    debugLog(`feishu.send: to=${to} text=${String(text).slice(0, 80)} targetType=${targetType}`);
     // 再发文本（交互卡片或纯文本）
     if (text && String(text).trim()) {
       const useCard = !plain && cfg.cardReplies !== false;
@@ -656,8 +669,10 @@ export class FeishuAdapter extends EventEmitter {
       });
       const data = await res.json().catch(() => ({}));
       if (data?.code !== 0 && data?.code !== undefined) {
+        debugLog(`feishu.send FAILED HTTP ${res.status} code=${data?.code} msg=${data?.msg ?? ""}`);
         throw new Error(`sendMessage HTTP ${res.status} code=${data?.code} ${data?.msg ?? ""}`);
       }
+      debugLog(`feishu.send SUCCESS: msgId=${data?.data?.message_id}`);
       last = data;
     }
     return last;
