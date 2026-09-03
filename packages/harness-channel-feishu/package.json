@@ -1,6 +1,6 @@
 {
   "name": "@anarkhgatsby/deepseek-harness-channel-feishu",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Channel plugin for DeepSeek Harness: 飞书 behind one message bus. Thin facade on @anarkhgatsby/deepseek-harness-core.",
   "type": "module",
   "main": "./index.js",
