@@ -36,7 +36,10 @@ export async function patchRuntimeCompatibility(runtimeRoot) {
     );
   }
   await patchExactFile(matches[0].path, bundleOld, bundleNew, "prebuilt GFM email autolink");
+  await patchFrontendClassStaticBlocks(runtimeRoot);
   await patchFrontendWindowControls(runtimeRoot);
+  await patchFrontendPromiseWithResolvers(runtimeRoot);
+  await patchHostWebserverReadyMarkup(runtimeRoot);
   await patchLocalConnectionAuth(runtimeRoot);
   await verifyRuntimeCompatibility(runtimeRoot);
   console.log(`Patched macOS 12.7.6 GFM email autolink compatibility: ${matches[0].path}`);
@@ -107,6 +110,82 @@ export async function patchFrontendWindowControls(runtimeRoot) {
   console.log(`Patched macOS native titlebar drag & maximize controls: ${indexPath}`);
 }
 
+export async function patchFrontendClassStaticBlocks(runtimeRoot) {
+  const assetsRoot = join(runtimeRoot, "node_modules", "@deepseek-ai", "dsh-web-frontend", "dist", "assets");
+  if (!existsSync(assetsRoot)) return;
+  const assetNames = (await readdir(assetsRoot)).filter((name) => name.endsWith(".js"));
+
+  const staticLoop = 'static{for(const i of["error","info","warn","debug"])X0.prototype[i]=function(...o){return this()[i](...o)}}';
+  const staticCordis = 'static{ur.is[Symbol.toPrimitive]=()=>Symbol.for("cordis.is"),ur.prototype[ur.is]=!0}';
+
+  for (const name of assetNames) {
+    const path = join(assetsRoot, name);
+    let content = await readFile(path, "utf8");
+    let changed = false;
+
+    if (content.includes(staticLoop)) {
+      content = content.replace(staticLoop, "");
+      const j0End = content.indexOf("};function rl(n){");
+      if (j0End !== -1) {
+        content = content.slice(0, j0End + 2) + 'for(const i of["error","info","warn","debug"])J0.prototype[i]=function(...o){return this()[i](...o)};' + content.slice(j0End + 2);
+        changed = true;
+      }
+    }
+
+    if (content.includes(staticCordis)) {
+      content = content.replace(staticCordis, "");
+      const urEnd = content.indexOf(";var $e=class extends ur{");
+      if (urEnd !== -1) {
+        content = content.slice(0, urEnd) + ';ur.is[Symbol.toPrimitive]=()=>Symbol.for("cordis.is");ur.prototype[ur.is]=!0' + content.slice(urEnd);
+        changed = true;
+      }
+    }
+
+    if (changed) {
+      await writeFile(path, content, "utf8");
+      console.log(`Patched macOS 12.7.6 WebKit class static blocks compatibility: ${path}`);
+    }
+  }
+}
+
+const promiseWithResolversPolyfill = `    <script>
+      if (typeof Promise !== "undefined" && !Promise.withResolvers) {
+        Promise.withResolvers = function() {
+          var resolve, reject;
+          var promise = new Promise(function(res, rej) {
+            resolve = res;
+            reject = rej;
+          });
+          return { promise: promise, resolve: resolve, reject: reject };
+        };
+      }
+    </script>`;
+
+export async function patchFrontendPromiseWithResolvers(runtimeRoot) {
+  const indexPath = join(runtimeRoot, "node_modules", "@deepseek-ai", "dsh-web-frontend", "dist", "index.html");
+  if (!existsSync(indexPath)) return;
+  const html = await readFile(indexPath, "utf8");
+  if (html.includes("Promise.withResolvers")) return;
+
+  const patched = html.replace(/<head(?:\s[^>]*)?>/i, (match) => `${match}\n${promiseWithResolversPolyfill}`);
+  await writeFile(indexPath, patched, "utf8");
+  console.log(`Patched macOS 12.7.6 Promise.withResolvers polyfill in index.html: ${indexPath}`);
+}
+
+export async function patchHostWebserverReadyMarkup(runtimeRoot) {
+  const serverPath = join(runtimeRoot, "node_modules", "@deepseek-ai", "dsh-host-webserver", "lib", "index.js");
+  if (!existsSync(serverPath)) return;
+  const content = await readFile(serverPath, "utf8");
+  const rawReady = 'const READY_MARKUP = "<script>(globalThis.__DSH_BOOT_READY__ ??= Promise.withResolvers()).resolve()<\\/script>";';
+  const safeReady = 'const READY_MARKUP = "<script>(globalThis.__DSH_BOOT_READY__ ??= (typeof Promise !== \'undefined\' && Promise.withResolvers ? Promise.withResolvers() : (() => { var resolve, reject; var promise = new Promise((res, rej) => { resolve = res; reject = rej; }); return { promise, resolve, reject }; })())).resolve()<\\/script>";';
+
+  if (content.includes(rawReady)) {
+    const patched = content.replace(rawReady, safeReady);
+    await writeFile(serverPath, patched, "utf8");
+    console.log(`Patched safe READY_MARKUP in dsh-host-webserver: ${serverPath}`);
+  }
+}
+
 export async function verifyRuntimeCompatibility(runtimeRoot) {
   const modules = join(runtimeRoot, "node_modules");
   const assetsRoot = join(modules, "@deepseek-ai", "dsh-web-frontend", "dist", "assets");
@@ -147,6 +226,25 @@ export async function verifyRuntimeCompatibility(runtimeRoot) {
   }
   if (/mousedown[\s\S]{0,400}start-drag/.test(index) && !index.includes("pendingDrag")) {
     throw new Error("macOS titlebar mousedown still starts a drag immediately and will steal dblclick");
+  }
+  if (!index.includes("Promise.withResolvers")) {
+    throw new Error("index.html is missing Promise.withResolvers polyfill for macOS 12.7.6 WebKit");
+  }
+
+  for (const name of await readdir(assetsRoot)) {
+    if (!name.endsWith(".js")) continue;
+    const content = await readFile(join(assetsRoot, name), "utf8");
+    if (/static\s*\{/.test(content)) {
+      throw new Error(`ES2022 class static initialization block found in ${name}; incompatible with macOS 12.7.6 WebKit`);
+    }
+  }
+
+  const serverPath = join(modules, "@deepseek-ai", "dsh-host-webserver", "lib", "index.js");
+  if (existsSync(serverPath)) {
+    const serverCode = await readFile(serverPath, "utf8");
+    if (serverCode.includes("Promise.withResolvers()).resolve()")) {
+      throw new Error("dsh-host-webserver READY_MARKUP directly calls Promise.withResolvers without fallback");
+    }
   }
 }
 
