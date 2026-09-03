@@ -1,6 +1,6 @@
 {
   "name": "@anarkhgatsby/deepseek-harness-channel-wecom",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Channel plugin for DeepSeek Harness: 企业微信 behind one message bus. Thin facade on @anarkhgatsby/deepseek-harness-core.",
   "type": "module",
   "main": "./index.js",

@@ -1,6 +1,6 @@
 {
   "name": "@anarkhgatsby/deepseek-harness-locale-pack",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Multi-language & ethnic language pack for DeepSeek Harness (Tibetan, Mongolian, Uyghur, Nuosu Yi, Traditional Chinese, Japanese, Korean, etc.)",
   "type": "module",
   "main": "./index.js",

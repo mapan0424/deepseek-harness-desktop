@@ -1,6 +1,6 @@
 {
   "name": "@anarkhgatsby/deepseek-harness-channel-imessage",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Channel plugin for DeepSeek Harness: local-only iMessage transport through Messages.app and chat.db. Thin facade on @anarkhgatsby/deepseek-harness-core.",
   "type": "module",
   "main": "./index.js",
