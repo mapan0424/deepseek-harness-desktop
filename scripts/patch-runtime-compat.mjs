@@ -2,9 +2,9 @@ import { existsSync } from "node:fs";
 import { readFile, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
-const expectedFrontendVersion = "0.1.2-alpha.5";
+const expectedFrontendVersions = ["0.1.2-alpha.5", "0.1.2-rc.1"];
 
-// 0.1.2-alpha.x ships the GFM email autolink as a regex literal (not `new RegExp("...")`).
+// 0.1.2-alpha.x / 0.1.2-rc.x ships the GFM email autolink as a regex literal (not `new RegExp("...")`).
 // macOS 12.7.6 WebKit rejects the lookbehind + Unicode property escapes, so drop the
 // lookbehind and keep the same capture groups. test-runtime-compat.mjs still enforces
 // the boundary rules in JS.
@@ -15,7 +15,7 @@ export async function patchRuntimeCompatibility(runtimeRoot) {
   const modules = join(runtimeRoot, "node_modules");
   const frontendRoot = join(modules, "@deepseek-ai", "dsh-web-frontend");
 
-  await assertPackageVersion(frontendRoot, "@deepseek-ai/dsh-web-frontend", expectedFrontendVersion);
+  await assertPackageVersion(frontendRoot, "@deepseek-ai/dsh-web-frontend", expectedFrontendVersions);
 
   const assetsRoot = join(frontendRoot, "dist", "assets");
   const assetNames = (await readdir(assetsRoot)).filter((name) => name.endsWith(".js")).sort();
@@ -103,8 +103,9 @@ export async function verifyRuntimeCompatibility(runtimeRoot) {
 
 async function assertPackageVersion(root, name, expected) {
   const manifest = JSON.parse(await readFile(join(root, "package.json"), "utf8"));
-  if (manifest.name !== name || manifest.version !== expected) {
-    throw new Error(`Expected ${name}@${expected}, got ${manifest.name}@${manifest.version}. Review the compatibility patch before packaging.`);
+  const allowed = Array.isArray(expected) ? expected : [expected];
+  if (manifest.name !== name || !allowed.includes(manifest.version)) {
+    throw new Error(`Expected ${name}@${allowed.join(" or ")}, got ${manifest.name}@${manifest.version}. Review the compatibility patch before packaging.`);
   }
 }
 
