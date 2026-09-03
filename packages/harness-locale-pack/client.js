@@ -2382,39 +2382,6 @@ window.__ModuleLoader__.load({
         localeService.publish(activeLang, true);
       }
 
-      // 3. macOS 沉浸式透明标题栏（TitleBar Overlay）紧凑精致与双击全屏适配
-      if (typeof navigator !== "undefined" && navigator.userAgent.includes("Mac")) {
-        const macStyleId = "@anarkhgatsby/deepseek-harness/mac-overlay-titlebar";
-        if (!document.getElementById(macStyleId)) {
-          const s = document.createElement("style");
-          s.id = macStyleId;
-          s.textContent = `
-            /* 侧边栏紧凑贴合红绿灯下方，消除多余空白 */
-            [class*="_root"][class*="Sidebar"], [class*="sidebar"], aside, .hHd-Xa_root {
-              padding-top: 10px !important;
-            }
-          `;
-          (document.head || document.documentElement).appendChild(s);
-        }
-
-        // 绑定顶部双击最大化 / 还原切换 (纯正 macOS Maximize/Restore，非全屏)
-        const dblListenerId = "__dsh_dblclick_maximize_installed__";
-        if (!window[dblListenerId]) {
-          window[dblListenerId] = true;
-          document.addEventListener("dblclick", (e) => {
-            // 在顶部 36px 范围内双击（避开红绿灯区域 76px）
-            if (e.clientY <= 36 && e.clientX >= 76) {
-              const target = e.target;
-              if (!target) return;
-              const isInteractive = target.closest("button, a, input, textarea, select, [role='button'], [tabindex], .hi-tab, [data-interactive]");
-              if (!isInteractive) {
-                fetch("http://127.0.0.1:27891/toggle-maximize", { mode: "no-cors" }).catch(() => {});
-              }
-            }
-          }, { capture: true, passive: true });
-        }
-      }
-
       console.log("[locale-pack] ✓ 成功启动即时响应式刷新与全语言双向索引多语言系统！");
     };
 

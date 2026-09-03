@@ -33,7 +33,7 @@ permissions:
 
 env:
   NODE_OPTIONS: "--max-old-space-size=4096"
-  npm_config_before: "2026-08-21T13:00:00Z"
+  npm_config_before: "2026-09-02T09:00:00Z"
 
 concurrency:
   group: windows-x64-${{ github.ref }}

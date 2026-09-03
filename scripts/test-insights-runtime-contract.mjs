@@ -34,7 +34,21 @@ const events = [
   },
   { seq: 1, type: "tool/call", time: new Date(2026, 7, 23, 12, 1).getTime(), data: { name: "bash" } },
 ];
-const session = { seq: events.length, events };
+
+// dsh 0.1.2-alpha.4+ replaced Session.events with seq / eventAt() / snapshotEvents().
+const session = {
+  seq: events.length,
+  header: {},
+  inheritedEventCount: 0,
+  snapshotEvents(fromOffset, toOffset) {
+    const start = fromOffset === undefined ? 0 : fromOffset;
+    const end = toOffset === undefined ? events.length : toOffset;
+    return events.filter((event) => event.seq >= start && event.seq < end);
+  },
+  eventAt(seq) {
+    return events.find((event) => event.seq === seq);
+  },
+};
 const live = registry.snapshot(session);
 
 assert.equal(live.asOfSeq, 1);
@@ -48,7 +62,7 @@ assert.deepEqual(live.values.harnessDesktopInsights?.totals, {
 });
 assert.deepEqual(live.values.harnessDesktopInsights?.tools, { bash: 1 });
 
-const restored = registry.restore({}, events, 0);
+const restored = registry.restore({}, events, 0, session.header, session.inheritedEventCount);
 assert.deepEqual(restored.snapshot, live, "cold history replay must produce the same client projection as live replay");
 assert.equal(restored.checkpoint.harnessDesktopInsights?.ver, usageInsightsProjectionDefinition.stateVersion);
 

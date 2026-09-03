@@ -674,7 +674,7 @@ dependencies = [
 
 [[package]]
 name = "deepseek-harness-macos"
-version = "0.2.8"
+version = "0.2.9"
 dependencies = [
  "chrono",
  "objc2",

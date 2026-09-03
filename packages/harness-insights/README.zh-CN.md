@@ -60,7 +60,7 @@ dsh plugin --profile demo add ./packages/harness-insights
 
 ## 兼容性
 
-- Harness projection/client API：`0.1.1-rc.2`
+- Harness projection/client API：`0.1.2-alpha.5`
 - 运行平台：Web UI
 - 插件类型：npm bundle
 - 当前版本：`0.1.3`
