@@ -74,7 +74,7 @@ const bundledPluginDefinitionsList = [
     packageName: "@anarkhgatsby/deepseek-harness-locale-pack",
     source: join(projectRoot, "packages", "harness-locale-pack"),
     publishedEntries: ["package.json", "cordis.patch.yml", "LICENSE", "README.md", "README.zh-CN.md", "client.js", "index.js"],
-    expectedVersion: "0.1.2",
+    expectedVersion: "0.1.3",
     clientId: "@anarkhgatsby/deepseek-harness-locale-pack",
     clientEntry: "client.js",
     patch: true,

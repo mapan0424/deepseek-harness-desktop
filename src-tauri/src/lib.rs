@@ -20,6 +20,7 @@ use tauri_plugin_updater::UpdaterExt;
 struct DshProcess {
     child: Mutex<Option<Child>>,
     port: Mutex<Option<u16>>,
+    token: Arc<Mutex<Option<String>>>,
     log: Arc<Mutex<String>>,
     quitting: AtomicBool,
     automatic_restart_used: AtomicBool,
@@ -227,11 +228,39 @@ fn append_log(log: &Arc<Mutex<String>>, line: &str) {
     }
 }
 
-fn capture_output<R: Read + Send + 'static>(reader: R, log: Arc<Mutex<String>>) {
+fn extract_token(line: &str) -> Option<String> {
+    if let Some(pos) = line.find("token=") {
+        let rest = &line[pos + 6..];
+        let end = rest
+            .find(|c: char| !c.is_ascii_alphanumeric() && c != '-' && c != '_')
+            .unwrap_or(rest.len());
+        if end > 0 {
+            return Some(rest[..end].to_string());
+        }
+    }
+    None
+}
+
+fn capture_output<R: Read + Send + 'static>(
+    reader: R,
+    log: Arc<Mutex<String>>,
+    token_slot: Option<Arc<Mutex<Option<String>>>>,
+) {
     let reader = BufReader::new(reader);
     for line in reader.lines() {
         match line {
-            Ok(line) => append_log(&log, &format!("{line}\n")),
+            Ok(line) => {
+                if let Some(ref slot) = token_slot {
+                    if let Some(token) = extract_token(&line) {
+                        if let Ok(mut lock) = slot.lock() {
+                            if lock.is_none() {
+                                *lock = Some(token);
+                            }
+                        }
+                    }
+                }
+                append_log(&log, &format!("{line}\n"));
+            }
             Err(error) => append_log(&log, &format!("读取 dsh 日志失败：{error}\n")),
         }
     }
@@ -457,11 +486,12 @@ fn spawn_dsh(
 
     if let Some(stdout) = child.stdout.take() {
         let log = Arc::clone(&state.log);
-        std::thread::spawn(move || capture_output(stdout, log));
+        let token = Arc::clone(&state.token);
+        std::thread::spawn(move || capture_output(stdout, log, Some(token)));
     }
     if let Some(stderr) = child.stderr.take() {
         let log = Arc::clone(&state.log);
-        std::thread::spawn(move || capture_output(stderr, log));
+        std::thread::spawn(move || capture_output(stderr, log, None));
     }
 
     *state
@@ -616,7 +646,14 @@ fn open_workspace(
         return Err("dsh 尚未准备完成".to_string());
     }
 
-    let url = format!("http://127.0.0.1:{active_port}")
+    let token_query = state
+        .token
+        .lock()
+        .ok()
+        .and_then(|t| t.clone())
+        .map(|t| format!("?token={t}"))
+        .unwrap_or_default();
+    let url = format!("http://127.0.0.1:{active_port}/{token_query}")
         .parse()
         .map_err(|error| format!("生成本地工作台地址失败：{error}"))?;
     let workspace_window = if window.label() == "recovery" {
@@ -1038,7 +1075,14 @@ fn start_dsh_supervisor(app: tauri::AppHandle) {
                 .get_webview_window("splash")
                 .or_else(|| app.get_webview_window("recovery"));
             if let Some(window) = window {
-                if let Ok(url) = format!("http://127.0.0.1:{active_port}").parse() {
+                let token_query = state
+                    .token
+                    .lock()
+                    .ok()
+                    .and_then(|t| t.clone())
+                    .map(|t| format!("?token={t}"))
+                    .unwrap_or_default();
+                if let Ok(url) = format!("http://127.0.0.1:{active_port}/{token_query}").parse() {
                     let _ = window.navigate(url);
                     #[cfg(target_os = "macos")]
                     inject_titlebar_controls(window.clone());
@@ -1814,6 +1858,7 @@ pub fn run() {
         .manage(DshProcess {
             child: Mutex::new(None),
             port: Mutex::new(None),
+            token: Arc::new(Mutex::new(None)),
             log: Arc::new(Mutex::new(String::new())),
             quitting: AtomicBool::new(false),
             automatic_restart_used: AtomicBool::new(false),

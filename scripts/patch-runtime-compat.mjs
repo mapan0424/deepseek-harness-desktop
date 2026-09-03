@@ -37,6 +37,7 @@ export async function patchRuntimeCompatibility(runtimeRoot) {
   }
   await patchExactFile(matches[0].path, bundleOld, bundleNew, "prebuilt GFM email autolink");
   await patchFrontendWindowControls(runtimeRoot);
+  await patchLocalConnectionAuth(runtimeRoot);
   await verifyRuntimeCompatibility(runtimeRoot);
   console.log(`Patched macOS 12.7.6 GFM email autolink compatibility: ${matches[0].path}`);
 }
@@ -129,3 +130,48 @@ function assertCounts(path, content, oldText, newText, expectedOld, expectedNew)
 function count(content, needle) {
   return content.split(needle).length - 1;
 }
+
+export async function patchLocalConnectionAuth(runtimeRoot) {
+  const connectionPath = join(runtimeRoot, "node_modules", "@deepseek-ai", "dsh-client-connection", "lib", "index.js");
+  if (!existsSync(connectionPath)) return;
+  const content = await readFile(connectionPath, "utf8");
+  if (content.includes("/* dsh-desktop-loopback-auth */")) return;
+
+  const target = `\t\tif (this.isAuthenticated(req)) return true;
+\t\tthis.writeUnauthorized(req, res);
+\t\treturn false;`;
+
+  const replacement = `\t\tif (this.isAuthenticated(req)) return true;
+\t\t/* dsh-desktop-loopback-auth */
+\t\tconst isLoopback = req.socket?.remoteAddress === "127.0.0.1" || req.socket?.remoteAddress === "::1" || req.socket?.remoteAddress === "::ffff:127.0.0.1";
+\t\tif (req.method === "GET" && url.pathname === "/" && isLoopback) {
+\t\t\tconst authority = requestAuthority(req.headers) ?? "127.0.0.1";
+\t\t\tconst issuedAt = Date.now();
+\t\t\tconst expiresAt = issuedAt + this.maxAgeMilliseconds;
+\t\t\tconst value = encodeCookie({
+\t\t\t\tversion: COOKIE_PAYLOAD_VERSION,
+\t\t\t\tauthority,
+\t\t\t\tissuedAt,
+\t\t\t\texpiresAt
+\t\t\t}, this.secret);
+\t\t\tres.writeHead(303, {
+\t\t\t\t"cache-control": "no-store",
+\t\t\t\t"location": "/",
+\t\t\t\t"referrer-policy": "no-referrer",
+\t\t\t\t"set-cookie": sessionCookie(cookieName(authority), value, expiresAt, Math.floor(this.maxAgeMilliseconds / 1e3))
+\t\t\t});
+\t\t\tres.end();
+\t\t\treturn false;
+\t\t}
+\t\tthis.writeUnauthorized(req, res);
+\t\treturn false;`;
+
+  if (!content.includes(target)) {
+    console.warn("Target not found in dsh-client-connection to patch local loopback auth");
+    return;
+  }
+  const patched = content.replace(target, replacement);
+  await writeFile(connectionPath, patched, "utf8");
+  console.log(`Patched desktop loopback auto-authentication: ${connectionPath}`);
+}
+
