@@ -38,7 +38,7 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "@anarkhgatsby/deepseek-harness-core": "^0.1.0"
+    "@anarkhgatsby/deepseek-harness-core": "^0.1.2"
   },
   "optionalDependencies": {
     "ws": "^8.18.0"
