@@ -22,9 +22,11 @@ import { homedir } from "node:os";
 import { basename } from "node:path";
 
 function debugLog(tag, msg) {
-  try {
-    appendFileSync("/tmp/dsh_channel_debug.log", `[${new Date().toISOString()}] [${tag}] ${msg}\n`);
-  } catch {}
+  if (process.env.DSH_CHANNEL_DEBUG) {
+    try {
+      appendFileSync("/tmp/dsh_channel_debug.log", `[${new Date().toISOString()}] [${tag}] ${msg}\n`);
+    } catch {}
+  }
 }
 
 /** 从 Session 或事件列表中提取给定 seq 范围内的 assistant 回复。兼容 Session 实例与旧版 events 数组。 */

@@ -12,9 +12,11 @@ import { encodeFrame, decodeFrame, headerMap, payloadJson } from "./feishu-ws-fr
 import { cacheMediaBytes, classifyMedia } from "../media-cache.mjs";
 
 function debugLog(msg) {
-  try {
-    appendFileSync("/tmp/dsh_channel_debug.log", `[${new Date().toISOString()}] [feishu-adapter] ${msg}\n`);
-  } catch {}
+  if (process.env.DSH_CHANNEL_DEBUG) {
+    try {
+      appendFileSync("/tmp/dsh_channel_debug.log", `[${new Date().toISOString()}] [feishu-adapter] ${msg}\n`);
+    } catch {}
+  }
 }
 
 const FEISHU_OPEN = "https://open.feishu.cn";
