@@ -44,7 +44,7 @@ concurrency:
 env:
   MACOSX_DEPLOYMENT_TARGET: "12.7.6"
   NODE_OPTIONS: "--max-old-space-size=4096"
-  npm_config_before: "2026-09-02T09:00:00Z"
+  npm_config_before: "2026-09-04T00:00:00Z"
 
 jobs:
   build:
