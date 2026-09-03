@@ -21,20 +21,41 @@ import { existsSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename } from "node:path";
 
-/** 从事件取给定区间最后一条纯文本 assistant 回复。 */
-function summarizeReply(events, firstSeq) {
+/** 从 Session 或事件列表中提取给定 seq 范围内的 assistant 回复。兼容 Session 实例与旧版 events 数组。 */
+function summarizeReply(sessionOrEvents, firstSeq = 0) {
   let text = "";
   let reason;
-  for (const event of events) {
-    if (event.seq < firstSeq) continue;
+
+  if (Array.isArray(sessionOrEvents)) {
+    for (const event of sessionOrEvents) {
+      if (!event || event.seq < firstSeq) continue;
+      if (event.type === "assistant/message") {
+        const joined = (event.data?.message?.content || [])
+          .filter((block) => block?.type === "text")
+          .map((block) => block.text)
+          .join("");
+        if (joined !== "") text = joined;
+      }
+      if (event.type === "turn/end") reason = event.data?.reason;
+    }
+    return { text, reason };
+  }
+
+  const session = sessionOrEvents;
+  if (!session) return { text, reason };
+
+  const length = typeof session.seq === "number" ? session.seq : 0;
+  for (let seq = firstSeq; seq < length; seq++) {
+    const event = typeof session.eventAt === "function" ? session.eventAt(seq) : null;
+    if (!event) continue;
     if (event.type === "assistant/message") {
-      const joined = (event.data.message.content || [])
-        .filter((block) => block.type === "text")
+      const joined = (event.data?.message?.content || [])
+        .filter((block) => block?.type === "text")
         .map((block) => block.text)
         .join("");
       if (joined !== "") text = joined;
     }
-    if (event.type === "turn/end") reason = event.data.reason;
+    if (event.type === "turn/end") reason = event.data?.reason;
   }
   return { text, reason };
 }
@@ -609,44 +630,73 @@ export class GatewayCore {
 
     this.startTyping(sender).catch(() => {});
 
+    this._streamSentCount = 0;
     let streamPoller = null;
+    const session = agent.session;
+    const initialSeq = typeof session?.seq === "number" ? session.seq : (session?.events?.length ?? 0);
+
     if (this.streamReplies || this.toolCallReplies) {
-      this._streamSeenSeq.set(agent.session.id, agent.session.events.at(-1)?.seq ?? 0);
-      streamPoller = setInterval(() => this._syncStream(agent, sender), 200);
+      this._streamSeenSeq.set(session.id, initialSeq);
+      streamPoller = setInterval(() => {
+        try {
+          this._syncStream(agent, sender);
+        } catch (e) {
+          this.log?.warn?.(`[${this.tag}] _syncStream 捕获异常: ${e instanceof Error ? e.message : e}`);
+        }
+      }, 200);
     }
 
     try {
       await agent.whenIdle();
-      const firstSeq = agent.session.seq;
+      const firstSeq = typeof session?.seq === "number" ? session.seq : initialSeq;
       agent.followup(createUserMessage({
         content: [{ type: "text", text: message }],
         source: { kind: "user" },
       }));
       await agent.whenIdle();
-      await this.sessions.flush(agent.session);
-      if (streamPoller !== null) this._syncStream(agent, sender);
-      const { text } = summarizeReply(agent.session.events, firstSeq);
-      this.log?.info?.(`[${this.tag}] deliver 完成 id=${id} reply=${text?.length ?? 0}字 stream=${this.streamReplies}`);
+      await this.sessions.flush(agent.session).catch(() => {});
+      if (streamPoller !== null) {
+        try {
+          this._syncStream(agent, sender);
+        } catch {}
+      }
+      const { text } = summarizeReply(agent.session, firstSeq);
+      this.log?.info?.(`[${this.tag}] deliver 完成 id=${id} reply=${text?.length ?? 0}字 stream=${this.streamReplies} sentCount=${this._streamSentCount}`);
+      // 双重保障：若流式开启但期间因故未发出任何回复，回退给外层兜底发送完整文本
+      if (this.streamReplies && (!this._streamSentCount || this._streamSentCount === 0) && text) {
+        this.log?.info?.(`[${this.tag}] 流式未命中任何分片，自动转为全量兜底发送`);
+        return text;
+      }
       return this.streamReplies ? null : text;
     } finally {
       if (streamPoller !== null) clearInterval(streamPoller);
       this._streamSeenSeq.delete(id);
-      await this.stopTyping(sender);
+      await this.stopTyping(sender).catch(() => {});
     }
   }
 
   // ── 流式事件消费 ────────────────────────────────────────────────────────
   _syncStream(agent, sender) {
-    const key = agent.session.id;
+    const session = agent?.session;
+    if (!session) return;
+    const key = session.id;
     const seen = this._streamSeenSeq.get(key) ?? 0;
+    const currentSeq = typeof session.seq === "number" ? session.seq : (session.events?.length ?? 0);
+    if (currentSeq <= seen) return;
+
     let max = seen;
-    for (const evt of agent.session.events) {
-      if (evt.seq <= seen) continue;
-      if (evt.type === "assistant/message" && this.streamReplies) this._sendReply(sender, evt);
-      else if (evt.type === "tool/call" && this.toolCallReplies) this._sendToolCall(sender, evt);
-      if (evt.seq > max) max = evt.seq;
+    for (let seq = seen; seq < currentSeq; seq++) {
+      const evt = typeof session.eventAt === "function" ? session.eventAt(seq) : session.events?.[seq];
+      if (!evt) continue;
+      if (evt.type === "assistant/message" && this.streamReplies) {
+        this._streamSentCount = (this._streamSentCount || 0) + 1;
+        this._sendReply(sender, evt);
+      } else if (evt.type === "tool/call" && this.toolCallReplies) {
+        this._sendToolCall(sender, evt);
+      }
+      if (typeof evt.seq === "number" && evt.seq > max) max = evt.seq;
     }
-    this._streamSeenSeq.set(key, max);
+    this._streamSeenSeq.set(key, Math.max(max, currentSeq));
   }
 
   _extractMessageText(evt) {
