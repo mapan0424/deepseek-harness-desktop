@@ -97,7 +97,7 @@ jobs:
           VERSION: ${{ steps.metadata.outputs.version }}
           TAG: ${{ steps.metadata.outputs.tag }}
         run: |
-          notes='iMessage 改为仅本机 Messages.app + chat.db 模式，移除 CLI 和所有云端中继，确保消息数据不经过第三方服务。'
+          notes='修复 macOS 12 Monterey 系统下 WebKit 启动白屏问题，优化老系统兼容性。'
           node scripts/create-updater-manifest.mjs \
             --version "$VERSION" \
             --tag "$TAG" \
@@ -129,6 +129,10 @@ jobs:
             release_notes=$'## macOS 深色模式图标\n\n- 安装包内置 appearance-aware App Icon（`Assets.car`）。\n- 系统浅色显示黑鲸浅底，深色或 Dark 图标样式显示白鲸深底。\n- 旧版 macOS 继续回退到 `.icns`。\n\n## 内置插件\n\n- 构建时从 npm 安装最新已发布版本：Insights `0.1.4`、消息通道配置 `0.1.4`、企业微信 `0.1.1`、飞书 `0.1.0`、iMessage `0.1.1`、Core `0.1.0`。\n- 预置企业微信智能机器人长连接通道。\n\n## 运行时与平台\n\n- 继续内置 `@deepseek-ai/dsh@0.1.1-rc.2`。\n- Release 资产包含签名文件、latest.json 和 SHA256 校验清单。'
           elif [ "$VERSION" = "0.2.8" ]; then
             release_notes=$'## 内置多语言包\n\n- 预置 `@anarkhgatsby/deepseek-harness-locale-pack@0.1.1`。\n- 在官方简体中文 / English 之外，设置中可切换繁體中文、日本語、한국어、Français、Deutsch、Русский、Español，以及藏文、蒙古文、维吾尔文、彝文。\n\n## 运行时与平台\n\n- 继续内置 `@deepseek-ai/dsh@0.1.1-rc.2`。\n- Release 资产包含签名文件、latest.json 和 SHA256 校验清单。'
+          elif [ "$VERSION" = "0.3.0" ]; then
+            release_notes=$'## 渠道插件与核心库升级\n\n- 升级通道核心库 `@anarkhgatsby/deepseek-harness-core` 至 `^0.1.2`，适配会话事件机制。\n- 同步发布并内置最新版企业微信通道（`0.1.3`）与 iMessage 通道（`0.1.3`）。\n- 增加 `DSH_CHANNEL_DEBUG` 环境变量控制通道调试日志输出。\n- 优化 pnpm workspace 依赖对齐与构建流程。\n\n## 运行时与平台\n\n- 继续内置 `@deepseek-ai/dsh@0.1.1-rc.2`。\n- Release 资产包含签名文件、latest.json 和 SHA256 校验清单。'
+          elif [ "$VERSION" = "0.3.1" ]; then
+            release_notes=$'## macOS 12 Monterey 启动白屏兼容性修复\n\n- 修复因 macOS 12 (Monterey) 系统底层 WebKit 613（Safari < 16.4）不支持 ES2022 Class Static Blocks（`static { ... }` 类静态初始化块）语法导致的桌面端启动白屏（`SyntaxError`）问题。\n- 自动将类静态块语法降级为标准原型链赋值，并注入 `Promise.withResolvers` 原生 Polyfill 兼容垫片。\n- 修复服务端 `READY_MARKUP` 引导脚本调用安全降级，防止低版本内核解析中断。\n- 构建管道与运行时环境自动化检验兼容性，确保 macOS 12.7.6+、最新版 macOS 与 Windows 均可稳定正常渲染。\n\n## 运行时与平台\n\n- 继续内置 `@deepseek-ai/dsh@0.1.1-rc.2`。\n- Release 资产包含签名文件、latest.json 和 SHA256 校验清单。'
           else
             release_notes=$'Release 资产包含签名文件、latest.json 和 SHA256 校验清单。'
           fi
