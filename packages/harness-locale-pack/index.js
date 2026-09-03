@@ -1,7 +1,6 @@
 /**
  * index.js — harness-locale-pack Host 侧入口
  */
-import { settingsNamespace } from "@deepseek-ai/dsh-settings";
 import z from "@deepseek-ai/schemastery";
 
 export const name = "harness-locale-pack";
@@ -20,7 +19,7 @@ const LocaleSettingsSchema = z.object({
 
 export function apply(ctx) {
   try {
-    ctx.settings.register(settingsNamespace("locale"), LocaleSettingsSchema);
+    ctx.settings?.register("locale", LocaleSettingsSchema);
   } catch (e) {
     // 兼容重复注册
   }

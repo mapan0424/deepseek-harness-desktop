@@ -216,8 +216,13 @@ fn append_log(log: &Arc<Mutex<String>>, line: &str) {
     if let Ok(mut current) = log.lock() {
         current.push_str(line);
         if current.len() > 8_192 {
-            let trim_at = current.len() - 8_192;
-            current.drain(..trim_at);
+            let mut trim_at = current.len() - 8_192;
+            while trim_at < current.len() && !current.is_char_boundary(trim_at) {
+                trim_at += 1;
+            }
+            if trim_at < current.len() {
+                current.drain(..trim_at);
+            }
         }
     }
 }
