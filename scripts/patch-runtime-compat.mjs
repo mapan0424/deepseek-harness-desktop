@@ -36,8 +36,52 @@ export async function patchRuntimeCompatibility(runtimeRoot) {
     );
   }
   await patchExactFile(matches[0].path, bundleOld, bundleNew, "prebuilt GFM email autolink");
+  await patchFrontendWindowControls(runtimeRoot);
   await verifyRuntimeCompatibility(runtimeRoot);
   console.log(`Patched macOS 12.7.6 GFM email autolink compatibility: ${matches[0].path}`);
+}
+
+export async function patchFrontendWindowControls(runtimeRoot) {
+  const indexPath = join(runtimeRoot, "node_modules", "@deepseek-ai", "dsh-web-frontend", "dist", "index.html");
+  if (!existsSync(indexPath)) return;
+  const html = await readFile(indexPath, "utf8");
+  if (html.includes("dsh-macos-titlebar-script")) return;
+
+  const snippet = `    <style id="dsh-macos-titlebar-style">
+      [class*="_root"][class*="Sidebar"], [class*="sidebar"], aside, .hHd-Xa_root {
+        padding-top: 10px !important;
+      }
+    </style>
+    <script id="dsh-macos-titlebar-script">
+      if (typeof navigator !== "undefined" && navigator.userAgent.includes("Mac")) {
+        document.addEventListener("mousedown", function(e) {
+          if (e.button === 0 && e.clientY <= 38 && e.clientX >= 76) {
+            var target = e.target;
+            if (!target) return;
+            if (target.closest("button, a, input, textarea, select, [role='button'], [tabindex], [contenteditable='true'], .hi-tab, [data-interactive]")) {
+              return;
+            }
+            fetch("http://127.0.0.1:27891/start-drag", { mode: "no-cors" }).catch(function(){});
+          }
+        }, { capture: true, passive: true });
+
+        document.addEventListener("dblclick", function(e) {
+          if (e.clientY <= 38 && e.clientX >= 76) {
+            var target = e.target;
+            if (!target) return;
+            if (target.closest("button, a, input, textarea, select, [role='button'], [tabindex], [contenteditable='true'], .hi-tab, [data-interactive]")) {
+              return;
+            }
+            fetch("http://127.0.0.1:27891/toggle-maximize", { mode: "no-cors" }).catch(function(){});
+          }
+        }, { capture: true, passive: true });
+      }
+    </script>
+  </head>`;
+
+  const patched = html.replace("</head>", snippet);
+  await writeFile(indexPath, patched, "utf8");
+  console.log(`Patched macOS native titlebar drag & maximize controls: ${indexPath}`);
 }
 
 export async function verifyRuntimeCompatibility(runtimeRoot) {

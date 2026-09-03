@@ -40,7 +40,11 @@ fn start_local_window_controller(app: tauri::AppHandle) {
                 let mut buffer = [0; 512];
                 if let Ok(bytes_read) = stream.read(&mut buffer) {
                     let request = String::from_utf8_lossy(&buffer[..bytes_read]);
-                    if request.contains("toggle-maximize") {
+                    if request.contains("start-drag") {
+                        if let Some(win) = app.get_webview_window("splash") {
+                            let _ = win.start_dragging();
+                        }
+                    } else if request.contains("toggle-maximize") {
                         if let Some(win) = app.get_webview_window("splash") {
                             let _ = win.is_maximized().map(|is_max| {
                                 if is_max {
@@ -57,6 +61,52 @@ fn start_local_window_controller(app: tauri::AppHandle) {
             }
         });
     }
+}
+
+#[cfg(target_os = "macos")]
+const TITLEBAR_INJECT_SCRIPT: &str = r#"
+(function() {
+    if (window.__dsh_titlebar_injected) return;
+    window.__dsh_titlebar_injected = true;
+    var style = document.createElement('style');
+    style.id = 'dsh-macos-titlebar-style';
+    style.textContent = '[class*="_root"][class*="Sidebar"], [class*="sidebar"], aside, .hHd-Xa_root { padding-top: 10px !important; }';
+    (document.head || document.documentElement).appendChild(style);
+
+    document.addEventListener('mousedown', function(e) {
+        if (e.button === 0 && e.clientY <= 38 && e.clientX >= 76) {
+            var target = e.target;
+            if (!target) return;
+            if (target.closest("button, a, input, textarea, select, [role='button'], [tabindex], [contenteditable='true'], .hi-tab, [data-interactive]")) {
+                return;
+            }
+            fetch('http://127.0.0.1:27891/start-drag', { mode: 'no-cors' }).catch(function(){});
+        }
+    }, { capture: true, passive: true });
+
+    document.addEventListener('dblclick', function(e) {
+        if (e.clientY <= 38 && e.clientX >= 76) {
+            var target = e.target;
+            if (!target) return;
+            if (target.closest("button, a, input, textarea, select, [role='button'], [tabindex], [contenteditable='true'], .hi-tab, [data-interactive]")) {
+                return;
+            }
+            fetch('http://127.0.0.1:27891/toggle-maximize', { mode: 'no-cors' }).catch(function(){});
+        }
+    }, { capture: true, passive: true });
+})();
+"#;
+
+#[cfg(target_os = "macos")]
+fn inject_titlebar_controls(window: tauri::WebviewWindow) {
+    std::thread::spawn(move || {
+        for _ in 0..15 {
+            std::thread::sleep(std::time::Duration::from_millis(400));
+            if window.eval(TITLEBAR_INJECT_SCRIPT).is_ok() {
+                break;
+            }
+        }
+    });
 }
 
 fn npx_path() -> String {
@@ -606,6 +656,8 @@ fn open_workspace(
     workspace_window
         .navigate(url)
         .map_err(|error| format!("打开工作台失败：{error}"))?;
+    #[cfg(target_os = "macos")]
+    inject_titlebar_controls(workspace_window.clone());
     if window.label() == "recovery" && workspace_window.label() != "recovery" {
         let _ = window.hide();
         let _ = window.eval("window.location.reload()");
@@ -983,6 +1035,8 @@ fn start_dsh_supervisor(app: tauri::AppHandle) {
             if let Some(window) = window {
                 if let Ok(url) = format!("http://127.0.0.1:{active_port}").parse() {
                     let _ = window.navigate(url);
+                    #[cfg(target_os = "macos")]
+                    inject_titlebar_controls(window.clone());
                 }
             }
         } else if !state.quitting.load(Ordering::SeqCst) {
@@ -1765,15 +1819,6 @@ pub fn run() {
             tray_summary: Mutex::new(None),
         })
         .setup(|app| {
-            #[cfg(target_os = "macos")]
-            if let Some(splash_win) = app.get_webview_window("splash") {
-                if let Ok(ns_win) = splash_win.ns_window() {
-                    unsafe {
-                        let obj = ns_win as *mut objc2::runtime::AnyObject;
-                        let _: () = objc2::msg_send![obj, setMovableByWindowBackground: true];
-                    }
-                }
-            }
             setup_tray(app.handle())?;
             setup_recovery_window(app.handle())?;
             setup_insights_panel(app.handle())?;
