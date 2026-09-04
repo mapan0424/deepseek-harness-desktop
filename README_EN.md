@@ -51,20 +51,28 @@ This is not a reduced chat wrapper. It hosts the DeepSeek Harness Web UI directl
 - tool calls and approval flows
 - model, credential, and plugin configuration
 - an experience that can evolve with upstream Harness
-- bundled **Harness Insights** for local Token, model, and tool usage analytics
-- bundled messaging channels: visual configuration, Feishu / Lark, and iMessage on macOS
+- bundled **Harness Insights** for local Token, model, and tool usage analytics with Golden Ratio heatmap and dual themes
+- bundled **omnichannel messaging gateways**: visual configuration, Feishu / Lark, WeChat Work / WeCom, and iMessage on macOS
+- bundled **multi-language and ethnic locale pack**: seamless switching across Tibetan, Mongolian, Uyghur, Nuosu Yi, Traditional Chinese, Japanese, Korean, etc.
 
-The desktop layer does not reinvent Harness. It makes Harness feel at home on desktop systems. Harness Insights is developed as an independent Cordis plugin, kept separate from upstream source, and delivered inside the same installer.
+The desktop layer does not reinvent Harness. It makes Harness feel at home on desktop systems. Built-in plugins are developed as modular Cordis plugins, decoupled from upstream source, and delivered out-of-the-box inside the installer.
 
 ### Messaging channels
 
 The installer includes the validated channel plugins. After launching Harness, configure them from the **Message Channels** settings page:
 
-- **Visual configuration** for channel parameters, authorization state, and sessions;
-- **Feishu / Lark** after configuring an enterprise custom app;
+- **Visual configuration** for unified channel parameters, authorization state, default workspaces, and session routing;
+- **Feishu / Lark** with WebSocket long-connection events and Open API card/text streaming replies;
+- **WeChat Work / WeCom** with custom application credentials for bi-directional messaging with local Harness agents;
 - **iMessage** on macOS, including the local Messages/chat.db mode. The first use requires Full Disk Access and Automation permissions.
 
 The Windows installer does not ship the iMessage plugin, and iMessage is hidden from its configuration page because Messages.app is macOS-only.
+
+### 🌐 Multi-language & Ethnic Locales (Locale Pack)
+
+The desktop app comes pre-packaged with a powerful localization pack that supports instant UI language switching in Settings:
+- **Ethnic Minority Languages**: Tibetan (བོད་ཡིག), Traditional Mongolian (ᠮᠣᠩᠭᠣᠯ ᠬᠡᠯᠡ), Uyghur (ئۇيغۇرچە), Nuosu Yi (ꆈꌠꉙ);
+- **Global & Regional Languages**: Traditional Chinese (繁體中文), Japanese (日本語), Korean (한국어), French (Français), German (Deutsch), Russian (Русский), Spanish (Español), and English.
 
 ### A proper Mac app
 
@@ -139,15 +147,19 @@ Starting with `v0.2.0`, an installed desktop app checks GitHub Releases after st
 
 ```text
 DeepSeek Harness.app
-├── Native macOS window
+├── Native macOS / Windows window & system tray
 ├── Rust / Tauri desktop layer
 │   ├── Starts the embedded runtime
-│   ├── Selects a local port
+│   ├── Selects local port with automatic recovery
 │   ├── Waits for the service to become ready
 │   └── Manages process lifecycle
-├── Official Node.js
-├── DeepSeek Harness
-└── macOS system WebView
+├── Official Node.js runtime
+├── DeepSeek Harness core (Agent / Session / LLM)
+├── Bundled plugins matrix (Cordis Plugins)
+│   ├── Harness Insights (Token / model usage analytics)
+│   ├── Harness Channels (Feishu / WeCom / iMessage / Settings UI)
+│   └── Harness Locale Pack (Multi-language & ethnic locales)
+└── System WebView
     └── Harness Web UI
 ```
 
@@ -252,7 +264,8 @@ This is an independent community project. It is not an official DeepSeek product
 
 ## 🔗 Related projects
 
-- [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)
+- [DeepSeek Harness (Upstream Core)](https://github.com/deepseek-ai/deepseek-harness)
+- [DeepSeek Harness Plugins (Plugins Matrix)](https://github.com/mapan0424/deepseek-harness-plugins)
 - [DeepSeek Harness website](https://deepseek.com/harness)
 
 ## 🌐 Friendly links

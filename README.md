@@ -51,20 +51,28 @@
 - 工具调用与审批流程
 - 模型、凭据和插件配置
 - Harness 上游持续演进的交互体验
-- 内置 **Harness Insights**：本地 Token、模型和工具使用洞察
-- 内置消息通道：可视化配置、飞书 / Lark，以及 macOS 上的 iMessage
+- 内置 **Harness Insights**：本地 Token、模型和工具使用洞察，支持 Golden Ratio 活跃热力图与双主题
+- 内置**全渠道消息网关**：可视化配置、飞书 / Lark、企业微信 / WeCom，以及 macOS 上的 iMessage
+- 内置**多语言与民族语言包**：支持藏文、传统蒙古文、维吾尔文、凉山彝文、繁体中文、日文、韩文等无缝即时切换
 
-桌面层不重复发明 Harness，而是让它在桌面系统上运行得更自然。Harness Insights 以独立 Cordis 插件开发，与上游源码分离，但随安装包统一交付。
+桌面层不重复发明 Harness，而是让它在桌面系统上运行得更自然。内置插件以独立 Cordis 架构开发，与上游源码解耦，随安装包统一开箱交付。
 
 ### 消息通道
 
 安装包会预置已验证的消息通道插件，打开 Harness 后可在设置中的“消息通道”页面直接配置：
 
-- **可视化配置**：统一管理通道参数、授权状态和会话状态；
-- **飞书 / Lark**：配置企业自建应用后即可接收和发送消息；
+- **可视化配置**：统一管理通道参数、授权状态、默认工作区和会话状态；
+- **飞书 / Lark**：配置企业自建应用后，支持 WebSocket 长连接实时接收事件与开放 API 卡片/文本流式回复；
+- **企业微信 / WeCom**：配置自建应用凭据后，即可将企业微信对话与本地 Harness 智能体无缝打通；
 - **iMessage**：仅 macOS 提供，支持本地 Messages/chat.db 模式；首次使用需要授予完全磁盘访问和自动化权限。
 
 Windows 安装包不会携带 iMessage 插件，配置页面也不会显示 iMessage，避免出现不可用入口。
+
+### 🌐 多语言与民族语言支持 (Locale Pack)
+
+客户端预置了强大的本地化语言包，支持在设置中即时切换显示语言，包含：
+- **少数民族语言**：藏文 (བོད་ཡིག)、传统蒙古文 (ᠮᠣᠩᠭᠣᠯ ᠬᠡᠯᠡ)、维吾尔文 (ئۇيغۇرچە)、凉山彝文 (ꆈꌠꉙ)；
+- **多国与地区语言**：繁体中文 (繁體中文)、日文 (日本語)、韩文 (한국어)、法文 (Français)、德文 (Deutsch)、俄文 (Русский)、西班牙文 (Español) 及英文 (English)。
 
 ### 更像一个真正的 Mac App
 
@@ -139,15 +147,19 @@ MSI 主要用于企业或批量部署。Windows 10/11 通常已内置应用所�
 
 ```text
 DeepSeek Harness.app
-├── 原生 macOS 窗口
+├── 原生 macOS / Windows 窗口与系统托盘
 ├── Rust / Tauri 桌面层
 │   ├── 启动内置运行时
-│   ├── 选择本地端口
+│   ├── 选择本地端口与端口自愈
 │   ├── 等待服务就绪
 │   └── 管理进程生命周期
-├── 官方 Node.js
-├── DeepSeek Harness
-└── macOS 系统 WebView
+├── 官方 Node.js 运行时
+├── DeepSeek Harness 核心 (Agent / Session / LLM)
+├── 内置插件矩阵 (Cordis Plugins)
+│   ├── Harness Insights (Token / 模型用量看板)
+│   ├── Harness Channels (飞书 / 企微 / iMessage / 设置界面)
+│   └── Harness Locale Pack (多语言与民族语言包)
+└── 系统 WebView
     └── Harness Web UI
 ```
 
@@ -252,7 +264,8 @@ pnpm build:windows
 
 ## 🔗 相关项目
 
-- [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)
+- [DeepSeek Harness (上游核心)](https://github.com/deepseek-ai/deepseek-harness)
+- [DeepSeek Harness Plugins (官方与社区插件矩阵)](https://github.com/mapan0424/deepseek-harness-plugins)
 - [DeepSeek Harness 官方网站](https://deepseek.com/harness)
 
 ## 🌐 友情链接 (Links)
