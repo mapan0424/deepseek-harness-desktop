@@ -265,7 +265,7 @@ pnpm build:windows
 ## 🔗 相关项目
 
 - [DeepSeek Harness (上游核心)](https://github.com/deepseek-ai/deepseek-harness)
-- [DeepSeek Harness Plugins (官方与社区插件矩阵)](https://github.com/mapan0424/deepseek-harness-plugins)
+- [DeepSeek Harness Plugins (社区插件矩阵)](https://github.com/mapan0424/deepseek-harness-plugins)
 - [DeepSeek Harness 官方网站](https://deepseek.com/harness)
 
 ## 🌐 友情链接 (Links)

@@ -1,4 +1,4 @@
-# 🧩 DeepSeek Harness Plugins (官方与社区插件矩阵)
+# 🧩 DeepSeek Harness Plugins (社区插件矩阵)
 
 本项目 Monorepo 统一托管和维护面向 **DeepSeek Harness** 的非官方社区插件。
 

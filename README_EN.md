@@ -265,7 +265,7 @@ This is an independent community project. It is not an official DeepSeek product
 ## 🔗 Related projects
 
 - [DeepSeek Harness (Upstream Core)](https://github.com/deepseek-ai/deepseek-harness)
-- [DeepSeek Harness Plugins (Plugins Matrix)](https://github.com/mapan0424/deepseek-harness-plugins)
+- [DeepSeek Harness Plugins (Community Plugins Matrix)](https://github.com/mapan0424/deepseek-harness-plugins)
 - [DeepSeek Harness website](https://deepseek.com/harness)
 
 ## 🌐 Friendly links
