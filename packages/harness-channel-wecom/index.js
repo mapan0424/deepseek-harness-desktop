@@ -27,6 +27,7 @@ export const inject = [
   "sessionPersistence",
   "sessionTitle",
   "tools",
+  "userQuestions",
 ];
 
 export const Config = z.object({
@@ -156,6 +157,11 @@ export function apply(ctx, config) {
 
   new GatewayService(ctx, scope, adapter);
   ctx.effect(() => ctx.typert.register(MANIFEST), "harness-channel-wecom: typert manifest");
+
+  // 包装全局 userQuestions provider：本通道会话的 ask 走企业微信文本提问，GUI 会话仍走弹窗
+  ctx.on("dispose", GatewayCore.wrapGlobalUserQuestions(ctx.userQuestions, log));
+  // 包装全局 approval：本通道会话的沙箱权限申请走企业微信文本确认（1=批准/2=拒绝）
+  ctx.on("dispose", GatewayCore.wrapGlobalApproval(ctx, log));
 
   ctx.on("dispose", () => core.stopListener());
   core.startListener().then(() => log.info("网关监听已启动")).catch((e) => log.error(`启动监听失败 ${e instanceof Error ? e.message : e}`));

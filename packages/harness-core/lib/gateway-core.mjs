@@ -17,7 +17,7 @@
 import { createUserMessage } from "@deepseek-ai/dsh-llm";
 import { SessionId } from "@deepseek-ai/dsh-session";
 import { installModelSelection } from "@deepseek-ai/dsh-agent";
-import { existsSync, statSync, appendFileSync } from "node:fs";
+import { existsSync, statSync, appendFileSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename } from "node:path";
 
@@ -111,15 +111,51 @@ export function extractFilesFromText(text) {
   return { files: unique, text: cleaned.replace(/\n{3,}/g, "\n\n").trim() };
 }
 
+function extractToolDetails(agent, callId) {
+  if (!callId || !agent?.session) return "";
+  try {
+    const session = agent.session;
+    const length = typeof session.seq === "number" ? session.seq : (session.events?.length ?? 0);
+    for (let seq = length - 1; seq >= 0; seq--) {
+      const evt = typeof session.eventAt === "function" ? session.eventAt(seq) : session.events?.[seq];
+      if (evt?.type === "tool/call" && evt.data?.callId === callId) {
+        const rawArgs = evt.data.arguments;
+        if (!rawArgs) break;
+        let parsed = rawArgs;
+        if (typeof rawArgs === "string") {
+          try { parsed = JSON.parse(rawArgs); } catch {}
+        }
+        if (typeof parsed === "object" && parsed !== null) {
+          if (parsed.command) return String(parsed.command);
+          if (parsed.path) return String(parsed.path);
+          if (parsed.query) return String(parsed.query);
+        }
+        return typeof rawArgs === "string" ? rawArgs.slice(0, 200) : JSON.stringify(rawArgs).slice(0, 200);
+      }
+    }
+  } catch {}
+  return "";
+}
+
 export class GatewayCore {
-  /** 所有通道实例的注册表，供全局 userQuestions provider 路由用。 */
-  static _instances = [];
+  /** 所有通道实例的注册表，使用 globalThis 确保跨模块缓存单例，供全局路由使用。 */
+  static get _instances() {
+    if (!globalThis.__DSH_GATEWAY_INSTANCES__) {
+      globalThis.__DSH_GATEWAY_INSTANCES__ = [];
+    }
+    return globalThis.__DSH_GATEWAY_INSTANCES__;
+  }
+  static set _instances(val) {
+    globalThis.__DSH_GATEWAY_INSTANCES__ = val;
+  }
   static registerInstance(core) {
-    GatewayCore._instances.push(core);
+    const list = GatewayCore._instances;
+    if (!list.includes(core)) list.push(core);
   }
   static unregisterInstance(core) {
-    const i = GatewayCore._instances.indexOf(core);
-    if (i >= 0) GatewayCore._instances.splice(i, 1);
+    const list = GatewayCore._instances;
+    const i = list.indexOf(core);
+    if (i >= 0) list.splice(i, 1);
   }
 
   constructor({ tag = "chan", adapter, agents, defaultModel, sessions, agentPresets, workspaceRegistry, sessionPersistence, sessionTitle, log = console, statePath }) {
@@ -143,6 +179,7 @@ export class GatewayCore {
     this._streamSeenSeq = new Map();
     this._deliverChains = new Map();
     this._deliverPending = new Map();
+    this._activeSenderBySession = new Map();
     this._sendChain = Promise.resolve();
     this._typingChain = Promise.resolve();
     this._typingKeepalives = new Map();
@@ -301,21 +338,54 @@ export class GatewayCore {
     return this._parseSingleAnswer(q, answer);
   }
 
-  /** 从 ask 请求的 agent 反查 sender（sessionMap[sender] === agent.session.id）。 */
+  /** 从 ask/approval 请求的 agent 反查 sender。 */
   _senderForSession(request) {
-    const sid = String(request?.agent?.session?.id ?? "");
+    const sid = String(
+      request?.agent?.session?.id ??
+      request?.session?.id ??
+      request?.sessionId ??
+      request?.agent?.id ??
+      ""
+    );
     if (!sid) return "";
+    const active = this._activeSenderBySession?.get(sid);
+    if (active) return active;
     for (const [sender, id] of Object.entries(this.sessionMap)) {
       if (String(id) === sid) return sender;
+    }
+    if (this.statePath && existsSync(this.statePath)) {
+      try {
+        const raw = readFileSync(this.statePath, "utf8");
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === "object") {
+          for (const [sender, id] of Object.entries(parsed)) {
+            this.sessionMap[sender] = id;
+            if (String(id) === sid) return sender;
+          }
+        }
+      } catch {}
     }
     return "";
   }
 
-  /** 判断 sessionId 是否属于本通道（在 sessionMap 中）。 */
+  /** 判断 sessionId 是否属于本通道（在 activeSender、sessionMap 或 statePath 中）。 */
   _isChannelSession(sid) {
     if (!sid) return false;
+    if (this._activeSenderBySession?.has(sid)) return true;
     for (const id of Object.values(this.sessionMap)) {
       if (String(id) === sid) return true;
+    }
+    if (this.statePath && existsSync(this.statePath)) {
+      try {
+        const raw = readFileSync(this.statePath, "utf8");
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === "object") {
+          for (const [k, v] of Object.entries(parsed)) {
+            this.sessionMap[k] = v;
+            if (String(v) === sid) return true;
+          }
+        }
+      } catch {}
     }
     return false;
   }
@@ -344,9 +414,16 @@ export class GatewayCore {
       const origAsk = uq.ask.bind(uq);
       uq._gatewayOriginalAsk = origAsk;
       uq.ask = async function (request) {
-        const sid = String(request?.agent?.session?.id ?? request?.agent?.id ?? "");
+        const sid = String(
+          request?.agent?.session?.id ??
+          request?.session?.id ??
+          request?.sessionId ??
+          request?.agent?.id ??
+          ""
+        );
         const core = GatewayCore._channelForSession(sid);
         if (core) {
+          log?.info?.(`[gateway-core] 拦截通道 [${core.tag}] userQuestions 提问 (sid=${sid})`);
           return core._askChannelQuestion(request);
         }
         return origAsk(request);
@@ -365,7 +442,7 @@ export class GatewayCore {
    * 包装全局 approval 服务（沙箱权限申请等）。
    * 通道会话的审批请求 → 发到通道文本确认（回复 1=批准 / 2=拒绝 / 其他=拒绝）；
    * 其余（GUI 会话）next() 交给 GUI 弹窗。
-   * 注册为 approval/request waterfall 监听器（可与 GUI 共存）。
+   * 注册为 approval/request waterfall 前置拦截监听器（prepend: true 确保优先于 GUI）。
    */
   static wrapGlobalApproval(ctx, log = console) {
     let hasApproval = false;
@@ -382,20 +459,28 @@ export class GatewayCore {
     if (ctx._gatewayApprovalWrapped) return () => {};
     ctx._gatewayApprovalWrapped = true;
     const handler = (req, next) => {
-      const sid = String(req?.agent?.session?.id ?? "");
+      const sid = String(
+        req?.agent?.session?.id ??
+        req?.session?.id ??
+        req?.sessionId ??
+        req?.agent?.id ??
+        ""
+      );
       const core = GatewayCore._channelForSession(sid);
-      if (!core) return next();
-      // 通道会话：发审批确认到通道，等待用户回复
+      if (!core) {
+        return next();
+      }
+      log?.info?.(`[gateway-core] 拦截通道 [${core.tag}] 审批请求 (sid=${sid}) tool=${req?.toolName}`);
       return core._askApproval(req).catch((e) => {
-        log?.warn?.(`[gateway-core] 通道审批失败，回退 GUI: ${e instanceof Error ? e.message : e}`);
+        log?.warn?.(`[gateway-core] 通道 [${core.tag}] 审批失败，回退 GUI: ${e instanceof Error ? e.message : e}`);
         return next();
       });
     };
-    ctx.on("approval/request", handler);
-    log?.info?.("[gateway-core] 已注册全局 approval 路由（通道会话→通道确认，其余→GUI 弹窗）");
+    // 关键：prepend: true，确保优先于 dsh-api-remotes（GUI 弹窗）拦截
+    const disposer = ctx.on("approval/request", handler, true);
+    log?.info?.("[gateway-core] 已注册全局 approval 路由（优先拦截通道会话→通道确认，其余→GUI 弹窗）");
     return () => {
-      // cordis ctx.on 返回 disposer，直接调用即可卸载
-      ctx.off?.("approval/request", handler);
+      disposer?.();
       ctx._gatewayApprovalWrapped = false;
     };
   }
@@ -406,12 +491,18 @@ export class GatewayCore {
     if (!sender) throw new Error("无法确定审批对应的会话");
     const toolName = req.toolName ?? "工具";
     const reason = req.reason ?? "";
-    const text =
-      `🔐 权限申请\n\n` +
-      `${toolName} 请求提升权限：\n` +
-      `${reason || "（无说明）"}\n\n` +
-      `回复 1 = 批准，回复 2 = 拒绝。`;
+    const detail = extractToolDetails(req.agent, req.callId);
+
+    const parts = [`🔐 权限申请\n`];
+    parts.push(`【工具】${toolName}`);
+    if (detail) parts.push(`【操作】${detail}`);
+    if (reason) parts.push(`【原因】${reason}`);
+    parts.push(`\n回复 1 批准，回复 2 拒绝。`);
+
+    const text = parts.join("\n");
     await this.adapter.send(sender, text, { plain: true }).catch((e) => this.log?.warn?.(`[${this.tag}] 审批发送失败: ${e instanceof Error ? e.message : e}`));
+
+    let onAbort;
     const answer = await new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         this._approvalWaiters.delete(sender);
@@ -419,10 +510,30 @@ export class GatewayCore {
       }, this.questionTimeoutMs > 0 ? this.questionTimeoutMs : 10 * 60 * 1000);
       timer.unref?.();
       this._approvalWaiters.set(sender, { resolve, reject, timer });
+
+      if (req.signal) {
+        onAbort = () => {
+          clearTimeout(timer);
+          this._approvalWaiters.delete(sender);
+          resolve("cancelled");
+        };
+        req.signal.addEventListener("abort", onAbort, { once: true });
+      }
       this.log?.info?.(`[${this.tag}] 审批已挂起等待 ${sender}`);
+    }).finally(() => {
+      if (onAbort && req.signal?.removeEventListener) {
+        req.signal.removeEventListener("abort", onAbort);
+      }
     });
-    const t = String(answer ?? "").trim();
-    if (t === "1" || /^(批准|同意|允许|yes|approve|ok|好的|可以)$/i.test(t)) return "allowed-once";
+
+    if (answer === "cancelled") return "cancelled";
+
+    const t = String(answer ?? "").trim().replace(/^@\S+\s*/, "").trim();
+    if (t === "1" || /^(批准|同意|允许|yes|approve|ok|好的|可以)$/i.test(t)) {
+      await this.adapter.send(sender, "✅ 已批准，继续执行任务...").catch(() => {});
+      return "allowed-once";
+    }
+    await this.adapter.send(sender, "❌ 已拒绝该权限申请").catch(() => {});
     return "rejected";
   }
 
@@ -609,7 +720,11 @@ export class GatewayCore {
       this.sessionMap[sender] = id;
       await this.saveState().catch(() => {});
       this.log?.info?.(`[${this.tag}] 新会话 ${id} 绑定 ${sender}`);
+    } else if (this.sessionMap[sender] !== id) {
+      this.sessionMap[sender] = id;
+      await this.saveState().catch(() => {});
     }
+    this._activeSenderBySession.set(id, sender);
 
     const setup = await this.composeSetup(void 0);
     // 会话归属：live agent 直接复用；持久化会话 resume；都没有才 create 新 agent。
@@ -692,6 +807,7 @@ export class GatewayCore {
     } finally {
       if (streamPoller !== null) clearInterval(streamPoller);
       this._streamSeenSeq.delete(id);
+      this._activeSenderBySession.delete(id);
       await this.stopTyping(sender).catch(() => {});
     }
   }
