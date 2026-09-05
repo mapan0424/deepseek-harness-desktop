@@ -149,6 +149,7 @@ export function apply(ctx, config) {
   const core = new GatewayCore({
     tag: "im",
     adapter,
+    context: ctx,
     agents: ctx.get("agents"),
     defaultModel: ctx.get("agentDefaultModel"),
     sessions: ctx.get("sessions"),

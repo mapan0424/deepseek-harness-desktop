@@ -143,6 +143,7 @@ export function apply(ctx, config) {
   const core = new GatewayCore({
     tag: "wecom",
     adapter,
+    context: ctx,
     agents: ctx.get("agents"),
     defaultModel: ctx.get("agentDefaultModel"),
     sessions: ctx.get("sessions"),

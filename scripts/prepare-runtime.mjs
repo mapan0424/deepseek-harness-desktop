@@ -6,6 +6,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { pipeline } from "node:stream/promises";
 import { patchRuntimeCompatibility } from "./patch-runtime-compat.mjs";
+import { assertDshReleasePublished } from "./assert-dsh-release.mjs";
 import { installBundledPlugins } from "./install-bundled-plugins.mjs";
 import { bundledPnpmVersion, materializeBundledPnpmLauncher, pruneBundledPnpmNativeModules, verifyBundledPnpm } from "./bundled-pnpm.mjs";
 
@@ -13,7 +14,7 @@ const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const resourcesRoot = join(projectRoot, "src-tauri", "resources");
 const runtimeRoot = join(resourcesRoot, "dsh-runtime");
 const cacheRoot = join(resourcesRoot, ".cache");
-const dshVersion = "0.1.2-rc.1";
+const dshVersion = "0.1.3-alpha.1";
 const nodeVersion = process.env.ARM_NODE_VERSION || "22.23.2";
 const nodeArch = "arm64";
 const nodeTarballName = `node-v${nodeVersion}-darwin-${nodeArch}.tar.gz`;
@@ -23,6 +24,7 @@ const nodeExtractRoot = join(cacheRoot, `node-v${nodeVersion}-darwin-${nodeArch}
 const officialNode = join(nodeExtractRoot, "bin", "node");
 const officialLicense = join(nodeExtractRoot, "LICENSE");
 
+await assertDshReleasePublished(dshVersion);
 await mkdir(cacheRoot, { recursive: true });
 await downloadAndVerifyOfficialNode();
 assertArchitecture(officialNode, "arm64");

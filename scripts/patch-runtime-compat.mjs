@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { readFile, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
-const expectedFrontendVersions = ["0.1.2-alpha.5", "0.1.2-rc.1"];
+const expectedFrontendVersions = ["0.1.3-alpha.1"];
 
 // 0.1.2-alpha.x / 0.1.2-rc.x ships the GFM email autolink as a regex literal (not `new RegExp("...")`).
 // macOS 12.7.6 WebKit rejects the lookbehind + Unicode property escapes, so drop the
@@ -148,7 +148,7 @@ export async function patchFrontendClassStaticBlocks(runtimeRoot) {
   }
 }
 
-const promiseWithResolversPolyfill = `    <script>
+const promiseWithResolversPolyfill = `    <script id="dsh-promise-with-resolvers-polyfill">
       if (typeof Promise !== "undefined" && !Promise.withResolvers) {
         Promise.withResolvers = function() {
           var resolve, reject;
@@ -165,7 +165,7 @@ export async function patchFrontendPromiseWithResolvers(runtimeRoot) {
   const indexPath = join(runtimeRoot, "node_modules", "@deepseek-ai", "dsh-web-frontend", "dist", "index.html");
   if (!existsSync(indexPath)) return;
   const html = await readFile(indexPath, "utf8");
-  if (html.includes("Promise.withResolvers")) return;
+  if (html.includes('id="dsh-promise-with-resolvers-polyfill"')) return;
 
   const patched = html.replace(/<head(?:\s[^>]*)?>/i, (match) => `${match}\n${promiseWithResolversPolyfill}`);
   await writeFile(indexPath, patched, "utf8");
@@ -227,7 +227,7 @@ export async function verifyRuntimeCompatibility(runtimeRoot) {
   if (/mousedown[\s\S]{0,400}start-drag/.test(index) && !index.includes("pendingDrag")) {
     throw new Error("macOS titlebar mousedown still starts a drag immediately and will steal dblclick");
   }
-  if (!index.includes("Promise.withResolvers")) {
+  if (!index.includes('id="dsh-promise-with-resolvers-polyfill"')) {
     throw new Error("index.html is missing Promise.withResolvers polyfill for macOS 12.7.6 WebKit");
   }
 
@@ -343,4 +343,3 @@ export async function patchLocalConnectionAuth(runtimeRoot) {
   await writeFile(connectionPath, patched, "utf8");
   console.log(`Patched desktop loopback auto-authentication: ${connectionPath}`);
 }
-

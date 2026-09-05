@@ -122,7 +122,7 @@ export class GatewayCore {
     if (i >= 0) GatewayCore._instances.splice(i, 1);
   }
 
-  constructor({ tag = "chan", adapter, agents, defaultModel, sessions, agentPresets, workspaceRegistry, sessionPersistence, sessionTitle, log = console, statePath }) {
+  constructor({ tag = "chan", adapter, agents, defaultModel, sessions, agentPresets, workspaceRegistry, sessionPersistence, sessionTitle, log = console, statePath, context }) {
     this.tag = tag;
     this.adapter = adapter;
     this.agents = agents;
@@ -141,6 +141,9 @@ export class GatewayCore {
     this.toolCallReplies = true;
     this.stepTimeoutSec = 0;
     this._streamSeenSeq = new Map();
+    this._streamSentCountBySession = new Map();
+    this._assistantStreamBuffers = new Map();
+    this._assistantStreamDisposer = null;
     this._deliverChains = new Map();
     this._deliverPending = new Map();
     this._sendChain = Promise.resolve();
@@ -152,6 +155,18 @@ export class GatewayCore {
     this._disposed = false;
     // 绑定适配器 handler
     this._onInbound = (msg) => this._handleInbound(msg);
+    // DSH 0.1.3 moved live assistant chunks out of the durable Session log.
+    // Keep the listener optional so the same plugin remains usable with older
+    // runtimes, where the existing Session polling path is still authoritative.
+    if (context?.on) {
+      try {
+        this._assistantStreamDisposer = context.on("agent/assistant-stream", (payload) => {
+          this._handleAssistantStream(payload);
+        });
+      } catch (e) {
+        this.log?.debug?.(`[${this.tag}] agent/assistant-stream 不可用，使用 Session 事件回退: ${e instanceof Error ? e.message : e}`);
+      }
+    }
     GatewayCore.registerInstance(this);
   }
 
@@ -513,6 +528,10 @@ export class GatewayCore {
     this._deliverChains.clear();
     this._deliverPending.clear();
     this._streamSeenSeq.clear();
+    this._streamSentCountBySession.clear();
+    this._assistantStreamDisposer?.();
+    this._assistantStreamDisposer = null;
+    this._assistantStreamBuffers.clear();
   }
 
   // ── 入站处理 ────────────────────────────────────────────────────────────
@@ -642,7 +661,7 @@ export class GatewayCore {
 
     this.startTyping(sender).catch(() => {});
 
-    this._streamSentCount = 0;
+    this._streamSentCountBySession.set(id, 0);
     let streamPoller = null;
     const session = agent.session;
     const initialSeq = typeof session?.seq === "number" ? session.seq : (session?.events?.length ?? 0);
@@ -677,10 +696,11 @@ export class GatewayCore {
         } catch {}
       }
       const { text } = summarizeReply(agent.session, firstSeq);
-      debugLog(this.tag, `_deliver finished: id=${id} reply=${text?.length ?? 0}字 text="${String(text).slice(0, 60)}" sentCount=${this._streamSentCount}`);
-      this.log?.info?.(`[${this.tag}] deliver 完成 id=${id} reply=${text?.length ?? 0}字 stream=${this.streamReplies} sentCount=${this._streamSentCount}`);
+      const streamSentCount = this._streamSentCountBySession.get(id) ?? 0;
+      debugLog(this.tag, `_deliver finished: id=${id} reply=${text?.length ?? 0}字 text="${String(text).slice(0, 60)}" sentCount=${streamSentCount}`);
+      this.log?.info?.(`[${this.tag}] deliver 完成 id=${id} reply=${text?.length ?? 0}字 stream=${this.streamReplies} sentCount=${streamSentCount}`);
       // 双重保障：若流式开启但期间因故未发出任何回复，回退给外层兜底发送完整文本
-      if (this.streamReplies && (!this._streamSentCount || this._streamSentCount === 0) && text) {
+      if (this.streamReplies && streamSentCount === 0 && text) {
         debugLog(this.tag, `_deliver: stream missed, fallback to full text: ${text.slice(0, 60)}`);
         this.log?.info?.(`[${this.tag}] 流式未命中任何分片，自动转为全量兜底发送`);
         return text;
@@ -692,6 +712,7 @@ export class GatewayCore {
     } finally {
       if (streamPoller !== null) clearInterval(streamPoller);
       this._streamSeenSeq.delete(id);
+      this._streamSentCountBySession.delete(id);
       await this.stopTyping(sender).catch(() => {});
     }
   }
@@ -710,7 +731,11 @@ export class GatewayCore {
       const evt = typeof session.eventAt === "function" ? session.eventAt(seq) : session.events?.[seq];
       if (!evt) continue;
       if (evt.type === "assistant/message" && this.streamReplies) {
-        this._streamSentCount = (this._streamSentCount || 0) + 1;
+        // In DSH 0.1.3 this is the durable settlement after live chunks have
+        // already been delivered through agent/assistant-stream. Sending it
+        // again would duplicate the reply on external channels.
+        if ((this._streamSentCountBySession.get(key) ?? 0) > 0) continue;
+        this._streamSentCountBySession.set(key, (this._streamSentCountBySession.get(key) ?? 0) + 1);
         this._sendReply(sender, evt);
       } else if (evt.type === "tool/call" && this.toolCallReplies) {
         this._sendToolCall(sender, evt);
@@ -718,6 +743,57 @@ export class GatewayCore {
       if (typeof evt.seq === "number" && evt.seq > max) max = evt.seq;
     }
     this._streamSeenSeq.set(key, Math.max(max, currentSeq));
+  }
+
+  /**
+   * Consume DSH 0.1.3's process-local assistant stream. The durable session
+   * now receives only the final settlement, so polling it cannot provide
+   * incremental channel replies anymore.
+   */
+  _handleAssistantStream(payload) {
+    const agent = payload?.agent;
+    const sessionId = String(agent?.session?.id ?? agent?.id ?? "");
+    if (!sessionId || !this._isChannelSession(sessionId)) return;
+
+    const frame = payload?.frame;
+    if (!frame || typeof frame !== "object") return;
+    const attemptId = String(frame.attemptId ?? "");
+    if (!attemptId) return;
+    const key = `${sessionId}:${attemptId}`;
+
+    if (frame.type === "chunk") {
+      if (!this.streamReplies) return;
+      const chunk = frame.chunk;
+      if (chunk?.type !== "text-delta" || typeof chunk.text !== "string" || chunk.text === "") return;
+      const entry = this._assistantStreamBuffers.get(key) ?? { sender: null, text: "" };
+      entry.sender = this._senderForSession({ agent });
+      if (!entry.sender) return;
+      entry.text += chunk.text;
+      this._assistantStreamBuffers.set(key, entry);
+      this._streamSentCountBySession.set(sessionId, (this._streamSentCountBySession.get(sessionId) ?? 0) + 1);
+      return;
+    }
+
+    if (frame.type === "end") {
+      // Only a committed attempt is a user-visible answer. An abandoned
+      // attempt can contain partial text (for example after Esc/Ctrl+C), but
+      // that prefix must not leak to external channels as a completed reply.
+      if (frame.outcome?.kind === "committed" && frame.outcome.eventType === "assistant/message") {
+        this._flushAssistantStream(key);
+      }
+      this._assistantStreamBuffers.delete(key);
+    }
+  }
+
+  _flushAssistantStream(key) {
+    const entry = this._assistantStreamBuffers.get(key);
+    if (!entry || !entry.text || !entry.sender) return;
+    const text = entry.text;
+    entry.text = "";
+    this.log?.info?.(`[${this.tag}] 流式发送 ${text.length}字 给 ${entry.sender}`);
+    this._sendChain = this._sendChain
+      .then(() => this.adapter.send(entry.sender, text))
+      .catch((e) => this.log?.warn?.(`[${this.tag}] 流式发送失败: ${e instanceof Error ? e.message : e}`));
   }
 
   _extractMessageText(evt) {

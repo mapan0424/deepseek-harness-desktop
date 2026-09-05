@@ -6,6 +6,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { pipeline } from "node:stream/promises";
 import { patchRuntimeCompatibility } from "./patch-runtime-compat.mjs";
+import { assertDshReleasePublished } from "./assert-dsh-release.mjs";
 import { installBundledPlugins } from "./install-bundled-plugins.mjs";
 import { bundledPnpmVersion, materializeBundledPnpmLauncher, pruneBundledPnpmNativeModules, verifyBundledPnpm } from "./bundled-pnpm.mjs";
 
@@ -13,7 +14,7 @@ const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const resourcesRoot = join(projectRoot, "src-tauri", "resources");
 const runtimeRoot = join(resourcesRoot, "dsh-runtime");
 const cacheRoot = join(resourcesRoot, ".cache");
-const dshVersion = "0.1.2-rc.1";
+const dshVersion = "0.1.3-alpha.1";
 const nodeVersion = process.env.WINDOWS_NODE_VERSION || "22.23.2";
 const nodeArchiveName = `node-v${nodeVersion}-win-x64.zip`;
 const nodeBaseUrl = `https://nodejs.org/dist/v${nodeVersion}`;
@@ -27,6 +28,7 @@ if (process.platform !== "win32" || process.arch !== "x64") {
   throw new Error("Windows runtime must be prepared on a native Windows x64 runner.");
 }
 
+await assertDshReleasePublished(dshVersion);
 await mkdir(cacheRoot, { recursive: true });
 await downloadAndVerifyOfficialNode();
 assertPeX64(officialNode);
