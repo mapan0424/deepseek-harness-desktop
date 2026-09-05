@@ -60,11 +60,16 @@ window.__ModuleLoader__.load({
         wecomLabel: "企业微信",
         wecomDesc: "企业微信智能机器人长连接模式，出站直连企微网关，无需公网 IP 与回调加解密。",
         wecomGuide: "在企业微信管理后台 → 工作台 → 智能机器人 → API 模式创建机器人，连接方式选择「使用长连接」，获取 Bot ID 与 Secret，并确保可见范围包含使用成员。",
+        dingtalkLabel: "钉钉",
+        dingtalkDesc: "钉钉企业内部应用与智能机器人，支持 Stream 长连接推送与 Markdown 消息渲染。",
+        dingtalkGuide: "登录钉钉开发者后台 (open-dev.dingtalk.com) 创建企业内部应用，开启机器人功能并配置 Stream 模式，获取 Client ID (AppKey) 与 Client Secret。",
         imessageLabel: "iMessage",
         imessageDesc: "macOS 原生 AppleScript + chat.db 监听，支持本地直连无中转收发 iMessage 短信。",
         imessageGuide: "利用 macOS 本地信息数据库与 AppleScript 直接与系统「信息」应用协同，数据完全保存在本机。",
         fieldAppId: "App ID (应用唯一标识)",
         fieldAppSecret: "App Secret (应用密钥)",
+        fieldAppKey: "Client ID (AppKey)",
+        fieldDingtalkSecret: "Client Secret (应用密钥)",
         fieldBotId: "Bot ID (机器人唯一标识)",
         fieldWecomSecret: "Secret (长连接专用密钥)",
         fieldVerifyToken: "Verification Token (事件校验，选填)",
@@ -79,6 +84,7 @@ window.__ModuleLoader__.load({
         summaryWorkspace: "工作空间",
         summaryNotConfigured: "未配置 App ID",
         summaryNotConfiguredWecom: "未配置 Bot ID",
+        summaryNotConfiguredDingtalk: "未配置 AppKey",
         summaryModeLocal: "本地原生直连 (chat.db)",
         imessageAuthTitle: "iMessage 需要 macOS 授权",
         imessageAuthDatabaseDenied: "未获得 chat.db 读取权限",
@@ -122,11 +128,16 @@ window.__ModuleLoader__.load({
         wecomLabel: "WeCom",
         wecomDesc: "WeCom intelligent bot WebSocket long-connection mode for outbound direct connect without public IP or encryption keys.",
         wecomGuide: "Go to WeCom Admin Console → Workbench → Intelligent Bot → API Mode, select 'Long Connection', obtain Bot ID and Secret, and ensure visibility covers the users.",
+        dingtalkLabel: "DingTalk",
+        dingtalkDesc: "DingTalk custom bot with Stream WebSocket long connection mode and Markdown message rendering.",
+        dingtalkGuide: "Log in to DingTalk Developer Console (open-dev.dingtalk.com), create an internal app, enable bot capabilities with Stream mode, and obtain Client ID (AppKey) and Client Secret.",
         imessageLabel: "iMessage",
         imessageDesc: "Native macOS AppleScript + chat.db listener for direct, local message dispatch without third-party relays.",
         imessageGuide: "Integrates directly with macOS native Messages app via local database and AppleScript, ensuring complete privacy.",
         fieldAppId: "App ID",
         fieldAppSecret: "App Secret",
+        fieldAppKey: "Client ID (AppKey)",
+        fieldDingtalkSecret: "Client Secret",
         fieldBotId: "Bot ID",
         fieldWecomSecret: "Secret",
         fieldVerifyToken: "Verification Token (Optional)",
@@ -141,6 +152,7 @@ window.__ModuleLoader__.load({
         summaryWorkspace: "Workspace",
         summaryNotConfigured: "App ID not configured",
         summaryNotConfiguredWecom: "Bot ID not configured",
+        summaryNotConfiguredDingtalk: "AppKey not configured",
         summaryModeLocal: "Local Native (chat.db)",
         imessageAuthTitle: "iMessage requires macOS authorization",
         imessageAuthDatabaseDenied: "chat.db read access is not granted",
@@ -946,6 +958,14 @@ window.__ModuleLoader__.load({
               d: "M12 4.6C7.36 4.6 3.6 7.88 3.6 11.95C3.6 14.3 4.88 16.4 6.84 17.68C6.54 18.75 5.86 19.7 4.78 20.25C6.46 20.35 8.2 19.85 9.5 18.98C10.28 19.26 11.12 19.42 12 19.42C16.64 19.42 20.4 16.14 20.4 12.07C20.4 8 16.64 4.6 12 4.6Z",
             }),
           );
+        case "dingtalk":
+          return React.createElement("svg", { width: size, height: size, viewBox: "0 0 24 24", fill: "none" },
+            React.createElement("rect", { width: "24", height: "24", rx: "5.5", fill: color || "#007FFF" }),
+            React.createElement("path", {
+              d: "M16.5 5.5L8.5 12.8H12.2L7.5 18.5L14.8 11.8H11.2L16.5 5.5Z",
+              fill: "#FFFFFF",
+            })
+          );
         case "whatsapp":
           return React.createElement("svg", { width: size, height: size, viewBox: "0 0 24 24", fill: "none" },
             React.createElement("path", { d: "M12 2C6.48 2 2 6.48 2 12C2 13.85 2.5 15.58 3.38 17.07L2.1 21.8L6.96 20.55C8.4 21.46 10.13 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM16.63 15.71C16.44 16.25 15.68 16.69 15.08 16.82C14.67 16.91 14.13 16.97 12.32 16.22C10.01 15.26 8.52 12.92 8.4 12.77C8.29 12.62 7.48 11.54 7.48 10.42C7.48 9.3 8.05 8.75 8.28 8.51C8.47 8.31 8.78 8.23 9.07 8.23C9.17 8.23 9.25 8.23 9.33 8.24C9.56 8.25 9.68 8.26 9.83 8.62C10.02 9.08 10.48 10.2 10.53 10.32C10.59 10.44 10.65 10.59 10.57 10.74C10.49 10.9 10.43 10.98 10.31 11.12C10.19 11.26 10.09 11.36 9.96 11.52C9.82 11.67 9.68 11.83 9.84 12.1C10 12.37 10.56 13.28 11.38 14.01C12.44 14.95 13.3 15.25 13.61 15.38C13.84 15.48 14.11 15.45 14.28 15.27C14.5 15.03 14.77 14.64 15.05 14.25C15.25 13.97 15.5 13.93 15.77 14.03C16.04 14.13 17.49 14.85 17.79 15C18.09 15.15 18.29 15.22 18.36 15.35C18.43 15.48 18.43 16.03 16.63 15.71Z", fill: color || "#25D366" }),
@@ -1027,6 +1047,21 @@ window.__ModuleLoader__.load({
           ],
         };
       }
+      if (id === "dingtalk") {
+        return {
+          label: t.dingtalkLabel,
+          desc: t.dingtalkDesc,
+          guide: t.dingtalkGuide,
+          color: "#007FFF",
+          fields: [
+            { key: "appKey", label: t.fieldAppKey, type: "text", required: true, placeholder: "dingvh2apcmded6qu4jr" },
+            { key: "appSecret", label: t.fieldDingtalkSecret, type: "password", required: true, placeholder: "Client Secret" },
+            { key: "defaultWorkspace", label: t.fieldWorkspace, type: "text", required: false, placeholder: "~/dsh/default" },
+            { key: "autoReply", label: t.fieldAutoReply, type: "boolean", default: true },
+            { key: "streamReplies", label: t.fieldStreamReplies, type: "boolean", default: true },
+          ],
+        };
+      }
       if (id === "imessage") {
         return {
           label: t.imessageLabel,
@@ -1079,6 +1114,10 @@ window.__ModuleLoader__.load({
         const botIdDisplay = merged.botId ? `Bot ID: ${String(merged.botId).slice(0, 10)}••••` : t.summaryNotConfiguredWecom;
         const ws = merged.defaultWorkspace ? `${t.summaryWorkspace}: ${merged.defaultWorkspace}` : "";
         summaryText = [botIdDisplay, ws].filter(Boolean).join("   •   ");
+      } else if (ch.id === "dingtalk") {
+        const keyDisplay = merged.appKey ? `AppKey: ${String(merged.appKey).slice(0, 10)}••••` : t.summaryNotConfiguredDingtalk;
+        const ws = merged.defaultWorkspace ? `${t.summaryWorkspace}: ${merged.defaultWorkspace}` : "";
+        summaryText = [keyDisplay, ws].filter(Boolean).join("   •   ");
       } else if (ch.id === "imessage") {
         const ws = merged.defaultWorkspace ? `${t.summaryWorkspace}: ${merged.defaultWorkspace}` : "";
         summaryText = [t.summaryModeLocal, ws].filter(Boolean).join("   •   ");

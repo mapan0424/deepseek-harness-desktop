@@ -113,6 +113,7 @@ const CHANNELS = [
   {
     id: "dingtalk",
     label: "钉钉",
+    verified: true,
     section: "dingtalk",
     stateFile: "dingtalk-gateway-state.json",
     color: "#007FFF",
