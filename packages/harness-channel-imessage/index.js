@@ -32,6 +32,7 @@ export const inject = [
   "sessionPersistence",
   "sessionTitle",
   "tools",
+  "userQuestions",
 ];
 
 /** 插件自身 schema：settingsPath（settings.yaml）+ statePath（sender→session 映射）。 */
@@ -163,6 +164,11 @@ export function apply(ctx, config) {
   // 配置 remote（配置页读写）
   new GatewayService(ctx, scope, adapter);
   ctx.effect(() => ctx.typert.register(MANIFEST), "harness-channel-imessage: typert manifest");
+
+  // 包装全局 userQuestions provider：本通道会话的 ask 走 iMessage 文本提问，GUI 会话仍走弹窗
+  ctx.on("dispose", GatewayCore.wrapGlobalUserQuestions(ctx.userQuestions, log));
+  // 包装全局 approval：本通道会话的沙箱权限申请走 iMessage 文本确认（1=批准/2=拒绝）
+  ctx.on("dispose", GatewayCore.wrapGlobalApproval(ctx, log));
 
   // 启动网关监听
   ctx.on("dispose", () => core.stopListener());
