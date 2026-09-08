@@ -189,28 +189,101 @@ export async function patchFrontendClassStaticBlocks(runtimeRoot) {
   }
 }
 
-const promiseWithResolversPolyfill = `    <script>
-      if (typeof Promise !== "undefined" && !Promise.withResolvers) {
-        Promise.withResolvers = function() {
-          var resolve, reject;
-          var promise = new Promise(function(res, rej) {
-            resolve = res;
-            reject = rej;
+const legacyWebKitPolyfills = `    <script id="dsh-legacy-webkit-polyfills">
+      (function() {
+        var root = typeof globalThis !== "undefined" ? globalThis : window;
+        if (typeof Promise !== "undefined" && !Promise.withResolvers) {
+          Promise.withResolvers = function() {
+            var resolve, reject;
+            var promise = new Promise(function(res, rej) {
+              resolve = res;
+              reject = rej;
+            });
+            return { promise: promise, resolve: resolve, reject: reject };
+          };
+        }
+        if (typeof Array !== "undefined" && Array.prototype) {
+          if (!Array.prototype.at) {
+            Object.defineProperty(Array.prototype, "at", {
+              configurable: true,
+              writable: true,
+              value: function(index) {
+                var object = Object(this);
+                var length = object.length >>> 0;
+                var position = Number(index) || 0;
+                if (position < 0) position = length + position;
+                return position < 0 || position >= length ? undefined : object[position];
+              }
+            });
+          }
+          if (!Array.prototype.findLast) {
+            Object.defineProperty(Array.prototype, "findLast", {
+              configurable: true,
+              writable: true,
+              value: function(predicate, thisArg) {
+                var object = Object(this);
+                var length = object.length >>> 0;
+                if (typeof predicate !== "function") throw new TypeError("predicate must be a function");
+                for (var index = length - 1; index >= 0; index--) {
+                  var value = object[index];
+                  if (predicate.call(thisArg, value, index, object)) return value;
+                }
+                return undefined;
+              }
+            });
+          }
+          if (!Array.prototype.findLastIndex) {
+            Object.defineProperty(Array.prototype, "findLastIndex", {
+              configurable: true,
+              writable: true,
+              value: function(predicate, thisArg) {
+                var object = Object(this);
+                var length = object.length >>> 0;
+                if (typeof predicate !== "function") throw new TypeError("predicate must be a function");
+                for (var index = length - 1; index >= 0; index--) {
+                  if (predicate.call(thisArg, object[index], index, object)) return index;
+                }
+                return -1;
+              }
+            });
+          }
+        }
+        if (typeof Object.hasOwn !== "function") {
+          Object.hasOwn = function(object, property) {
+            return Object.prototype.hasOwnProperty.call(Object(object), property);
+          };
+        }
+        if (typeof root.structuredClone !== "function") {
+          root.structuredClone = function(value) {
+            return JSON.parse(JSON.stringify(value));
+          };
+        }
+        if (typeof root.crypto !== "undefined" && !root.crypto.randomUUID && root.crypto.getRandomValues) {
+          Object.defineProperty(root.crypto, "randomUUID", {
+            configurable: true,
+            value: function() {
+              var bytes = new Uint8Array(16);
+              root.crypto.getRandomValues(bytes);
+              bytes[6] = (bytes[6] & 15) | 64;
+              bytes[8] = (bytes[8] & 63) | 128;
+              var hex = "";
+              for (var index = 0; index < bytes.length; index++) hex += (bytes[index] + 256).toString(16).slice(1);
+              return hex.slice(0, 8) + "-" + hex.slice(8, 12) + "-" + hex.slice(12, 16) + "-" + hex.slice(16, 20) + "-" + hex.slice(20);
+            }
           });
-          return { promise: promise, resolve: resolve, reject: reject };
-        };
-      }
+        }
+      })();
     </script>`;
 
 export async function patchFrontendPromiseWithResolvers(runtimeRoot) {
   const indexPath = join(runtimeRoot, "node_modules", "@deepseek-ai", "dsh-web-frontend", "dist", "index.html");
   if (!existsSync(indexPath)) return;
   const html = await readFile(indexPath, "utf8");
-  if (html.includes("Promise.withResolvers")) return;
+  if (html.includes('id="dsh-legacy-webkit-polyfills"')) return;
 
-  const patched = html.replace(/<head(?:\s[^>]*)?>/i, (match) => `${match}\n${promiseWithResolversPolyfill}`);
+  const patched = html.replace(/<head(?:\s[^>]*)?>/i, (match) => `${match}\n${legacyWebKitPolyfills}`);
   await writeFile(indexPath, patched, "utf8");
-  console.log(`Patched macOS 12.7.6 Promise.withResolvers polyfill in index.html: ${indexPath}`);
+  console.log(`Patched legacy WebKit API polyfills in index.html: ${indexPath}`);
 }
 
 export async function patchHostWebserverReadyMarkup(runtimeRoot) {
