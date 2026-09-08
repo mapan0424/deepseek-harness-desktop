@@ -260,13 +260,23 @@ function assertIntelNatives() {
 async function rebuildFsExt(runtimeRoot, targetArch) {
   const fsExtDir = join(runtimeRoot, "node_modules", "fs-ext");
   if (!existsSync(fsExtDir)) return;
+  const nodeBinary = join(fsExtDir, "build", "Release", "fs_ext.node");
+  if (existsSync(nodeBinary)) {
+    try {
+      assertArchitecture(nodeBinary, targetArch === "arm64" ? "arm64" : "x86_64");
+      console.log(`Using the existing ${targetArch} fs-ext prebuild.`);
+      signBinary(nodeBinary);
+      return;
+    } catch {
+      // Fall through to a source rebuild when npm supplied the wrong arch.
+    }
+  }
   console.log(`Rebuilding native module fs-ext for ${targetArch}...`);
   await run("npm", ["rebuild", "fs-ext", "--prefix", runtimeRoot], {
     npm_config_arch: targetArch,
     npm_config_target_arch: targetArch,
     npm_config_platform: "darwin",
   });
-  const nodeBinary = join(fsExtDir, "build", "Release", "fs_ext.node");
   if (!existsSync(nodeBinary)) {
     throw new Error(`fs-ext 编译失败，未生成 ${nodeBinary}`);
   }

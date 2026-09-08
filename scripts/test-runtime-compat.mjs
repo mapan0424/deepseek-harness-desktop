@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
+import { readdir } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 import { join, resolve } from "node:path";
 import { verifyRuntimeCompatibility } from "./patch-runtime-compat.mjs";
@@ -25,6 +27,12 @@ for (const [text, expected] of cases) {
 
 const frontendAssets = join(runtimeRoot, "node_modules", "@deepseek-ai", "dsh-web-frontend", "dist", "assets");
 assert.ok(pathToFileURL(frontendAssets));
+for (const name of await readdir(frontendAssets)) {
+  if (!name.endsWith(".js")) continue;
+  const path = join(frontendAssets, name);
+  const result = spawnSync(process.execPath, ["--check", path], { encoding: "utf8" });
+  assert.equal(result.status, 0, `frontend asset has invalid JavaScript: ${path}\n${result.stderr}`);
+}
 console.log(`Runtime compatibility behavior verified: ${cases.length} Markdown cases.`);
 
 function findEmailAutolinks(value) {

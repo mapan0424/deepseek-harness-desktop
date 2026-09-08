@@ -141,11 +141,24 @@ export async function patchFrontendClassStaticBlocks(runtimeRoot) {
       if (loopMatch) {
         const [full, iterVar, clsVar, argVar] = loopMatch;
         content = content.replace(full, "");
-        const insertPos = content.indexOf("};function", loopMatch.index);
-        if (insertPos !== -1) {
-          const injection = `;for(const ${iterVar} of["error","info","warn","debug"])${clsVar}.prototype[${iterVar}]=function(...${argVar}){return this()[${iterVar}](...${argVar})};`;
-          content = content.slice(0, insertPos + 1) + injection + content.slice(insertPos + 1);
-          changed = true;
+        const classIdx = content.lastIndexOf("class " + clsVar, loopMatch.index);
+        if (classIdx !== -1) {
+          let depth = 0, endIdx = -1;
+          for (let i = classIdx; i < content.length; i++) {
+            if (content[i] === "{") depth++;
+            else if (content[i] === "}") {
+              depth--;
+              if (depth === 0) { endIdx = i; break; }
+            }
+          }
+          const assignment = content.slice(0, classIdx).match(/([A-Za-z0-9_$]+)=\s*$/);
+          if (endIdx !== -1 && assignment) {
+            const assignmentStart = classIdx - assignment[0].length;
+            const classExpression = content.slice(classIdx, endIdx + 1);
+            const wrapped = `${assignment[1]}=((dshClass)=>{for(const ${iterVar} of["error","info","warn","debug"])dshClass.prototype[${iterVar}]=function(...${argVar}){return this()[${iterVar}](...${argVar})};return dshClass})(${classExpression})`;
+            content = content.slice(0, assignmentStart) + wrapped + content.slice(endIdx + 1);
+            changed = true;
+          }
         }
       }
     }
@@ -174,9 +187,19 @@ export async function patchFrontendClassStaticBlocks(runtimeRoot) {
             }
           }
           if (endIdx !== -1) {
-            const injection = `;${clsVar}.is[Symbol.toPrimitive]=()=>Symbol.for("cordis.is");${clsVar}.prototype[${clsVar}.is]=!0;`;
-            content = content.slice(0, endIdx + 1) + injection + content.slice(endIdx + 1);
-            changed = true;
+            // The class is usually one declarator in a shared `var` statement:
+            //   var $e = class cr { ... }, V1 = class ...
+            // Inserting a semicolon after the class leaves the following comma
+            // invalid (`...; , V1 = class`). Wrap the class expression instead
+            // so the surrounding declarator list remains valid JavaScript.
+            const assignment = content.slice(0, cordisClassIdx).match(/([A-Za-z0-9_$]+)=\s*$/);
+            if (assignment) {
+              const assignmentStart = cordisClassIdx - assignment[0].length;
+              const classExpression = content.slice(cordisClassIdx, endIdx + 1);
+              const wrapped = `${assignment[1]}=((dshClass)=>{dshClass.is[Symbol.toPrimitive]=()=>Symbol.for("cordis.is");dshClass.prototype[dshClass.is]=!0;return dshClass})(${classExpression})`;
+              content = content.slice(0, assignmentStart) + wrapped + content.slice(endIdx + 1);
+              changed = true;
+            }
           }
         }
       }
