@@ -348,10 +348,13 @@ function signBinary(file) {
 
 function run(command, args, extraEnv = {}) {
   return new Promise((resolvePromise, reject) => {
+    const env = { ...process.env, ...extraEnv };
+    delete env.npm_config_before;
+    delete env.NPM_CONFIG_BEFORE;
     const child = spawn(command, args, {
       cwd: projectRoot,
       stdio: "inherit",
-      env: { ...process.env, ...extraEnv },
+      env,
     });
     child.once("error", reject);
     child.once("exit", (code) => {
