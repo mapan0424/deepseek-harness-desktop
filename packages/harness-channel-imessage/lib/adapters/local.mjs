@@ -21,6 +21,47 @@ const SEND_SCRIPT = `on run argv
   end tell
 end run`;
 
+/**
+ * Messages.app 只发送纯文本。将 Agent 常用 Markdown 转成适合 iMessage 阅读的文本，
+ * 避免用户看到 **加粗**、`行内代码` 等格式标记；网页端和其他通道仍保留原始 Markdown。
+ */
+export function formatIMessageText(input) {
+  const raw = String(input ?? "").replace(/\r\n?/g, "\n");
+  if (!raw) return "";
+
+  const output = [];
+  let inCodeBlock = false;
+  for (const originalLine of raw.split("\n")) {
+    const line = originalLine.trimEnd();
+    if (/^\s*```/.test(line)) {
+      if (!inCodeBlock) output.push("代码：");
+      inCodeBlock = !inCodeBlock;
+      continue;
+    }
+    if (inCodeBlock) {
+      output.push(line ? `  ${line}` : "");
+      continue;
+    }
+
+    let plain = line
+      .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_, label, url) => label ? `${label}: ${url}` : url)
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, label, url) => `${label} (${url})`)
+      .replace(/^\s{0,3}#{1,6}\s+/, "")
+      .replace(/^\s*>\s?/, "│ ")
+      .replace(/^\s*[-*+]\s+/, "• ")
+      .replace(/~~([^~]+)~~/g, "$1")
+      .replace(/`([^`]+)`/g, "$1")
+      .replace(/\*\*/g, "")
+      .replace(/__/g, "")
+      .replace(/\*([^*\n]+)\*/g, "$1")
+      .replace(/(?<!\w)_([^_\n]+)_(?!\w)/g, "$1")
+      .replace(/<[^>]+>/g, "");
+    output.push(plain);
+  }
+
+  return output.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+
 function friendlyError(error, action) {
   const detail = error instanceof Error ? error.message : String(error);
   return `${action}失败：${detail}。请在“系统设置 → 隐私与安全性”中为 DeepSeek Harness 开启完全磁盘访问；首次发送时允许其自动化控制“信息”。`;
@@ -97,8 +138,9 @@ export class LocalAdapter {
   }
 
   async send(to, text) {
+    const plainText = formatIMessageText(text);
     await new Promise((resolve, reject) => {
-      const child = spawn("/usr/bin/osascript", ["-e", SEND_SCRIPT, to, text], {
+      const child = spawn("/usr/bin/osascript", ["-e", SEND_SCRIPT, to, plainText], {
         stdio: ["ignore", "ignore", "pipe"],
       });
       let stderr = "";

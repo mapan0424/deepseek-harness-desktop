@@ -38,6 +38,18 @@ LocalAdapter
 
 收到消息后，插件会根据 sender 路由到对应工作空间，并由 Harness Agent 自动回复。
 
+## 回复格式
+
+Messages.app 发送的是纯文本，因此插件会在 iMessage 出站前做一次轻量格式转换，保持回复易读：
+
+- 移除 `**加粗**`、`*斜体*`、下划线、删除线和行内代码的 Markdown 标记；
+- 标题转换为普通文本标题；
+- 无序列表转换为 `•` 项目符号；
+- Markdown 链接保留标题和 URL；
+- 代码块显示为“代码：”段落，并保留缩进。
+
+这项转换只作用于 iMessage 出站消息，网页端以及支持富文本的飞书、钉钉等渠道仍使用原有渲染方式。
+
 ## 代码结构
 
 - `index.js` — 注册 `imessage` settings namespace、启动本地网关和 `message_imessage` 工具。

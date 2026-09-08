@@ -27,6 +27,14 @@
 
 <p align="center"><sub>One app containing Harness, official Node.js, and native dependencies for your Mac architecture.</sub></p>
 
+## 🆕 What's new in v0.3.3
+
+- Bundles and verifies the latest community plugin matrix: Config `0.1.7`, Core `0.1.4`, Feishu `0.1.2`, DingTalk `0.1.0`, WeCom `0.1.4`, iMessage `0.1.5`, Insights `0.1.6`, and Locale Pack `0.1.4`.
+- The configuration center now renders installed channels from runtime data, and DingTalk uses matching light/dark official visual assets.
+- iMessage replies are normalized to readable plain text before Messages.app sends them, removing common Markdown markers.
+- Windows bundles continue to exclude iMessage so unsupported entries are not shown.
+- All bundled plugins have been validated locally for configuration, message delivery, and startup.
+
 ## ✨ Why use it
 
 ### Ready out of the box
