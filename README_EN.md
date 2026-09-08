@@ -22,13 +22,12 @@
 </div>
 
 <p align="center">
-  <video controls preload="metadata" width="900" poster="docs/assets/deepseek-harness-macos.png">
-    <source src="docs/assets/deepseek-harness-demo.mp4" type="video/mp4">
-    Your browser does not support video playback. <a href="docs/assets/deepseek-harness-demo.mp4">Download the demo video</a>.
-  </video>
+  <a href="https://github.com/mapan0424/deepseek-harness-desktop/blob/main/docs/assets/deepseek-harness-demo.mp4">
+    <img src="docs/assets/deepseek-harness-macos.png" width="900" alt="Click to play the DeepSeek Harness for macOS product demo">
+  </a>
 </p>
 
-<p align="center"><sub>Product demo · 35 seconds</sub></p>
+<p align="center"><sub>Click the cover to play the product demo · 35 seconds</sub></p>
 
 ## 🆕 What's new in v0.3.3
 

@@ -22,13 +22,12 @@
 </div>
 
 <p align="center">
-  <video controls preload="metadata" width="900" poster="docs/assets/deepseek-harness-macos.png">
-    <source src="docs/assets/deepseek-harness-demo.mp4" type="video/mp4">
-    你的浏览器不支持视频播放，请<a href="docs/assets/deepseek-harness-demo.mp4">下载演示视频</a>。
-  </video>
+  <a href="https://github.com/mapan0424/deepseek-harness-desktop/blob/main/docs/assets/deepseek-harness-demo.mp4">
+    <img src="docs/assets/deepseek-harness-macos.png" width="900" alt="点击播放 DeepSeek Harness for macOS 产品演示视频">
+  </a>
 </p>
 
-<p align="center"><sub>产品演示 · 35 秒</sub></p>
+<p align="center"><sub>点击封面播放产品演示视频 · 35 秒</sub></p>
 
 ## 🆕 v0.3.3 更新内容
 
