@@ -21,7 +21,7 @@
   </p>
 </div>
 
-[![Click to play the DeepSeek Harness for macOS product demo](docs/assets/deepseek-harness-macos.png)](https://github.com/mapan0424/deepseek-harness-desktop/blob/main/docs/assets/deepseek-harness-demo.mp4)
+https://github.com/user-attachments/assets/486eb943-a455-4f56-b009-5fc1e877e812
 
 <p align="center"><sub>Click the cover to play the product demo · 35 seconds</sub></p>
 
