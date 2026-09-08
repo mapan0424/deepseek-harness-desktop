@@ -328,7 +328,6 @@ function count(content, needle) {
 
 const loopbackAuthServe = `\t\tif (this.isAuthenticated(req)) return true;
 \t\t/* dsh-desktop-loopback-auth */
-\t\tconst url = new URL(req.url ?? "/", "http://dsh.invalid");
 \t\tconst isLoopback = req.socket?.remoteAddress === "127.0.0.1" || req.socket?.remoteAddress === "::1" || req.socket?.remoteAddress === "::ffff:127.0.0.1";
 \t\tif (req.method === "GET" && url.pathname === "/" && isLoopback) {
 \t\t\tconst authority = requestAuthority(req.headers) ?? "127.0.0.1";
@@ -348,7 +347,6 @@ const loopbackAuthServe = `\t\tif (this.isAuthenticated(req)) return true;
 
 const loopbackAuthRedirect = `\t\tif (this.isAuthenticated(req)) return true;
 \t\t/* dsh-desktop-loopback-auth */
-\t\tconst url = new URL(req.url ?? "/", "http://dsh.invalid");
 \t\tconst isLoopback = req.socket?.remoteAddress === "127.0.0.1" || req.socket?.remoteAddress === "::1" || req.socket?.remoteAddress === "::ffff:127.0.0.1";
 \t\tif (req.method === "GET" && url.pathname === "/" && isLoopback) {
 \t\t\tconst authority = requestAuthority(req.headers) ?? "127.0.0.1";
@@ -406,4 +404,3 @@ export async function patchDshCliLauncher(runtimeRoot) {
     console.log(`Patched Node.js CLI launcher in dsh bin.js: ${binPath}`);
   }
 }
-
