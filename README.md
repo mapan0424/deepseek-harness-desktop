@@ -21,11 +21,7 @@
   </p>
 </div>
 
-<p align="center">
-  <a href="https://github.com/mapan0424/deepseek-harness-desktop/blob/main/docs/assets/deepseek-harness-demo.mp4">
-    <img src="docs/assets/deepseek-harness-macos.png" width="900" alt="点击播放 DeepSeek Harness for macOS 产品演示视频">
-  </a>
-</p>
+[![点击播放 DeepSeek Harness for macOS 产品演示视频](https://raw.githubusercontent.com/mapan0424/deepseek-harness-desktop/main/docs/assets/deepseek-harness-macos.png)](https://github.com/mapan0424/deepseek-harness-desktop/blob/main/docs/assets/deepseek-harness-demo.mp4)
 
 <p align="center"><sub>点击封面播放产品演示视频 · 35 秒</sub></p>
 

@@ -21,11 +21,7 @@
   </p>
 </div>
 
-<p align="center">
-  <a href="https://github.com/mapan0424/deepseek-harness-desktop/blob/main/docs/assets/deepseek-harness-demo.mp4">
-    <img src="docs/assets/deepseek-harness-macos.png" width="900" alt="Click to play the DeepSeek Harness for macOS product demo">
-  </a>
-</p>
+[![Click to play the DeepSeek Harness for macOS product demo](https://raw.githubusercontent.com/mapan0424/deepseek-harness-desktop/main/docs/assets/deepseek-harness-macos.png)](https://github.com/mapan0424/deepseek-harness-desktop/blob/main/docs/assets/deepseek-harness-demo.mp4)
 
 <p align="center"><sub>Click the cover to play the product demo · 35 seconds</sub></p>
 
