@@ -13,7 +13,7 @@ const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const resourcesRoot = join(projectRoot, "src-tauri", "resources");
 const runtimeRoot = join(resourcesRoot, "dsh-runtime");
 const cacheRoot = join(resourcesRoot, ".cache");
-const dshVersion = "0.1.2-rc.1";
+const dshVersion = "0.1.3-alpha.2";
 const nodeVersion = process.env.ARM_NODE_VERSION || "22.23.2";
 const nodeArch = "arm64";
 const nodeTarballName = `node-v${nodeVersion}-darwin-${nodeArch}.tar.gz`;
@@ -63,6 +63,7 @@ await run("npm", [
   npm_config_platform: "darwin",
 });
 
+await rebuildFsExt(runtimeRoot, nodeArch);
 await patchRuntimeCompatibility(runtimeRoot);
 await installBundledPlugins(runtimeRoot);
 await pruneRuntime();
@@ -187,9 +188,27 @@ function assertRuntimeNatives() {
     join(runtimeRoot, "node_modules", "@img", "sharp-libvips-darwin-arm64"),
     join(runtimeRoot, "node_modules", "@koromix", "koffi-darwin-arm64"),
     join(runtimeRoot, "node_modules", "@vscode", "ripgrep-darwin-arm64"),
+    join(runtimeRoot, "node_modules", "fs-ext", "build", "Release", "fs_ext.node"),
   ];
   const missing = required.filter((path) => !existsSync(path));
   if (missing.length) throw new Error(`ARM 运行时缺少原生模块：\n${missing.join("\n")}`);
+}
+
+async function rebuildFsExt(runtimeRoot, targetArch) {
+  const fsExtDir = join(runtimeRoot, "node_modules", "fs-ext");
+  if (!existsSync(fsExtDir)) return;
+  console.log(`Rebuilding native module fs-ext for ${targetArch}...`);
+  await run("npm", ["rebuild", "fs-ext", "--prefix", runtimeRoot], {
+    npm_config_arch: targetArch,
+    npm_config_target_arch: targetArch,
+    npm_config_platform: "darwin",
+  });
+  const nodeBinary = join(fsExtDir, "build", "Release", "fs_ext.node");
+  if (!existsSync(nodeBinary)) {
+    throw new Error(`fs-ext 编译失败，未生成 ${nodeBinary}`);
+  }
+  assertArchitecture(nodeBinary, targetArch === "arm64" ? "arm64" : "x86_64");
+  signBinary(nodeBinary);
 }
 
 async function installRuntimeLegalFiles() {

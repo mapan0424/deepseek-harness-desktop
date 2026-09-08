@@ -7,7 +7,7 @@ changes those terms.
 
 ## DeepSeek Harness
 
-This distribution embeds `@deepseek-ai/dsh` version `0.1.2-rc.1`.
+This distribution embeds `@deepseek-ai/dsh` version `0.1.3-alpha.2`.
 
 - Project: https://github.com/deepseek-ai/deepseek-harness
 - Package: https://www.npmjs.com/package/@deepseek-ai/dsh

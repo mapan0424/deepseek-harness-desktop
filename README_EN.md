@@ -25,13 +25,13 @@ https://github.com/user-attachments/assets/486eb943-a455-4f56-b009-5fc1e877e812
 
 <p align="center"><sub>Embedded product demo · 35 seconds</sub></p>
 
-## 🆕 What's new in v0.3.3
+## 🆕 What's new in v0.3.4
 
-- Bundles and verifies the latest community plugin matrix: Config `0.1.7`, Core `0.1.4`, Feishu `0.1.2`, DingTalk `0.1.0`, WeCom `0.1.4`, iMessage `0.1.5`, Insights `0.1.6`, and Locale Pack `0.1.4`.
-- The configuration center now renders installed channels from runtime data, and DingTalk uses matching light/dark official visual assets.
-- iMessage replies are normalized to readable plain text before Messages.app sends them, removing common Markdown markers.
-- Windows bundles continue to exclude iMessage so unsupported entries are not shown.
-- All bundled plugins have been validated locally for configuration, message delivery, and startup.
+- Upgraded bundled core runtime to official `@deepseek-ai/dsh@0.1.3-alpha.2`.
+- Supported 0.1.3 session persistence architecture with automated build and codesign for the native C++ `fs-ext` module.
+- Upgraded WebKit Class Static Blocks polyfill with resilient regex matching, ensuring macOS 12 (Monterey) stability.
+- Fixed Node.js CLI launcher silent exit bug and local loopback auto-authentication exception.
+- Aligned the entire community plugin matrix to `^0.1.3-alpha.2` peerDependencies with all compatibility tests passing.
 
 ## ✨ Why use it
 

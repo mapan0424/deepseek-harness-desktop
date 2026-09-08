@@ -8,6 +8,7 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
+.pnpm-store/
 src-tauri/resources/dsh-runtime
 src-tauri/resources/dsh-runtime.tar.gz
 src-tauri/resources/.cache
@@ -26,3 +27,54 @@ release/
 *.njsproj
 *.sln
 *.sw?
+
+# AI assistant configuration folders
+.agents/
+.claude/
+.codebuddy/
+.continue/
+ .devin/
+.grok/
+.hermes/
+.iflow/
+.kiro/
+.pi/
+.qoder/
+.reasonix/
+.trae/
+.windsurf/
+.zcode/
+
+# Event logs and personal data
+tbl*.ndjson
+tbl*.manifest.json
+
+# Generated locale/UI extracts
+dsh_all_ui_phrases.json
+dsh_official_locales.json
+
+# Generated scripts (optional)
+scripts/apply-codex-theme.mjs
+scripts/apply-dual-theme.mjs
+scripts/build-all-ui-dictionaries.mjs
+scripts/build-full-locale-matrix.mjs
+scripts/build-instant-refresh-locale.mjs
+scripts/build-locale-client-full.mjs
+scripts/build-rock-solid-locale.mjs
+scripts/extract-all-official-locales.mjs
+scripts/extract-all-ui-strings.mjs
+scripts/generate-locale-client.mjs
+scripts/merge-all-locales.mjs
+skills-lock.json
+skills/
+
+# Temporary test files and docs
+START_DEV_TESTING.md
+test-all-channels.mjs
+.test-home/
+
+# Generated app store icons (build artifacts)
+src-tauri/icons/64x64.png
+src-tauri/icons/icon-whale-original.icns
+src-tauri/icons/android/
+src-tauri/icons/ios/

@@ -97,9 +97,10 @@ jobs:
           VERSION: ${{ steps.metadata.outputs.version }}
           TAG: ${{ steps.metadata.outputs.tag }}
         run: |
-          notes='修复 macOS 12 Monterey 系统下 WebKit 启动白屏问题，优化老系统兼容性。'
           if [ "$VERSION" = "0.3.3" ]; then
             notes='内置最新版社区插件矩阵，更新渠道配置中心和 iMessage 纯文本回复格式，并完成 macOS / Windows 平台兼容性验证。'
+          elif [ "$VERSION" = "0.3.4" ]; then
+            notes='升级核心运行时至 @deepseek-ai/dsh@0.1.3-alpha.2，适配原生 fs-ext 模块与 WebKit 静态块混淆正则，修复 Node.js CLI 启动。'
           fi
           node scripts/create-updater-manifest.mjs \
             --version "$VERSION" \
@@ -138,6 +139,8 @@ jobs:
             release_notes=$'## macOS 12 Monterey 启动白屏兼容性修复\n\n- 修复因 macOS 12 (Monterey) 系统底层 WebKit 613（Safari < 16.4）不支持 ES2022 Class Static Blocks（`static { ... }` 类静态初始化块）语法导致的桌面端启动白屏（`SyntaxError`）问题。\n- 自动将类静态块语法降级为标准原型链赋值，并注入 `Promise.withResolvers` 原生 Polyfill 兼容垫片。\n- 修复服务端 `READY_MARKUP` 引导脚本调用安全降级，防止低版本内核解析中断。\n- 构建管道与运行时环境自动化检验兼容性，确保 macOS 12.7.6+、最新版 macOS 与 Windows 均可稳定正常渲染。\n\n## 运行时与平台\n\n- 继续内置 `@deepseek-ai/dsh@0.1.1-rc.2`。\n- Release 资产包含签名文件、latest.json 和 SHA256 校验清单。'
           elif [ "$VERSION" = "0.3.3" ]; then
             release_notes=$'## 插件集成与消息体验更新\n\n- 内置并验证最新版社区插件矩阵：\n  - 可视化渠道配置 `@anarkhgatsby/deepseek-harness-channel-config@0.1.7`\n  - Gateway Core `@anarkhgatsby/deepseek-harness-core@0.1.4`\n  - 飞书 / Lark `@anarkhgatsby/deepseek-harness-channel-feishu@0.1.2`\n  - 钉钉 `@anarkhgatsby/deepseek-harness-channel-dingtalk@0.1.0`\n  - 企业微信 / WeCom `@anarkhgatsby/deepseek-harness-channel-wecom@0.1.4`\n  - macOS iMessage `@anarkhgatsby/deepseek-harness-channel-imessage@0.1.5`\n  - Harness Insights `@anarkhgatsby/deepseek-harness-insights@0.1.6`\n  - Locale Pack `@anarkhgatsby/deepseek-harness-locale-pack@0.1.4`\n- Config 渠道列表改为运行时驱动，新增已安装渠道可以正常显示。\n- 钉钉配置卡片使用官方亮色 / 深色图标资源，并统一视觉尺寸；AppKey 示例改为安全占位符。\n- iMessage 回复在通过 Messages.app 发送前转换为易读纯文本：移除 Markdown 加粗、斜体、代码和删除线标记，优化标题、列表、链接与代码块排版。\n- Windows 构建继续排除 iMessage，避免在不支持 Messages.app 的平台展示不可用入口。\n- 所有内置插件已在本机完成收发、配置和启动验证。\n\n## 运行时与平台\n\n- macOS 支持 Apple Silicon 与 Intel，最低系统版本为 macOS 12.7.6。\n- Windows 提供 x64 安装包，构建不携带 iMessage。\n- Release 资产包含签名文件、latest.json 和 SHA256 校验清单。'
+          elif [ "$VERSION" = "0.3.4" ]; then
+            release_notes=$'## 核心运行时升级至 0.1.3-alpha.2\n\n- 内置核心运行时全量升级至官方最新 `@deepseek-ai/dsh@0.1.3-alpha.2`。\n- 适配 0.1.3 全新持久化架构，自动构建并代码签名原生 C++ 文件锁模块 `fs-ext`（`fs_ext.node`）。\n- 改进 WebKit Class Static Blocks 降级机制，采用自适应正则动态提取混淆变量，确保 macOS 12 (Monterey) 老版本 WebKit 100% 稳定运行防白屏。\n- 修复 Node.js 运行环境下 CLI 入口（`bin.js`）因 `import.meta.main` 静默退出的问题。\n- 修复本地免鉴权在重构后的 `url is not defined` 异常，保证免登录瞬时访问。\n- 全量社区插件矩阵（Insights、渠道配置、多语言、飞书、企微、钉钉、iMessage）peerDependencies 严格对齐。\n\n## 运行时与平台\n\n- macOS 支持 Apple Silicon 与 Intel，最低系统版本为 macOS 12.7.6。\n- Windows 提供 x64 安装包，自动支持 0.1.3 核心。\n- Release 资产包含签名文件、latest.json 和 SHA256 校验清单。'
           else
             release_notes=$'Release 资产包含签名文件、latest.json 和 SHA256 校验清单。'
           fi
