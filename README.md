@@ -22,10 +22,13 @@
 </div>
 
 <p align="center">
-  <img src="docs/assets/deepseek-harness-macos.png" width="900" alt="DeepSeek Harness for macOS 产品界面">
+  <video controls preload="metadata" width="900" poster="docs/assets/deepseek-harness-macos.png">
+    <source src="docs/assets/deepseek-harness-demo.mp4" type="video/mp4">
+    你的浏览器不支持视频播放，请<a href="docs/assets/deepseek-harness-demo.mp4">下载演示视频</a>。
+  </video>
 </p>
 
-<p align="center"><sub>一个 App，完整封装 Harness、官方 Node.js 与对应架构的原生依赖。</sub></p>
+<p align="center"><sub>产品演示 · 35 秒</sub></p>
 
 ## 🆕 v0.3.3 更新内容
 
