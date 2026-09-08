@@ -23,7 +23,7 @@
 
 https://github.com/user-attachments/assets/486eb943-a455-4f56-b009-5fc1e877e812
 
-<p align="center"><sub>Click the cover to play the product demo · 35 seconds</sub></p>
+<p align="center"><sub>Embedded product demo · 35 seconds</sub></p>
 
 ## 🆕 What's new in v0.3.3
 

@@ -23,7 +23,7 @@
 
 https://github.com/user-attachments/assets/486eb943-a455-4f56-b009-5fc1e877e812
 
-<p align="center"><sub>点击封面播放产品演示视频 · 35 秒</sub></p>
+<p align="center"><sub>内嵌产品演示视频 · 35 秒</sub></p>
 
 ## 🆕 v0.3.3 更新内容
 
