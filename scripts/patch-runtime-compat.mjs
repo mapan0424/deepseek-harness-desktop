@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import { readFile, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 
 const expectedFrontendVersions = ["0.1.2-alpha.5", "0.1.2-rc.1", "0.1.3-alpha.2"];
 
@@ -258,6 +259,7 @@ export async function verifyRuntimeCompatibility(runtimeRoot) {
   if (!loopback.includes("res.setHeader(\"set-cookie\"") || !loopback.includes("return true;")) {
     throw new Error("Desktop loopback auth must set the session cookie and continue to index.html");
   }
+  await import(pathToFileURL(connectionPath).href);
 
   const indexPath = join(modules, "@deepseek-ai", "dsh-web-frontend", "dist", "index.html");
   if (!existsSync(indexPath)) throw new Error(`Missing frontend index: ${indexPath}`);
@@ -328,7 +330,6 @@ function count(content, needle) {
 
 const loopbackAuthServe = `\t\tif (this.isAuthenticated(req)) return true;
 \t\t/* dsh-desktop-loopback-auth */
-\t\tconst url = new URL(req.url ?? "/", "http://dsh.invalid");
 \t\tconst isLoopback = req.socket?.remoteAddress === "127.0.0.1" || req.socket?.remoteAddress === "::1" || req.socket?.remoteAddress === "::ffff:127.0.0.1";
 \t\tif (req.method === "GET" && url.pathname === "/" && isLoopback) {
 \t\t\tconst authority = requestAuthority(req.headers) ?? "127.0.0.1";
@@ -348,7 +349,6 @@ const loopbackAuthServe = `\t\tif (this.isAuthenticated(req)) return true;
 
 const loopbackAuthRedirect = `\t\tif (this.isAuthenticated(req)) return true;
 \t\t/* dsh-desktop-loopback-auth */
-\t\tconst url = new URL(req.url ?? "/", "http://dsh.invalid");
 \t\tconst isLoopback = req.socket?.remoteAddress === "127.0.0.1" || req.socket?.remoteAddress === "::1" || req.socket?.remoteAddress === "::ffff:127.0.0.1";
 \t\tif (req.method === "GET" && url.pathname === "/" && isLoopback) {
 \t\t\tconst authority = requestAuthority(req.headers) ?? "127.0.0.1";
