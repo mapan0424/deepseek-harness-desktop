@@ -27,11 +27,11 @@ https://github.com/user-attachments/assets/486eb943-a455-4f56-b009-5fc1e877e812
 
 ## 🆕 What's new in v0.3.4
 
-- Upgraded bundled core runtime to official `@deepseek-ai/dsh@0.1.3-alpha.2`.
-- Supported 0.1.3 session persistence architecture with automated build and codesign for the native C++ `fs-ext` module.
+- Upgraded bundled core runtime to official `@deepseek-ai/dsh@0.1.5-alpha.1`.
+- Adapted the newer session projection cache architecture and fixed usage insights for historical sessions.
 - Upgraded WebKit Class Static Blocks polyfill with resilient regex matching, ensuring macOS 12 (Monterey) stability.
 - Fixed Node.js CLI launcher silent exit bug and local loopback auto-authentication exception.
-- Aligned the entire community plugin matrix to `^0.1.3-alpha.2` peerDependencies with all compatibility tests passing.
+- Synchronized the community plugin matrix with the bundled runtime contract, with the full compatibility suite passing.
 
 ## ✨ Why use it
 

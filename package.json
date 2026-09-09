@@ -13,7 +13,7 @@
     "prepare:runtime:intel": "node scripts/prepare-runtime-intel.mjs",
     "prepare:runtime:windows": "node scripts/prepare-runtime-windows.mjs",
     "prepare:licenses": "node scripts/prepare-rust-licenses.mjs",
-    "test:runtime:compat": "node scripts/test-runtime-compat.mjs",
+    "test:runtime:compat": "node --test scripts/test-frontend-compat.mjs && node scripts/test-runtime-compat.mjs",
     "test:bundled-pnpm": "node scripts/test-bundled-pnpm.mjs",
     "test:updater": "node scripts/test-updater-manifest.mjs",
     "test:insights": "node packages/harness-insights/tests/projection.test.mjs && node packages/harness-insights/tests/client-activity.test.mjs && node packages/harness-insights/tests/manifest.test.mjs && node scripts/test-insights-runtime-contract.mjs",
@@ -24,6 +24,7 @@
     "build:windows": "pnpm prepare:runtime:windows && pnpm test:runtime:compat && pnpm prepare:licenses && pnpm tauri build --config src-tauri/tauri.windows.conf.json --target x86_64-pc-windows-msvc --no-sign"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^2"
+    "@tauri-apps/cli": "^2",
+    "esbuild": "0.25.12"
   }
 }

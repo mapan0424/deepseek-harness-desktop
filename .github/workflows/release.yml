@@ -100,7 +100,7 @@ jobs:
           if [ "$VERSION" = "0.3.3" ]; then
             notes='内置最新版社区插件矩阵，更新渠道配置中心和 iMessage 纯文本回复格式，并完成 macOS / Windows 平台兼容性验证。'
           elif [ "$VERSION" = "0.3.4" ]; then
-            notes='升级核心运行时至 @deepseek-ai/dsh@0.1.3-alpha.2，适配原生 fs-ext 模块与 WebKit 静态块混淆正则，修复 Node.js CLI 启动。'
+            notes='升级核心运行时至 @deepseek-ai/dsh@0.1.5-alpha.1，修复历史会话用量洞察不显示，并同步完成 macOS 兼容性验证。'
           fi
           node scripts/create-updater-manifest.mjs \
             --version "$VERSION" \
@@ -140,7 +140,7 @@ jobs:
           elif [ "$VERSION" = "0.3.3" ]; then
             release_notes=$'## 插件集成与消息体验更新\n\n- 内置并验证最新版社区插件矩阵：\n  - 可视化渠道配置 `@anarkhgatsby/deepseek-harness-channel-config@0.1.7`\n  - Gateway Core `@anarkhgatsby/deepseek-harness-core@0.1.4`\n  - 飞书 / Lark `@anarkhgatsby/deepseek-harness-channel-feishu@0.1.2`\n  - 钉钉 `@anarkhgatsby/deepseek-harness-channel-dingtalk@0.1.0`\n  - 企业微信 / WeCom `@anarkhgatsby/deepseek-harness-channel-wecom@0.1.4`\n  - macOS iMessage `@anarkhgatsby/deepseek-harness-channel-imessage@0.1.5`\n  - Harness Insights `@anarkhgatsby/deepseek-harness-insights@0.1.6`\n  - Locale Pack `@anarkhgatsby/deepseek-harness-locale-pack@0.1.4`\n- Config 渠道列表改为运行时驱动，新增已安装渠道可以正常显示。\n- 钉钉配置卡片使用官方亮色 / 深色图标资源，并统一视觉尺寸；AppKey 示例改为安全占位符。\n- iMessage 回复在通过 Messages.app 发送前转换为易读纯文本：移除 Markdown 加粗、斜体、代码和删除线标记，优化标题、列表、链接与代码块排版。\n- Windows 构建继续排除 iMessage，避免在不支持 Messages.app 的平台展示不可用入口。\n- 所有内置插件已在本机完成收发、配置和启动验证。\n\n## 运行时与平台\n\n- macOS 支持 Apple Silicon 与 Intel，最低系统版本为 macOS 12.7.6。\n- Windows 提供 x64 安装包，构建不携带 iMessage。\n- Release 资产包含签名文件、latest.json 和 SHA256 校验清单。'
           elif [ "$VERSION" = "0.3.4" ]; then
-            release_notes=$'## 核心运行时升级至 0.1.3-alpha.2\n\n- 内置核心运行时全量升级至官方最新 `@deepseek-ai/dsh@0.1.3-alpha.2`。\n- 适配 0.1.3 全新持久化架构，自动构建并代码签名原生 C++ 文件锁模块 `fs-ext`（`fs_ext.node`）。\n- 改进 WebKit Class Static Blocks 降级机制，采用自适应正则动态提取混淆变量，确保 macOS 12 (Monterey) 老版本 WebKit 100% 稳定运行防白屏。\n- 修复 Node.js 运行环境下 CLI 入口（`bin.js`）因 `import.meta.main` 静默退出的问题。\n- 修复本地免鉴权在重构后的 `url is not defined` 异常，保证免登录瞬时访问。\n- 全量社区插件矩阵（Insights、渠道配置、多语言、飞书、企微、钉钉、iMessage）peerDependencies 严格对齐。\n\n## 运行时与平台\n\n- macOS 支持 Apple Silicon 与 Intel，最低系统版本为 macOS 12.7.6。\n- Windows 提供 x64 安装包，自动支持 0.1.3 核心。\n- Release 资产包含签名文件、latest.json 和 SHA256 校验清单。'
+            release_notes=$'## 用量洞察修复\n\n- 内置核心运行时升级至官方 `@deepseek-ai/dsh@0.1.5-alpha.1`。\n- 修复新版历史投影缓存接口不匹配导致的历史会话用量数据不显示问题。\n- 保留本地 Token、模型、工具和会话统计，不读取消息正文，也不上传数据。\n\n## 运行时与平台\n\n- 继续提供 macOS Apple Silicon、macOS Intel 和 Windows x64 安装包。\n- 保留 macOS 12.7.6+ WebKit 兼容处理、自动更新清单和 SHA256 校验。\n- Release 资产包含 updater 签名、latest.json 和 SHA256 校验清单。'
           else
             release_notes=$'Release 资产包含签名文件、latest.json 和 SHA256 校验清单。'
           fi

@@ -2,8 +2,10 @@ import { existsSync } from "node:fs";
 import { readFile, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
+import { spawnSync } from "node:child_process";
+import { transform } from "esbuild";
 
-const expectedFrontendVersions = ["0.1.2-alpha.5", "0.1.2-rc.1", "0.1.3-alpha.2"];
+const expectedFrontendVersions = ["0.1.2-alpha.5", "0.1.2-rc.1", "0.1.3-alpha.2", "0.1.5-alpha.1"];
 
 // 0.1.2-alpha.x / 0.1.2-rc.x ships the GFM email autolink as a regex literal (not `new RegExp("...")`).
 // macOS 12.7.6 WebKit rejects the lookbehind + Unicode property escapes, so drop the
@@ -116,77 +118,47 @@ export async function patchFrontendClassStaticBlocks(runtimeRoot) {
   const assetsRoot = join(runtimeRoot, "node_modules", "@deepseek-ai", "dsh-web-frontend", "dist", "assets");
   if (!existsSync(assetsRoot)) return;
   const assetNames = (await readdir(assetsRoot)).filter((name) => name.endsWith(".js"));
-
-  const staticLoop = 'static{for(const i of["error","info","warn","debug"])X0.prototype[i]=function(...o){return this()[i](...o)}}';
-  const staticCordis = 'static{ur.is[Symbol.toPrimitive]=()=>Symbol.for("cordis.is"),ur.prototype[ur.is]=!0}';
-
-  // Generic patterns for 0.1.3+ obfuscated variable renames
-  const loopRegex = /static\s*\{\s*for\s*\(\s*const\s+([A-Za-z0-9_$]+)\s+of\s*\["error","info","warn","debug"\]\)\s*([A-Za-z0-9_$]+)\.prototype\[\1\]=function\(\.\.\.([A-Za-z0-9_$]+)\)\{return\s+this\(\)\[\1\]\(\.\.\.\3\)\}\}/;
-  const cordisRegex = /static\s*\{\s*([A-Za-z0-9_$]+)\.is\[Symbol\.toPrimitive\]=\(\)=>Symbol\.for\("cordis\.is"\),\s*\1\.prototype\[\1\.is\]=!0\s*\}/;
-
   for (const name of assetNames) {
     const path = join(assetsRoot, name);
-    let content = await readFile(path, "utf8");
-    let changed = false;
+    const content = await readFile(path, "utf8");
+    // Parse the complete module so named class expressions, comma declarations
+    // and initialization order survive lowering for Monterey's Safari 15.6.
+    const result = await transform(content, {
+      sourcefile: path,
+      loader: "js",
+      format: "esm",
+      target: "safari15.6",
+      minifyWhitespace: true,
+      keepNames: true,
+      legalComments: "inline",
+      charset: "utf8",
+    });
+    assertFrontendSyntax(result.code, path);
+    await writeFile(path, result.code, "utf8");
+    console.log(`Transpiled frontend for macOS 12.7.6 WebKit: ${path}`);
+  }
+}
 
-    // 1. Logger loop static block
-    if (content.includes(staticLoop)) {
-      content = content.replace(staticLoop, "");
-      const j0End = content.indexOf("};function rl(n){");
-      if (j0End !== -1) {
-        content = content.slice(0, j0End + 2) + 'for(const i of["error","info","warn","debug"])J0.prototype[i]=function(...o){return this()[i](...o)};' + content.slice(j0End + 2);
-        changed = true;
-      }
-    } else {
-      const loopMatch = content.match(loopRegex);
-      if (loopMatch) {
-        const [full, iterVar, clsVar, argVar] = loopMatch;
-        content = content.replace(full, "");
-        const insertPos = content.indexOf("};function", loopMatch.index);
-        if (insertPos !== -1) {
-          const injection = `;for(const ${iterVar} of["error","info","warn","debug"])${clsVar}.prototype[${iterVar}]=function(...${argVar}){return this()[${iterVar}](...${argVar})};`;
-          content = content.slice(0, insertPos + 1) + injection + content.slice(insertPos + 1);
-          changed = true;
-        }
-      }
-    }
+function assertFrontendSyntax(content, path) {
+  const result = spawnSync(process.execPath, ["--input-type=module", "--check"], {
+    input: content,
+    encoding: "utf8",
+    maxBuffer: 16 * 1024 * 1024,
+  });
+  if (result.error) throw result.error;
+  if (result.status !== 0) {
+    const detail = result.stderr.split("\n").filter((line) =>
+      line.startsWith("[stdin]:") || line.startsWith("SyntaxError:")).join(" ");
+    throw new Error(`Invalid frontend JavaScript in ${path}: ${detail || result.stderr.trim()}`);
+  }
+}
 
-    // 2. Cordis.is static block
-    if (content.includes(staticCordis)) {
-      content = content.replace(staticCordis, "");
-      const urEnd = content.indexOf(";var $e=class extends ur{");
-      if (urEnd !== -1) {
-        content = content.slice(0, urEnd) + ';ur.is[Symbol.toPrimitive]=()=>Symbol.for("cordis.is");ur.prototype[ur.is]=!0' + content.slice(urEnd);
-        changed = true;
-      }
-    } else {
-      const cordisMatch = content.match(cordisRegex);
-      if (cordisMatch) {
-        const [full, clsVar] = cordisMatch;
-        content = content.replace(full, "");
-        const cordisClassIdx = content.lastIndexOf("class " + clsVar, cordisMatch.index);
-        if (cordisClassIdx !== -1) {
-          let depth = 0, endIdx = -1;
-          for (let i = cordisClassIdx; i < content.length; i++) {
-            if (content[i] === "{") depth++;
-            else if (content[i] === "}") {
-              depth--;
-              if (depth === 0) { endIdx = i; break; }
-            }
-          }
-          if (endIdx !== -1) {
-            const injection = `;${clsVar}.is[Symbol.toPrimitive]=()=>Symbol.for("cordis.is");${clsVar}.prototype[${clsVar}.is]=!0;`;
-            content = content.slice(0, endIdx + 1) + injection + content.slice(endIdx + 1);
-            changed = true;
-          }
-        }
-      }
-    }
-
-    if (changed) {
-      await writeFile(path, content, "utf8");
-      console.log(`Patched macOS 12.7.6 WebKit class static blocks compatibility: ${path}`);
-    }
+export async function verifyFrontendSyntax(runtimeRoot) {
+  const assetsRoot = join(runtimeRoot, "node_modules", "@deepseek-ai", "dsh-web-frontend", "dist", "assets");
+  for (const name of await readdir(assetsRoot)) {
+    if (!name.endsWith(".js")) continue;
+    const path = join(assetsRoot, name);
+    assertFrontendSyntax(await readFile(path, "utf8"), path);
   }
 }
 
@@ -229,6 +201,7 @@ export async function patchHostWebserverReadyMarkup(runtimeRoot) {
 }
 
 export async function verifyRuntimeCompatibility(runtimeRoot) {
+  await verifyFrontendSyntax(runtimeRoot);
   const modules = join(runtimeRoot, "node_modules");
   const assetsRoot = join(modules, "@deepseek-ai", "dsh-web-frontend", "dist", "assets");
   if (!existsSync(assetsRoot)) throw new Error(`Missing frontend assets: ${assetsRoot}`);
@@ -406,4 +379,3 @@ export async function patchDshCliLauncher(runtimeRoot) {
     console.log(`Patched Node.js CLI launcher in dsh bin.js: ${binPath}`);
   }
 }
-
