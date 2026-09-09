@@ -15,7 +15,7 @@ const bundledPluginDefinitionsList = [
     packageName: "@anarkhgatsby/deepseek-harness-insights",
     source: join(projectRoot, "packages", "harness-insights"),
     publishedEntries: ["package.json", "cordis.patch.yml", "LICENSE", "README.md", "README.zh-CN.md", "lib"],
-    expectedVersion: "0.1.6",
+    expectedVersion: "0.1.7",
     clientId: "@anarkhgatsby/deepseek-harness-insights",
     clientEntry: "lib/client.js",
     patch: true,

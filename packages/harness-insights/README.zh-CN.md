@@ -56,14 +56,16 @@ dsh plugin --profile demo add ./packages/harness-insights
 - 读取 API Key
 - 上传用量数据到第三方服务
 
-历史聚合通过 Harness 提供的 `sessionProjectionCache.coldSnapshot()` 完成，只保存 Harness 自己管理的 projection checkpoint。
+历史聚合在本地 Host 中通过 Harness 官方的 session projection 接口完成，只保存 Harness 自己管理的派生 projection checkpoint。
 
 ## 兼容性
 
-- Harness projection/client API：`0.1.2-alpha.5`
+- Harness projection/client API：兼容旧版 `0.1.2+` 与新版 `0.1.5+`
 - 运行平台：Web UI
 - 插件类型：npm bundle
-- 当前版本：`0.1.3`
+- 当前版本：`0.1.7`
+
+当 Harness 运行时升级后，插件会在首次启动时在本地重建历史会话的派生投影缓存。历史会话较多时数据会逐步显示；这个过程不会读取浏览器对话正文，也不会上传任何数据。
 
 Harness 目前仍处于 developer preview 阶段，未来版本可能存在兼容性变化。
 

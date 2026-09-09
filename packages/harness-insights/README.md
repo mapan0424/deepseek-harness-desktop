@@ -35,9 +35,12 @@ To remove it later:
 dsh plugin --profile demo remove @anarkhgatsby/deepseek-harness-insights
 ```
 
-The plugin is web-only and targets the `0.1.2-alpha.5` Harness projection and
-client APIs. It is an independent, unofficial community plugin and is not
-published by DeepSeek.
+The plugin is web-only and supports both the legacy `0.1.2+` projection cache
+API and the `0.1.5+` session-persistence API. On its first startup after a
+Harness runtime upgrade, it rebuilds the local derived projection checkpoints
+from the session event log. Large histories may populate progressively; no
+message content is sent anywhere. It is an independent, unofficial community
+plugin and is not published by DeepSeek.
 
 For local development, the same bundle can be installed from a checkout:
 
@@ -57,7 +60,7 @@ Harness Insights folds only structured session metadata:
 - `tool/call.data.name`
 - event timestamps and session projection identity
 
-It does not request session history in the browser, store message content, read API keys, or upload usage data. Historical aggregation runs through Harness's official `sessionProjectionCache.coldSnapshot()` path and persists only the projection checkpoint owned by Harness.
+It does not request session history in the browser, store message content, read API keys, or upload usage data. Historical aggregation runs in the local host through Harness's official session projection APIs and persists only the derived projection checkpoint owned by Harness.
 
 ## Packaging
 

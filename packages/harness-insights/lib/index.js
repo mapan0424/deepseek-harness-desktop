@@ -137,18 +137,44 @@ export const usageInsightsProjectionDefinition = {
 export const name = 'deepseek-harness-insights'
 export const inject = ['sessionProjections']
 
-async function backfillHistory(ctx, signal) {
+async function listHistorySnapshots(persistence, signal) {
+  // DSH 0.1.5 moved session persistence to `list({ signal })`.
+  // Keep the old branch so the standalone plugin remains usable with the
+  // earlier desktop runtime too.
+  if (typeof persistence.list === 'function') return persistence.list({ signal })
+  if (typeof persistence.listSnapshots === 'function') return persistence.listSnapshots(signal)
+  throw new TypeError('Harness Insights: session persistence does not expose a list API')
+}
+
+async function backfillSnapshot(persistence, cache, snapshot, signal) {
+  // DSH <= 0.1.3 owned the persistence read inside the cache service.
+  if (cache.coldSnapshot.length < 3) {
+    return cache.coldSnapshot(snapshot.header.id, signal)
+  }
+
+  // DSH >= 0.1.5 deliberately makes the caller own the complete read so the
+  // cache can verify the session lifecycle before replacing a checkpoint.
+  const handle = await persistence.open(snapshot.header.id, 'read', { signal })
+  try {
+    const { events } = await handle.read(0, Number.MAX_SAFE_INTEGER, { signal })
+    return cache.coldSnapshot(handle.header, handle.inheritedEventCount, events)
+  } finally {
+    await handle.close()
+  }
+}
+
+export async function backfillHistory(ctx, signal) {
   const persistence = ctx.get('sessionPersistence')
   const cache = ctx.get('sessionProjectionCache')
   if (persistence === undefined || cache === undefined) return
-  const snapshots = await persistence.listSnapshots(signal)
+  const snapshots = await listHistorySnapshots(persistence, signal)
   // Serial reads avoid competing decompression of many JSONL/Zstd sessions.
   // The official projection cache owns incremental replay and durable
   // checkpoints, so a second startup reads only tails or nothing at all.
   for (const snapshot of snapshots) {
     signal.throwIfAborted()
     try {
-      await cache.coldSnapshot(snapshot.header.id, signal)
+      await backfillSnapshot(persistence, cache, snapshot, signal)
     } catch (error) {
       if (signal.aborted) throw error
       ctx.logger.warn(`Harness Insights: history projection for "${snapshot.header.id}" failed: ${String(error)}`)
