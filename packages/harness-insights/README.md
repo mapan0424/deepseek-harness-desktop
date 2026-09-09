@@ -37,10 +37,26 @@ dsh plugin --profile demo remove @anarkhgatsby/deepseek-harness-insights
 
 The plugin is web-only and supports both the legacy `0.1.2+` projection cache
 API and the `0.1.5+` session-persistence API. On its first startup after a
-Harness runtime upgrade, it rebuilds the local derived projection checkpoints
-from the session event log. Large histories may populate progressively; no
+Harness runtime upgrade, it rebuilds local derived projection checkpoints from
+the session event log. If a retired runtime format prevents DSH from replaying
+a legacy subagent log, Insights can safely recover only its previously stored
+usage aggregate after verifying the session lifecycle; it never reads message
+content for that recovery. Large histories may populate progressively; no
 message content is sent anywhere. It is an independent, unofficial community
 plugin and is not published by DeepSeek.
+
+## Compatibility and dependencies
+
+| Item | Supported / validated version |
+| --- | --- |
+| Harness host | Legacy cache API `0.1.2+`; session-persistence API `0.1.5+` |
+| Validated current runtime | DeepSeek Harness `0.1.5-alpha.1` |
+| Cordis | `^4.0.1` |
+| Harness projection client services | `^0.1.5-alpha.1` |
+| Plugin release | `@anarkhgatsby/deepseek-harness-insights@0.1.8` |
+
+The desktop `0.3.5` bundle ships this exact `0.1.8` plugin release. The
+plugin has no native dependency and uses only the local Harness host.
 
 For local development, the same bundle can be installed from a checkout:
 

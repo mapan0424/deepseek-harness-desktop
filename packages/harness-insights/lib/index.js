@@ -163,6 +163,39 @@ async function backfillSnapshot(persistence, cache, snapshot, signal) {
   }
 }
 
+// DSH 0.1.5 deliberately rejects some v0 logs containing the retired
+// subagent descriptor v2. Those source logs stay untouched, but the previous
+// projection cache already contains an integrity-bound aggregate produced from
+// that exact lifecycle. For an unseeded session, promote only our own stable
+// aggregate row after proving the predecessor cache belongs to this header.
+//
+// Do not promote any other projection: their semantics belong to DSH itself
+// and must be rebuilt by the runtime when that becomes possible.
+export async function restoreLegacyInsightsCheckpoint(cache, snapshot) {
+  if (cache?.table === undefined || typeof cache.put !== 'function') return false
+
+  const header = snapshot.header
+  if (header.isSeeded || !Number.isInteger(header.version)) return false
+
+  const record = cache.table.get(header.id)
+  if (record === undefined || record.identity?.formatVersion !== undefined) return false
+  if (record.identity.createdAt !== header.createdAt || record.identity.cwd !== header.cwd) return false
+
+  const insights = record.rows?.harnessDesktopInsights
+  if (insights?.ver !== usageInsightsProjectionDefinition.stateVersion) return false
+
+  await cache.put(header.id, {
+    formatVersion: header.version,
+    createdAt: header.createdAt,
+    ...(header.cwd === undefined ? {} : { cwd: header.cwd }),
+    isSeeded: false,
+    inheritedEventCount: 0,
+  }, {
+    harnessDesktopInsights: insights,
+  })
+  return true
+}
+
 export async function backfillHistory(ctx, signal) {
   const persistence = ctx.get('sessionPersistence')
   const cache = ctx.get('sessionProjectionCache')
@@ -177,6 +210,12 @@ export async function backfillHistory(ctx, signal) {
       await backfillSnapshot(persistence, cache, snapshot, signal)
     } catch (error) {
       if (signal.aborted) throw error
+      try {
+        if (await restoreLegacyInsightsCheckpoint(cache, snapshot)) continue
+      } catch (restoreError) {
+        if (signal.aborted) throw restoreError
+        ctx.logger.warn(`Harness Insights: legacy usage recovery for "${snapshot.header.id}" failed: ${String(restoreError)}`)
+      }
       ctx.logger.warn(`Harness Insights: history projection for "${snapshot.header.id}" failed: ${String(error)}`)
     }
   }

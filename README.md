@@ -25,13 +25,13 @@ https://github.com/user-attachments/assets/486eb943-a455-4f56-b009-5fc1e877e812
 
 <p align="center"><sub>内嵌产品演示视频 · 35 秒</sub></p>
 
-## 🆕 v0.3.4 更新内容
+## 🆕 v0.3.5 更新内容
 
-- 全量升级内置核心运行时至官方最新 `@deepseek-ai/dsh@0.1.5-alpha.1`；
-- 适配新版会话投影缓存架构，修复历史会话用量洞察无法显示的问题；
-- 升级 WebKit 类静态初始化块（Class Static Blocks）混淆变量自适应提取降级机制，保证 macOS 12 (Monterey) 稳定运行防白屏；
-- 修复 Node.js 运行环境 CLI 入口静默退出问题与本地免鉴权异常；
-- 社区插件矩阵同步更新运行时依赖契约，并通过全套自动化兼容性与实时端到端验证。
+- 内嵌最新 `@anarkhgatsby/deepseek-harness-insights@0.1.8`；
+- 修复升级到 DSH `0.1.5-alpha.1` 后，旧版子代理日志无法回放而导致用量洞察遗漏历史 Token 的问题；
+- 对可回放会话使用官方投影缓存重建；对被新版运行时拒绝的旧格式会话，仅在校验会话生命周期后恢复本地已有的用量聚合，不读取或上传聊天正文；
+- 内置插件依赖 `@deepseek-ai/cordis@^4.0.1` 与 Harness projection/client `^0.1.5-alpha.1`，同时保留旧版 `0.1.2+` 缓存接口兼容分支；
+- 完成历史恢复、运行时契约、插件清单与 macOS bundle 自动化校验。
 
 ## ✨ 为什么值得使用
 
