@@ -147,9 +147,10 @@ function assertFrontendSyntax(content, path) {
   });
   if (result.error) throw result.error;
   if (result.status !== 0) {
-    const detail = result.stderr.split("\n").filter((line) =>
+    const stderr = result.stderr.replaceAll("\r", "");
+    const detail = stderr.split("\n").filter((line) =>
       line.startsWith("[stdin]:") || line.startsWith("SyntaxError:")).join(" ");
-    throw new Error(`Invalid frontend JavaScript in ${path}: ${detail || result.stderr.trim()}`);
+    throw new Error(`Invalid frontend JavaScript in ${path}: ${detail || stderr.trim()}`);
   }
 }
 
