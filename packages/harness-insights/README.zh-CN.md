@@ -63,7 +63,7 @@ dsh plugin --profile demo add ./packages/harness-insights
 - Harness projection/client API：兼容旧版 `0.1.2+` 与新版 `0.1.5+`
 - 运行平台：Web UI
 - 插件类型：npm bundle
-- 当前版本：`0.1.8`
+- 当前版本：`0.1.7`
 
 当 Harness 运行时升级后，插件会在首次启动时在本地重建历史会话的派生投影缓存。若旧版子代理日志已被新版 Harness 停止支持，插件会在核对会话生命周期后，仅恢复此前本地保存的用量聚合值；不会读取聊天正文，也不会改动其他 DSH 内部投影。历史会话较多时数据会逐步显示；整个过程不会上传任何数据。
 
@@ -75,9 +75,9 @@ dsh plugin --profile demo add ./packages/harness-insights
 | 已验证的当前运行时 | DeepSeek Harness `0.1.5-alpha.1` |
 | Cordis | `^4.0.1` |
 | Harness projection/client 服务 | `^0.1.5-alpha.1` |
-| 插件发布版本 | `@anarkhgatsby/deepseek-harness-insights@0.1.8` |
+| 插件发布版本 | `@anarkhgatsby/deepseek-harness-insights@0.1.7` |
 
-桌面端 `0.3.5` 内嵌的正是该 `0.1.8` 版本。插件不含原生依赖，只通过本地 Harness Host 工作。
+桌面端 `0.3.5` 内嵌的正是该 `0.1.7` 版本。插件不含原生依赖，只通过本地 Harness Host 工作。
 
 Harness 目前仍处于 developer preview 阶段，未来版本可能存在兼容性变化。
 

@@ -53,9 +53,9 @@ plugin and is not published by DeepSeek.
 | Validated current runtime | DeepSeek Harness `0.1.5-alpha.1` |
 | Cordis | `^4.0.1` |
 | Harness projection client services | `^0.1.5-alpha.1` |
-| Plugin release | `@anarkhgatsby/deepseek-harness-insights@0.1.8` |
+| Plugin release | `@anarkhgatsby/deepseek-harness-insights@0.1.7` |
 
-The desktop `0.3.5` bundle ships this exact `0.1.8` plugin release. The
+The desktop `0.3.5` bundle ships this exact `0.1.7` plugin release. The
 plugin has no native dependency and uses only the local Harness host.
 
 For local development, the same bundle can be installed from a checkout:

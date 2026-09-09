@@ -27,7 +27,7 @@ https://github.com/user-attachments/assets/486eb943-a455-4f56-b009-5fc1e877e812
 
 ## 🆕 v0.3.5 更新内容
 
-- 内嵌最新 `@anarkhgatsby/deepseek-harness-insights@0.1.8`；
+- 内嵌最新 `@anarkhgatsby/deepseek-harness-insights@0.1.7`；
 - 修复升级到 DSH `0.1.5-alpha.1` 后，旧版子代理日志无法回放而导致用量洞察遗漏历史 Token 的问题；
 - 对可回放会话使用官方投影缓存重建；对被新版运行时拒绝的旧格式会话，仅在校验会话生命周期后恢复本地已有的用量聚合，不读取或上传聊天正文；
 - 内置插件依赖 `@deepseek-ai/cordis@^4.0.1` 与 Harness projection/client `^0.1.5-alpha.1`，同时保留旧版 `0.1.2+` 缓存接口兼容分支；
