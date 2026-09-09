@@ -154,10 +154,21 @@ jobs:
           VERSION: ${{ steps.metadata.outputs.version }}
         run: |
           notes=$(<release-notes.md)
-          gh release create "$TAG" release-assets/* \
-            --repo "${GITHUB_REPOSITORY}" \
-            --verify-tag \
-            --title "DeepSeek Harness Desktop v$VERSION" \
-            --notes "$notes" \
-            --generate-notes \
-            --latest
+          if gh release view "$TAG" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            gh release upload "$TAG" release-assets/* \
+              --repo "${GITHUB_REPOSITORY}" \
+              --clobber
+            gh release edit "$TAG" \
+              --repo "${GITHUB_REPOSITORY}" \
+              --title "DeepSeek Harness Desktop v$VERSION" \
+              --notes "$notes" \
+              --latest
+          else
+            gh release create "$TAG" release-assets/* \
+              --repo "${GITHUB_REPOSITORY}" \
+              --verify-tag \
+              --title "DeepSeek Harness Desktop v$VERSION" \
+              --notes "$notes" \
+              --generate-notes \
+              --latest
+          fi
