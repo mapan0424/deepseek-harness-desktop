@@ -9,13 +9,13 @@ import { patchSettingsSectionIcon } from "./patch-settings-section-icon.mjs";
 
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
-const bundledPluginDefinitionsList = [
+export const bundledPluginDefinitionsList = [
   {
     id: "insights",
     packageName: "@anarkhgatsby/deepseek-harness-insights",
     source: join(projectRoot, "packages", "harness-insights"),
     publishedEntries: ["package.json", "cordis.patch.yml", "LICENSE", "README.md", "README.zh-CN.md", "lib"],
-    expectedVersion: "0.1.7",
+    expectedVersion: "0.1.8",
     clientId: "@anarkhgatsby/deepseek-harness-insights",
     clientEntry: "lib/client.js",
     patch: true,
@@ -25,7 +25,7 @@ const bundledPluginDefinitionsList = [
     packageName: "@anarkhgatsby/deepseek-harness-channel-config",
     source: join(projectRoot, "packages", "harness-channel-config"),
     publishedEntries: ["package.json", "cordis.patch.yml", "LICENSE", "README.md", "README.zh-CN.md", "lib"],
-    expectedVersion: "0.1.7",
+    expectedVersion: "0.1.8",
     clientId: "@anarkhgatsby/deepseek-harness-channel-config",
     clientEntry: "lib/client.js",
     patch: true,
@@ -35,7 +35,7 @@ const bundledPluginDefinitionsList = [
     packageName: "@anarkhgatsby/deepseek-harness-core",
     source: join(projectRoot, "packages", "harness-core"),
     publishedEntries: ["package.json", "LICENSE", "README.md", "README.zh-CN.md", "index.js", "lib"],
-    expectedVersion: "0.1.4",
+    expectedVersion: "0.1.5",
     patch: false,
   },
   {
@@ -43,7 +43,7 @@ const bundledPluginDefinitionsList = [
     packageName: "@anarkhgatsby/deepseek-harness-channel-feishu",
     source: join(projectRoot, "packages", "harness-channel-feishu"),
     publishedEntries: ["package.json", "cordis.patch.yml", "LICENSE", "README.md", "README.zh-CN.md", "client.js", "index.js", "lib"],
-    expectedVersion: "0.1.2",
+    expectedVersion: "0.1.3",
     clientId: "@anarkhgatsby/deepseek-harness-channel-feishu",
     clientEntry: "client.js",
     patch: true,
@@ -53,7 +53,7 @@ const bundledPluginDefinitionsList = [
     packageName: "@anarkhgatsby/deepseek-harness-channel-wecom",
     source: join(projectRoot, "packages", "harness-channel-wecom"),
     publishedEntries: ["package.json", "cordis.patch.yml", "LICENSE", "README.md", "client.js", "index.js", "lib"],
-    expectedVersion: "0.1.4",
+    expectedVersion: "0.1.5",
     clientId: "@anarkhgatsby/deepseek-harness-channel-wecom",
     clientEntry: "client.js",
     patch: true,
@@ -63,7 +63,7 @@ const bundledPluginDefinitionsList = [
     packageName: "@anarkhgatsby/deepseek-harness-channel-dingtalk",
     source: join(projectRoot, "packages", "harness-channel-dingtalk"),
     publishedEntries: ["package.json", "cordis.patch.yml", "LICENSE", "README.md", "client.js", "index.js", "lib"],
-    expectedVersion: "0.1.0",
+    expectedVersion: "0.1.1",
     clientId: "@anarkhgatsby/deepseek-harness-channel-dingtalk",
     clientEntry: "client.js",
     patch: true,
@@ -73,7 +73,7 @@ const bundledPluginDefinitionsList = [
     packageName: "@anarkhgatsby/deepseek-harness-channel-imessage",
     source: join(projectRoot, "packages", "harness-channel-imessage"),
     publishedEntries: ["package.json", "cordis.patch.yml", "LICENSE", "README.md", "README.zh-CN.md", "client.js", "index.js", "lib"],
-    expectedVersion: "0.1.5",
+    expectedVersion: "0.1.6",
     clientId: "@anarkhgatsby/deepseek-harness-channel-imessage",
     clientEntry: "client.js",
     patch: true,
@@ -84,7 +84,7 @@ const bundledPluginDefinitionsList = [
     packageName: "@anarkhgatsby/deepseek-harness-locale-pack",
     source: join(projectRoot, "packages", "harness-locale-pack"),
     publishedEntries: ["package.json", "cordis.patch.yml", "LICENSE", "README.md", "README.zh-CN.md", "client.js", "index.js"],
-    expectedVersion: "0.1.4",
+    expectedVersion: "0.1.5",
     clientId: "@anarkhgatsby/deepseek-harness-locale-pack",
     clientEntry: "client.js",
     patch: true,

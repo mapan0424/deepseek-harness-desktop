@@ -25,13 +25,13 @@ https://github.com/user-attachments/assets/486eb943-a455-4f56-b009-5fc1e877e812
 
 <p align="center"><sub>内嵌产品演示视频 · 35 秒</sub></p>
 
-## 🆕 v0.3.5 更新内容
+## 🆕 v0.3.6 更新内容
 
-- 内嵌最新 `@anarkhgatsby/deepseek-harness-insights@0.1.7`；
-- 修复升级到 DSH `0.1.5-alpha.1` 后，旧版子代理日志无法回放而导致用量洞察遗漏历史 Token 的问题；
-- 对可回放会话使用官方投影缓存重建；对被新版运行时拒绝的旧格式会话，仅在校验会话生命周期后恢复本地已有的用量聚合，不读取或上传聊天正文；
-- 内置插件依赖 `@deepseek-ai/cordis@^4.0.1` 与 Harness projection/client `^0.1.5-alpha.1`，同时保留旧版 `0.1.2+` 缓存接口兼容分支；
-- 完成历史恢复、运行时契约、插件清单与 macOS bundle 自动化校验。
+- 内嵌官方 `@deepseek-ai/dsh@0.1.5-rc.1` 与 `@deepseek-ai/cordis@4.0.2`；
+- 全部内置社区插件已按 RC1 的精确 peer 依赖重新验证：配置中心 `0.1.8`、Core `0.1.5`、飞书 `0.1.3`、钉钉 `0.1.1`、企业微信 `0.1.5`、iMessage `0.1.6`、用量洞察 `0.1.8`、语言包 `0.1.5`；
+- 用量洞察继续保留历史派生缓存恢复机制；它只处理本地结构化用量聚合，不读取或上传聊天正文与 API Key；
+- 新增“全部插件隔离启动”回归测试：构建前会在独立临时 profile 中加载所有 overlay，拦截重复 loader、依赖缺失与启动失败；
+- Windows 构建继续排除仅依赖 macOS Messages.app 的 iMessage，其余插件跨平台提供。
 
 ## ✨ 为什么值得使用
 
@@ -58,7 +58,7 @@ https://github.com/user-attachments/assets/486eb943-a455-4f56-b009-5fc1e877e812
 - 模型、凭据和插件配置
 - Harness 上游持续演进的交互体验
 - 内置 **Harness Insights**：本地 Token、模型和工具使用洞察，支持 Golden Ratio 活跃热力图与双主题
-- 内置**全渠道消息网关**：可视化配置、飞书 / Lark、企业微信 / WeCom，以及 macOS 上的 iMessage
+- 内置**全渠道消息网关**：可视化配置、飞书 / Lark、钉钉、企业微信 / WeCom，以及 macOS 上的 iMessage
 - 内置**多语言与民族语言包**：支持藏文、传统蒙古文、维吾尔文、凉山彝文、繁体中文、日文、韩文等无缝即时切换
 
 桌面层不重复发明 Harness，而是让它在桌面系统上运行得更自然。内置插件以独立 Cordis 架构开发，与上游源码解耦，随安装包统一开箱交付。
@@ -69,6 +69,7 @@ https://github.com/user-attachments/assets/486eb943-a455-4f56-b009-5fc1e877e812
 
 - **可视化配置**：统一管理通道参数、授权状态、默认工作区和会话状态；
 - **飞书 / Lark**：配置企业自建应用后，支持 WebSocket 长连接实时接收事件与开放 API 卡片/文本流式回复；
+- **钉钉**：支持企业内部机器人 Stream 长连接，无需暴露公网 webhook，并可把 Agent 审批和提问回传同一会话；
 - **企业微信 / WeCom**：配置自建应用凭据后，即可将企业微信对话与本地 Harness 智能体无缝打通；
 - **iMessage**：仅 macOS 提供，支持本地 Messages/chat.db 模式；首次使用需要授予完全磁盘访问和自动化权限。
 

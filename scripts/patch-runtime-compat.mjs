@@ -5,7 +5,7 @@ import { pathToFileURL } from "node:url";
 import { spawnSync } from "node:child_process";
 import { transform } from "esbuild";
 
-const expectedFrontendVersions = ["0.1.2-alpha.5", "0.1.2-rc.1", "0.1.3-alpha.2", "0.1.5-alpha.1"];
+const expectedFrontendVersions = ["0.1.2-alpha.5", "0.1.2-rc.1", "0.1.3-alpha.2", "0.1.5-alpha.1", "0.1.5-rc.1"];
 
 // 0.1.2-alpha.x / 0.1.2-rc.x ships the GFM email autolink as a regex literal (not `new RegExp("...")`).
 // macOS 12.7.6 WebKit rejects the lookbehind + Unicode property escapes, so drop the
@@ -33,12 +33,18 @@ export async function patchRuntimeCompatibility(runtimeRoot) {
     compatibleCount += newCount;
   }
 
-  if (matches.length !== 1 || matches[0].oldCount !== 1 || compatibleCount !== 0) {
+  const needsEmailPatch = matches.length === 1 && matches[0].oldCount === 1 && compatibleCount === 0;
+  const upstreamAlreadyCompatible = matches.length === 0 && compatibleCount === 1;
+  if (!needsEmailPatch && !upstreamAlreadyCompatible) {
     throw new Error(
-      `Runtime compatibility patch no longer matches the prebuilt frontend: expected one legacy email autolink and no patched copies, got ${JSON.stringify({ matches, compatibleCount })}. Review the upstream frontend before packaging.`,
+      `Runtime compatibility patch no longer matches the prebuilt frontend: expected one legacy email autolink or one upstream-compatible copy, got ${JSON.stringify({ matches, compatibleCount })}. Review the upstream frontend before packaging.`,
     );
   }
-  await patchExactFile(matches[0].path, bundleOld, bundleNew, "prebuilt GFM email autolink");
+  if (needsEmailPatch) {
+    await patchExactFile(matches[0].path, bundleOld, bundleNew, "prebuilt GFM email autolink");
+  } else {
+    console.log("Verified upstream macOS 12.7.6 GFM email autolink compatibility; no source patch needed.");
+  }
   await patchFrontendClassStaticBlocks(runtimeRoot);
   await patchFrontendWindowControls(runtimeRoot);
   await patchFrontendPromiseWithResolvers(runtimeRoot);
@@ -46,7 +52,6 @@ export async function patchRuntimeCompatibility(runtimeRoot) {
   await patchLocalConnectionAuth(runtimeRoot);
   await patchDshCliLauncher(runtimeRoot);
   await verifyRuntimeCompatibility(runtimeRoot);
-  console.log(`Patched macOS 12.7.6 GFM email autolink compatibility: ${matches[0].path}`);
 }
 
 const macosTitlebarSnippet = `    <style id="dsh-macos-titlebar-style">

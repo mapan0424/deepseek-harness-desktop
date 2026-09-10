@@ -12,7 +12,7 @@ const projectionManifest = JSON.parse(await readFile(resolve(projectionRoot, "pa
 
 assert.equal(
   pluginManifest.peerDependencies?.["@deepseek-ai/dsh-session-projection"],
-  `^${projectionManifest.version}`,
+  projectionManifest.version,
   "the plugin peer range must follow the bundled projection runtime",
 );
 

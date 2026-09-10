@@ -58,6 +58,10 @@ Agent/Inbox API、Web 插件 API、默认工具，以及平台行为。
 4. 是否需要修改平台分支，尤其是 Windows 不得显示或打包 iMessage；
 5. 是否需要修改中英文 README 中的支持 DSH 版本、依赖与迁移限制。
 
+对于上游仍挂在 npm `next` 标签的 alpha 或 RC 版本，不能使用 `^` 范围来猜测
+解析结果。先用干净的 pnpm/npm 安装验证；如稳定版 `latest` 尚未达到该版本，必须
+将相关 DSH peer 精确锁定为目标版本，例如 `"0.1.5-rc.1"`。
+
 ## 4. 插件发布与版本一致性
 
 若插件代码、依赖或兼容声明有改动：
@@ -99,6 +103,8 @@ README 不得宣称未经本地测试的兼容性。
 ```bash
 pnpm test:insights
 pnpm test:runtime:compat
+pnpm test:plugins:runtime
+pnpm test:plugins:boot
 pnpm test:bundled-pnpm
 pnpm test:updater
 pnpm build:macos

@@ -419,9 +419,9 @@ fn bundled_web_args(entry_arg: String, plugin_patches: &[PathBuf], port: u16) ->
         "web".to_string(),
     ];
     for plugin_patch in plugin_patches {
-        // `--patch` belongs to the dsh launcher. It must precede the Web app
-        // flags, which are forwarded verbatim to the web profile. dsh accepts
-        // repeatable `--patch` values, one for each bundled plugin.
+        // DSH 0.1.5-rc.1 accepts profile overlays on the `web` subcommand.
+        // Keep them before the Web app flags, which are forwarded verbatim to
+        // the web profile. One repeatable `--patch` is emitted per plugin.
         args.push("--patch".to_string());
         args.push(plugin_patch.to_string_lossy().into_owned());
     }
@@ -1831,7 +1831,7 @@ mod tests {
     }
 
     #[test]
-    fn bundled_web_args_keep_launcher_patch_before_web_flags() {
+    fn bundled_web_args_keep_web_patch_before_web_flags() {
         assert_eq!(
             bundled_web_args(
                 "lib/bin.js".to_string(),

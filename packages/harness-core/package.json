@@ -1,6 +1,6 @@
 {
   "name": "@anarkhgatsby/deepseek-harness-core",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Shared channel message bus for DeepSeek Harness: unified GatewayCore routing/dedup/delivery used by every channel plugin (imessage/qq/telegram/feishu...).",
   "type": "module",
   "main": "./index.js",
@@ -20,12 +20,12 @@
   ],
   "license": "MIT",
   "peerDependencies": {
-    "@deepseek-ai/cordis": "^4.0.1",
-    "@deepseek-ai/dsh-typert-protocol": ">=0.1.0-rc.6",
-    "@deepseek-ai/dsh-tools": "^0.1.3-alpha.2",
-    "@deepseek-ai/dsh-llm": "^0.1.3-alpha.2",
-    "@deepseek-ai/dsh-session": "^0.1.3-alpha.2",
-    "@deepseek-ai/dsh-agent": "^0.1.3-alpha.2",
+    "@deepseek-ai/cordis": "^4.0.2",
+    "@deepseek-ai/dsh-typert-protocol": "0.1.5-rc.1",
+    "@deepseek-ai/dsh-tools": "0.1.5-rc.1",
+    "@deepseek-ai/dsh-llm": "0.1.5-rc.1",
+    "@deepseek-ai/dsh-session": "0.1.5-rc.1",
+    "@deepseek-ai/dsh-agent": "0.1.5-rc.1",
     "@deepseek-ai/schemastery": ">=3.18.0"
   }
 }

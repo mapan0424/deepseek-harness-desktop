@@ -25,13 +25,13 @@ https://github.com/user-attachments/assets/486eb943-a455-4f56-b009-5fc1e877e812
 
 <p align="center"><sub>Embedded product demo · 35 seconds</sub></p>
 
-## 🆕 What's new in v0.3.4
+## 🆕 What's new in v0.3.6
 
-- Upgraded bundled core runtime to official `@deepseek-ai/dsh@0.1.5-alpha.1`.
-- Adapted the newer session projection cache architecture and fixed usage insights for historical sessions.
-- Upgraded WebKit Class Static Blocks polyfill with resilient regex matching, ensuring macOS 12 (Monterey) stability.
-- Fixed Node.js CLI launcher silent exit bug and local loopback auto-authentication exception.
-- Synchronized the community plugin matrix with the bundled runtime contract, with the full compatibility suite passing.
+- Bundles official `@deepseek-ai/dsh@0.1.5-rc.1` and `@deepseek-ai/cordis@4.0.2`.
+- Revalidated the full community plugin matrix against exact RC1 peers: Channel Config `0.1.8`, Core `0.1.5`, Feishu `0.1.3`, DingTalk `0.1.1`, WeCom `0.1.5`, iMessage `0.1.6`, Insights `0.1.8`, and Locale Pack `0.1.5`.
+- Retains the local-only Insights recovery path for derived historical aggregates; it never reads or uploads message content or API keys.
+- Adds an isolated all-plugin boot regression test before packaging to catch loader duplication, missing peers, and launch failures.
+- Windows intentionally excludes the macOS-only iMessage transport; all remaining bundled plugins are cross-platform.
 
 ## ✨ Why use it
 
@@ -58,7 +58,7 @@ This is not a reduced chat wrapper. It hosts the DeepSeek Harness Web UI directl
 - model, credential, and plugin configuration
 - an experience that can evolve with upstream Harness
 - bundled **Harness Insights** for local Token, model, and tool usage analytics with Golden Ratio heatmap and dual themes
-- bundled **omnichannel messaging gateways**: visual configuration, Feishu / Lark, WeChat Work / WeCom, and iMessage on macOS
+- bundled **omnichannel messaging gateways**: visual configuration, Feishu / Lark, DingTalk, WeChat Work / WeCom, and iMessage on macOS
 - bundled **multi-language and ethnic locale pack**: seamless switching across Tibetan, Mongolian, Uyghur, Nuosu Yi, Traditional Chinese, Japanese, Korean, etc.
 
 The desktop layer does not reinvent Harness. It makes Harness feel at home on desktop systems. Built-in plugins are developed as modular Cordis plugins, decoupled from upstream source, and delivered out-of-the-box inside the installer.
@@ -69,6 +69,7 @@ The installer includes the validated channel plugins. After launching Harness, c
 
 - **Visual configuration** for unified channel parameters, authorization state, default workspaces, and session routing;
 - **Feishu / Lark** with WebSocket long-connection events and Open API card/text streaming replies;
+- **DingTalk** with Stream long connections, no public webhook requirement, and in-conversation Agent approvals/questions;
 - **WeChat Work / WeCom** with custom application credentials for bi-directional messaging with local Harness agents;
 - **iMessage** on macOS, including the local Messages/chat.db mode. The first use requires Full Disk Access and Automation permissions.
 
