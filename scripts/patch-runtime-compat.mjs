@@ -46,6 +46,7 @@ export async function patchRuntimeCompatibility(runtimeRoot) {
     console.log("Verified upstream macOS 12.7.6 GFM email autolink compatibility; no source patch needed.");
   }
   await patchFrontendClassStaticBlocks(runtimeRoot);
+  await patchDynamicClientModules(runtimeRoot);
   await patchFrontendWindowControls(runtimeRoot);
   await patchFrontendPromiseWithResolvers(runtimeRoot);
   await patchHostWebserverReadyMarkup(runtimeRoot);
@@ -144,6 +145,63 @@ export async function patchFrontendClassStaticBlocks(runtimeRoot) {
   }
 }
 
+const dynamicClientMarker = "/* dsh-desktop-safari15.6-client */";
+
+// DSH loads plugin clients after the shell has started. The host concatenates
+// every `client.js` into one browser script, so a syntax error in any later
+// plugin prevents even the first module (usually dsh-client-hmr) from calling
+// __ModuleLoader__.load. The prebuilt shell asset conversion above does not
+// reach these dynamic entries.
+export async function patchDynamicClientModules(runtimeRoot) {
+  const entries = await findDynamicClientEntries(runtimeRoot);
+  if (!entries.length) throw new Error("No dynamic DSH client modules found to transpile");
+
+  for (const path of entries) {
+    const content = await readFile(path, "utf8");
+    const source = content.startsWith(dynamicClientMarker) ? content.slice(dynamicClientMarker.length).trimStart() : content;
+    const result = await transform(source, {
+      sourcefile: path,
+      loader: "js",
+      format: "esm",
+      target: "safari15.6",
+      minifyWhitespace: true,
+      keepNames: true,
+      legalComments: "inline",
+      charset: "utf8",
+    });
+    assertDynamicClientModule(result.code, path);
+    await writeFile(path, `${dynamicClientMarker}\n${result.code}`, "utf8");
+  }
+  console.log(`Transpiled ${entries.length} dynamic DSH client modules for macOS 12.7.6 WebKit.`);
+}
+
+async function findDynamicClientEntries(runtimeRoot) {
+  const modules = join(runtimeRoot, "node_modules");
+  const entries = [];
+  for (const scope of ["@deepseek-ai", "@anarkhgatsby"]) {
+    const scopeRoot = join(modules, scope);
+    if (!existsSync(scopeRoot)) continue;
+    for (const entry of await readdir(scopeRoot, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      const packageRoot = join(scopeRoot, entry.name);
+      for (const relative of ["client.js", "lib/client.js"]) {
+        const path = join(packageRoot, relative);
+        if (!existsSync(path)) continue;
+        const content = await readFile(path, "utf8");
+        if (content.includes("window.__ModuleLoader__.load({")) entries.push(path);
+      }
+    }
+  }
+  return entries.sort();
+}
+
+function assertDynamicClientModule(content, path) {
+  if (!content.includes("window.__ModuleLoader__.load({")) {
+    throw new Error(`Dynamic client lost its __ModuleLoader__.load registration: ${path}`);
+  }
+  assertFrontendSyntax(content, path);
+}
+
 function assertFrontendSyntax(content, path) {
   const result = spawnSync(process.execPath, ["--input-type=module", "--check"], {
     input: content,
@@ -218,6 +276,16 @@ export async function verifyRuntimeCompatibility(runtimeRoot) {
     const content = await readFile(join(assetsRoot, name), "utf8");
     oldCount += count(content, bundleOld);
     newCount += count(content, bundleNew);
+  }
+
+  const dynamicEntries = await findDynamicClientEntries(runtimeRoot);
+  if (!dynamicEntries.length) throw new Error("Missing dynamic DSH client modules");
+  for (const path of dynamicEntries) {
+    const content = await readFile(path, "utf8");
+    if (!content.startsWith(dynamicClientMarker)) {
+      throw new Error(`Dynamic client was not transpiled for macOS 12.7.6 WebKit: ${path}`);
+    }
+    assertDynamicClientModule(content, path);
   }
   if (oldCount !== 0 || newCount !== 1) {
     throw new Error(`Invalid prebuilt frontend compatibility state: legacy=${oldCount}, compatible=${newCount}`);

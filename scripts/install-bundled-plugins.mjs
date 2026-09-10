@@ -199,9 +199,14 @@ export async function verifyBundledPlugins(runtimeRoot) {
     if (plugin.clientId) {
       const clientPath = join(root, plugin.clientEntry);
       const client = await readFile(clientPath, "utf8");
-      if (!client.includes("window.__ModuleLoader__.load({") || !client.includes(`id: "${plugin.clientId}"`) && !client.includes(`id: '${plugin.clientId}'`)) {
+      const clientId = new RegExp(`\\bid\\s*:\\s*["']${escapeRegExp(plugin.clientId)}["']`);
+      if (!client.includes("window.__ModuleLoader__.load({") || !clientId.test(client)) {
         throw new Error(`Bundled ${plugin.id} client is not a dsh.client module bundle.`);
       }
     }
   }
+}
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

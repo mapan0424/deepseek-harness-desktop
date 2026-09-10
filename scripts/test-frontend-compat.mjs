@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import { runInNewContext } from "node:vm";
-import { patchFrontendClassStaticBlocks, verifyFrontendSyntax } from "./patch-runtime-compat.mjs";
+import { patchDynamicClientModules, patchFrontendClassStaticBlocks, verifyFrontendSyntax } from "./patch-runtime-compat.mjs";
 
 async function fixture(t, source) {
   const root = await mkdtemp(join(tmpdir(), "dsh-frontend-compat-"));
@@ -81,4 +81,18 @@ test("transpilation rejects invalid input without overwriting the asset", async 
   const { root, path } = await fixture(t, source);
   await assert.rejects(patchFrontendClassStaticBlocks(root));
   assert.equal(await readFile(path, "utf8"), source);
+});
+
+test("transpiles dynamically bundled client modules without losing their loader registration", async (t) => {
+  const root = await mkdtemp(join(tmpdir(), "dsh-dynamic-client-compat-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const client = join(root, "node_modules", "@deepseek-ai", "dsh-client-fixture", "lib", "client.js");
+  await mkdir(join(client, ".."), { recursive: true });
+  await writeFile(client, `window.__ModuleLoader__.load({ id: "fixture", factory: () => { class Feature { static { Feature.ready = true } } return Feature } })`);
+
+  await patchDynamicClientModules(root);
+  const patched = await readFile(client, "utf8");
+  assert.match(patched, /dsh-desktop-safari15\.6-client/);
+  assert.match(patched, /window\.__ModuleLoader__\.load\(\{/);
+  assert.doesNotMatch(patched, /static\s*\{/);
 });

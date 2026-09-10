@@ -102,7 +102,7 @@ jobs:
           elif [ "$VERSION" = "0.3.4" ]; then
             notes='升级核心运行时至 @deepseek-ai/dsh@0.1.5-alpha.1，修复历史会话用量洞察不显示，并同步完成 macOS 兼容性验证。'
           elif [ "$VERSION" = "0.3.6" ]; then
-            notes='升级至 @deepseek-ai/dsh@0.1.5-rc.1，并同步验证全部内置插件与独立隔离启动回归测试。'
+            notes='升级至 @deepseek-ai/dsh@0.1.5-rc.1，修复 Intel macOS 动态插件客户端加载，并固定完整 RC1 依赖闭包。'
           fi
           node scripts/create-updater-manifest.mjs \
             --version "$VERSION" \
@@ -146,7 +146,7 @@ jobs:
           elif [ "$VERSION" = "0.3.5" ]; then
             release_notes=$'## 用量洞察历史数据恢复\n\n- 内置 Harness Insights 升级至 `0.1.7`，适配 `@deepseek-ai/dsh@0.1.5-alpha.1` 的会话持久化与投影缓存接口。\n- 修复升级后旧缓存缺少运行时格式标识、页面只能读取标题而用量显示为 0 的问题。\n- 首次启动会在本地从会话事件重建派生用量缓存；不读取浏览器中的消息正文、不读取 API Key、也不上传数据。\n- 已在本机验证历史统计恢复：Token、模型调用、会话排行、热力图、工具调用和缓存命中率均正常显示。\n\n## 运行时与平台\n\n- 继续提供 macOS Apple Silicon、macOS Intel 和 Windows x64 安装包。\n- Windows 构建不携带 iMessage。\n- Release 资产包含 updater 签名、`latest.json` 和 SHA256 校验清单。'
           elif [ "$VERSION" = "0.3.6" ]; then
-            release_notes=$'## DSH 0.1.5 RC1 运行时升级\n\n- 内嵌官方 `@deepseek-ai/dsh@0.1.5-rc.1` 与 `@deepseek-ai/cordis@4.0.2`。\n- 重新验证并内嵌精确 RC1 peer 版本的插件矩阵：配置中心 `0.1.8`、Core `0.1.5`、飞书 `0.1.3`、钉钉 `0.1.1`、企业微信 `0.1.5`、iMessage `0.1.6`、Harness Insights `0.1.8`、Locale Pack `0.1.5`。\n- 新增独立临时 profile 的全部插件启动回归测试，构建前检查 overlay、loader 与运行时依赖。\n- 用量洞察保留本地历史聚合恢复；不会读取浏览器消息正文、不会读取 API Key，也不会上传数据。\n\n## 平台\n\n- 支持 macOS 12.7.6+ Apple Silicon、macOS Intel 和 Windows x64。\n- Windows 构建不携带 iMessage。\n- Release 资产包含 updater 签名、`latest.json` 和 SHA256 校验清单。'
+            release_notes=$'## DSH 0.1.5 RC1 与 Intel macOS 启动热修复\n\n- 内嵌官方 `@deepseek-ai/dsh@0.1.5-rc.1` 与 `@deepseek-ai/cordis@4.0.2`。\n- 修复 Intel Mac，尤其是 macOS 12 Monterey WebKit，启动后报 `Failed to load plugins` 的问题。构建时将全部动态加载的 Harness 客户端模块转换为 macOS 12.7.6 可解析的 JavaScript，并验证其 `__ModuleLoader__` 注册未丢失。\n- 锁定完整 `@deepseek-ai/dsh@0.1.5-rc.1` 依赖闭包，防止 npm 将内部 RC1 范围漂移到尚未完整发布的 RC2。\n- 重新验证并内嵌精确 RC1 peer 版本的插件矩阵：配置中心 `0.1.8`、Core `0.1.5`、飞书 `0.1.3`、钉钉 `0.1.1`、企业微信 `0.1.5`、iMessage `0.1.6`、Harness Insights `0.1.8`、Locale Pack `0.1.5`。\n- 新增独立临时 profile 的全部插件启动回归测试，构建前检查 overlay、loader 与运行时依赖。\n- 用量洞察保留本地历史聚合恢复；不会读取浏览器消息正文、不会读取 API Key，也不会上传数据。\n\n## 平台\n\n- 支持 macOS 12.7.6+ Apple Silicon、macOS Intel 和 Windows x64。\n- Windows 构建不携带 iMessage。\n- Release 资产包含 updater 签名、`latest.json` 和 SHA256 校验清单。'
           else
             release_notes=$'Release 资产包含签名文件、latest.json 和 SHA256 校验清单。'
           fi

@@ -8,6 +8,7 @@ import { pipeline } from "node:stream/promises";
 import { patchRuntimeCompatibility } from "./patch-runtime-compat.mjs";
 import { installBundledPlugins } from "./install-bundled-plugins.mjs";
 import { bundledPnpmVersion, materializeBundledPnpmLauncher, pruneBundledPnpmNativeModules, verifyBundledPnpm } from "./bundled-pnpm.mjs";
+import { pinnedDshRuntimeDependencies } from "./dsh-runtime-pins.mjs";
 
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const resourcesRoot = join(projectRoot, "src-tauri", "resources");
@@ -39,7 +40,7 @@ await writeFile(
     {
       name: "deepseek-harness-dsh-runtime",
       private: true,
-      dependencies: { "@deepseek-ai/dsh": dshVersion, pnpm: bundledPnpmVersion },
+    dependencies: { ...pinnedDshRuntimeDependencies(dshVersion), pnpm: bundledPnpmVersion },
     },
     null,
     2,
@@ -63,8 +64,8 @@ await run("npm", [
   npm_config_platform: "darwin",
 });
 
-await patchRuntimeCompatibility(runtimeRoot);
 await installBundledPlugins(runtimeRoot);
+await patchRuntimeCompatibility(runtimeRoot);
 await pruneRuntime();
 await pruneBundledPnpmNativeModules(runtimeRoot, "darwin-arm64");
 await materializeBundledPnpmLauncher(runtimeRoot);
