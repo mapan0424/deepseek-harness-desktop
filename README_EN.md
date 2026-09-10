@@ -201,6 +201,9 @@ pnpm install
 pnpm tauri dev
 ```
 
+For an embedded DSH runtime upgrade, bundled-plugin synchronization and release
+validation, follow the [DSH runtime upgrade guide](docs/DSH_RUNTIME_UPGRADE.md).
+
 ### Build for Apple Silicon
 
 ```bash

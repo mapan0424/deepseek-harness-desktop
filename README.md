@@ -201,6 +201,9 @@ pnpm install
 pnpm tauri dev
 ```
 
+需要升级内嵌 DSH 运行时、同步社区插件并发布新桌面版本时，请按
+[DSH 运行时升级手册](docs/DSH_RUNTIME_UPGRADE.md) 执行。
+
 ### 构建 Apple Silicon
 
 ```bash
