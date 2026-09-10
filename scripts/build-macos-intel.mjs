@@ -12,6 +12,8 @@ const rustupCargo = join(homedir(), ".cargo", "bin", "cargo");
 console.log("Building unsigned Intel (x86_64) macOS release...");
 await ensureIntelRustTarget();
 await run(process.execPath, [join(projectRoot, "scripts", "prepare-runtime-intel.mjs")]);
+await run("pnpm", ["test:plugins:runtime"]);
+await run("pnpm", ["test:plugins:boot"]);
 await run("pnpm", ["prepare:licenses"]);
 await run("pnpm", ["tauri", "build", "--target", rustTarget, "--no-sign"], {
   PATH: intelPath(),
