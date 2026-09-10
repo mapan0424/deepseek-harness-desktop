@@ -29,6 +29,7 @@ https://github.com/user-attachments/assets/486eb943-a455-4f56-b009-5fc1e877e812
 
 - 内嵌官方 `@deepseek-ai/dsh@0.1.5-rc.1` 与 `@deepseek-ai/cordis@4.0.2`；
 - 修复 Intel Mac，尤其是 macOS 12 Monterey WebKit，启动时出现的“Failed to load plugins”；构建时将全部动态加载的 Harness 客户端模块转换为 macOS 12.7.6 可解析的 JavaScript，并验证每个模块仍会注册到 `__ModuleLoader__`；
+- 兼容文档预览模块内嵌 PDF.js 对新 `Iterator` 全局对象的依赖；macOS 12 可正常加载插件与 PDF 预览；
 - 固定完整 `@deepseek-ai/dsh@0.1.5-rc.1` 依赖闭包，阻止 npm 将内部 `^0.1.5-rc.1` 自动解析到不完整发布的 RC2；
 - 全部内置社区插件已按 RC1 的精确 peer 依赖重新验证：配置中心 `0.1.8`、Core `0.1.5`、飞书 `0.1.3`、钉钉 `0.1.1`、企业微信 `0.1.5`、iMessage `0.1.6`、用量洞察 `0.1.8`、语言包 `0.1.5`；
 - 用量洞察继续保留历史派生缓存恢复机制；它只处理本地结构化用量聚合，不读取或上传聊天正文与 API Key；

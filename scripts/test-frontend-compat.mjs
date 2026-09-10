@@ -88,11 +88,19 @@ test("transpiles dynamically bundled client modules without losing their loader 
   t.after(() => rm(root, { recursive: true, force: true }));
   const client = join(root, "node_modules", "@deepseek-ai", "dsh-client-fixture", "lib", "client.js");
   await mkdir(join(client, ".."), { recursive: true });
-  await writeFile(client, `window.__ModuleLoader__.load({ id: "fixture", factory: () => { class Feature { static { Feature.ready = true } } return Feature } })`);
+  await writeFile(client, `
+    const joins = typeof Iterator.prototype.join === "function";
+    window.__ModuleLoader__.load({ id: "fixture", factory: () => {
+      class Feature { static { Feature.ready = joins } }
+      return Feature;
+    } });
+  `);
 
   await patchDynamicClientModules(root);
   const patched = await readFile(client, "utf8");
   assert.match(patched, /dsh-desktop-safari15\.6-client/);
   assert.match(patched, /window\.__ModuleLoader__\.load\(\{/);
   assert.doesNotMatch(patched, /static\s*\{/);
+  assert.doesNotMatch(patched, /Iterator\.prototype/);
+  assert.match(patched, /Object\.getPrototypeOf\(Object\.getPrototypeOf\(\[\]\[Symbol\.iterator\]\(\)\)\)/);
 });

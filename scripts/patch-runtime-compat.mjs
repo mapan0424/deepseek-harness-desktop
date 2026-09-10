@@ -146,6 +146,7 @@ export async function patchFrontendClassStaticBlocks(runtimeRoot) {
 }
 
 const dynamicClientMarker = "/* dsh-desktop-safari15.6-client */";
+const iteratorPrototypeExpression = "Object.getPrototypeOf(Object.getPrototypeOf([][Symbol.iterator]()))";
 
 // DSH loads plugin clients after the shell has started. The host concatenates
 // every `client.js` into one browser script, so a syntax error in any later
@@ -158,7 +159,9 @@ export async function patchDynamicClientModules(runtimeRoot) {
 
   for (const path of entries) {
     const content = await readFile(path, "utf8");
-    const source = content.startsWith(dynamicClientMarker) ? content.slice(dynamicClientMarker.length).trimStart() : content;
+    const source = patchIteratorPrototype(
+      content.startsWith(dynamicClientMarker) ? content.slice(dynamicClientMarker.length).trimStart() : content,
+    );
     const result = await transform(source, {
       sourcefile: path,
       loader: "js",
@@ -173,6 +176,17 @@ export async function patchDynamicClientModules(runtimeRoot) {
     await writeFile(path, `${dynamicClientMarker}\n${result.code}`, "utf8");
   }
   console.log(`Transpiled ${entries.length} dynamic DSH client modules for macOS 12.7.6 WebKit.`);
+}
+
+// Recent PDF.js bundles assume the Iterator Helpers proposal is available and
+// access `Iterator.prototype` directly. Safari 15.6 has iterator prototypes,
+// but does not expose the proposal's global `Iterator` constructor. Resolve
+// the same intrinsic from a standard array iterator instead. This source-level
+// replacement also reaches PDF.js worker code stored in an inline string.
+function patchIteratorPrototype(source) {
+  return source.includes("Iterator.prototype")
+    ? source.replaceAll("Iterator.prototype", iteratorPrototypeExpression)
+    : source;
 }
 
 async function findDynamicClientEntries(runtimeRoot) {
@@ -198,6 +212,9 @@ async function findDynamicClientEntries(runtimeRoot) {
 function assertDynamicClientModule(content, path) {
   if (!content.includes("window.__ModuleLoader__.load({")) {
     throw new Error(`Dynamic client lost its __ModuleLoader__.load registration: ${path}`);
+  }
+  if (content.includes("Iterator.prototype")) {
+    throw new Error(`Dynamic client still requires the unsupported Iterator global: ${path}`);
   }
   assertFrontendSyntax(content, path);
 }

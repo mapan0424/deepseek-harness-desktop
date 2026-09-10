@@ -29,6 +29,7 @@ https://github.com/user-attachments/assets/486eb943-a455-4f56-b009-5fc1e877e812
 
 - Bundles official `@deepseek-ai/dsh@0.1.5-rc.1` and `@deepseek-ai/cordis@4.0.2`.
 - Fixes the Intel Mac “Failed to load plugins” startup failure, particularly on macOS 12 Monterey WebKit. Every dynamically loaded Harness client module is transpiled to syntax that macOS 12.7.6 can parse, while retaining `__ModuleLoader__` registration.
+- Makes the PDF.js bundle used by document preview compatible with macOS 12, whose WebKit lacks the newer global `Iterator` constructor.
 - Pins the complete `@deepseek-ai/dsh@0.1.5-rc.1` dependency closure so npm cannot float internal `^0.1.5-rc.1` ranges to the incompletely published RC2 family.
 - Revalidated the full community plugin matrix against exact RC1 peers: Channel Config `0.1.8`, Core `0.1.5`, Feishu `0.1.3`, DingTalk `0.1.1`, WeCom `0.1.5`, iMessage `0.1.6`, Insights `0.1.8`, and Locale Pack `0.1.5`.
 - Retains the local-only Insights recovery path for derived historical aggregates; it never reads or uploads message content or API keys.
