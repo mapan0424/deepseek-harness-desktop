@@ -10,10 +10,12 @@ const projectionRoot = resolve(runtimeRoot, "@deepseek-ai/dsh-session-projection
 const pluginManifest = JSON.parse(await readFile(resolve("packages/harness-insights/package.json"), "utf8"));
 const projectionManifest = JSON.parse(await readFile(resolve(projectionRoot, "package.json"), "utf8"));
 
-assert.equal(
-  pluginManifest.peerDependencies?.["@deepseek-ai/dsh-session-projection"],
-  projectionManifest.version,
-  "the plugin peer range must follow the bundled projection runtime",
+assert.ok(
+  pluginManifest.peerDependencies?.["@deepseek-ai/dsh-session-projection"]
+    .split("||")
+    .map((value) => value.trim())
+    .includes(projectionManifest.version),
+  "the plugin peer range must support the bundled projection runtime",
 );
 
 const { Context } = await import(pathToFileURL(resolve(cordisRoot, "lib/index.js")));

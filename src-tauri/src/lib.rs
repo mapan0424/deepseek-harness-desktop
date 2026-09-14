@@ -419,7 +419,7 @@ fn bundled_web_args(entry_arg: String, plugin_patches: &[PathBuf], port: u16) ->
         "web".to_string(),
     ];
     for plugin_patch in plugin_patches {
-        // DSH 0.1.5-rc.1 accepts profile overlays on the `web` subcommand.
+        // DSH 0.1.5-rc.2 accepts profile overlays on the `web` subcommand.
         // Keep them before the Web app flags, which are forwarded verbatim to
         // the web profile. One repeatable `--patch` is emitted per plugin.
         args.push("--patch".to_string());

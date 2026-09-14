@@ -5,7 +5,7 @@ import { pathToFileURL } from "node:url";
 import { spawnSync } from "node:child_process";
 import { transform } from "esbuild";
 
-const expectedFrontendVersions = ["0.1.2-alpha.5", "0.1.2-rc.1", "0.1.3-alpha.2", "0.1.5-alpha.1", "0.1.5-rc.1"];
+const expectedFrontendVersions = ["0.1.2-alpha.5", "0.1.2-rc.1", "0.1.3-alpha.2", "0.1.5-alpha.1", "0.1.5-rc.1", "0.1.5-rc.2"];
 
 // 0.1.2-alpha.x / 0.1.2-rc.x ships the GFM email autolink as a regex literal (not `new RegExp("...")`).
 // macOS 12.7.6 WebKit rejects the lookbehind + Unicode property escapes, so drop the

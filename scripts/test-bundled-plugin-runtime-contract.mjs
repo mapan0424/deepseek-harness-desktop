@@ -27,13 +27,21 @@ for (const plugin of packages) {
       const runtime = await manifestAt(resolve(runtimeModules, dependency, "package.json"));
       runtimeVersions.set(dependency, runtime.version);
     }
-    const expectedRange = dependency === "@deepseek-ai/cordis"
-      ? `^${runtimeVersions.get(dependency)}`
-      : runtimeVersions.get(dependency);
-    assert.equal(
-      manifest.peerDependencies[dependency],
-      expectedRange,
-      `${manifest.name} must declare the exact bundled ${dependency} peer range`,
+    const runtimeVersion = runtimeVersions.get(dependency);
+    if (dependency === "@deepseek-ai/cordis") {
+      assert.equal(
+        manifest.peerDependencies[dependency],
+        `^${runtimeVersion}`,
+        `${manifest.name} must declare the bundled ${dependency} peer range`,
+      );
+      continue;
+    }
+    const compatibleVersions = manifest.peerDependencies[dependency]
+      .split("||")
+      .map((value) => value.trim());
+    assert.ok(
+      compatibleVersions.includes(runtimeVersion),
+      `${manifest.name} must support bundled ${dependency}@${runtimeVersion}`,
     );
   }
 }

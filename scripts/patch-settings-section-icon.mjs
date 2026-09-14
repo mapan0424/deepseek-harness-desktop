@@ -13,13 +13,16 @@ const packageRelativePath = [
 const marker = '\t\tfunction navIcon(id) {\n\t\t\tif (id === "models")';
 const legacyReplacement = '\t\tfunction navIcon(id) {\n\t\t\tif (id === "harness-channel-config") return (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconNewChatOutline16, {\n\t\t\t\tclassName: SettingsRoot_module_css_default.navIcon,\n\t\t\t\tsize: 16\n\t\t\t});\n\t\t\tif (id === "models")';
 const replacement = '\t\tfunction navIcon(id) {\n\t\t\tif (id === "harness-insights") return (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconSparkle16, {\n\t\t\t\tclassName: SettingsRoot_module_css_default.navIcon,\n\t\t\t\tsize: 16\n\t\t\t});\n\t\t\tif (id === "harness-channel-config") return (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconNewChatOutline16, {\n\t\t\t\tclassName: SettingsRoot_module_css_default.navIcon,\n\t\t\t\tsize: 16\n\t\t\t});\n\t\t\tif (id === "models")';
+const compactPatchedMarker = 'function navIcon(id){if(id==="harness-insights")return';
 
 export async function patchSettingsSectionIcon(runtimeRoot) {
   const path = join(runtimeRoot, ...packageRelativePath);
   if (!existsSync(path)) throw new Error(`Missing DSH settings shell: ${path}`);
 
   const content = await readFile(path, "utf8");
-  if (content.includes(replacement)) return;
+  // `patch-runtime-compat` can minify this client bundle after a previous run.
+  // Recognize both forms so the operation remains idempotent on RC2.
+  if (content.includes(replacement) || content.includes(compactPatchedMarker)) return;
 
   if (content.includes(legacyReplacement)) {
     const patched = content.replace(legacyReplacement, replacement);

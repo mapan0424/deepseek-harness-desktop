@@ -1,6 +1,6 @@
 {
   "name": "@anarkhgatsby/deepseek-harness-channel-wecom",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Channel plugin for DeepSeek Harness: 企业微信 behind one message bus. Thin facade on @anarkhgatsby/deepseek-harness-core.",
   "type": "module",
   "main": "./index.js",
@@ -38,15 +38,15 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "@anarkhgatsby/deepseek-harness-core": "0.1.5"
+    "@anarkhgatsby/deepseek-harness-core": "0.1.6"
   },
   "optionalDependencies": {
     "ws": "^8.18.0"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "^4.0.2",
-    "@deepseek-ai/dsh-typert-protocol": "0.1.5-rc.1",
-    "@deepseek-ai/dsh-tools": "0.1.5-rc.1",
+    "@deepseek-ai/dsh-typert-protocol": "0.1.5-rc.1 || 0.1.5-rc.2",
+    "@deepseek-ai/dsh-tools": "0.1.5-rc.1 || 0.1.5-rc.2",
     "@deepseek-ai/schemastery": ">=3.18.0"
   }
 }
