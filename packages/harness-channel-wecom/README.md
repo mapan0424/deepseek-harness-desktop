@@ -1,10 +1,16 @@
-# @anarkhgatsby/deepseek-harness-channel-wecom
+# `@anarkhgatsby/deepseek-harness-channel-wecom`
+
+[简体中文](README.zh-CN.md) | [NPM](https://www.npmjs.com/package/@anarkhgatsby/deepseek-harness-channel-wecom) | [Repository](https://github.com/mapan0424/deepseek-harness-plugins/tree/main/packages/harness-channel-wecom)
+
+[![npm version](https://img.shields.io/npm/v/@anarkhgatsby/deepseek-harness-channel-wecom.svg)](https://www.npmjs.com/package/@anarkhgatsby/deepseek-harness-channel-wecom) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 
 DeepSeek Harness 企业微信通道插件 —— **智能机器人 · WebSocket 长连接模式**。
 
 机器人主动向企业微信建立 `wss` 长连接，**无需公网 IP、无需回调 URL、无需消息加解密**，本地/内网直接运行。收到消息后交给 DSH 网关（GatewayCore）路由到 Agent 处理，回复经流式消息（stream）原路返回。
 
-> 协议对齐官方 `@wecom/aibot-node-sdk`（v1.0.7 实测验证）。
+> Protocol behavior is aligned with the official `@wecom/aibot-node-sdk` (v1.0.7, verified in practice).
+
+> ⚠️ **Unofficial project** — independently developed and maintained by the open-source community. It is not an official DeepSeek or Tencent WeCom product.
 
 ## 设计哲学
 
@@ -53,16 +59,14 @@ Harness Agent
 4. 记录页面生成的 **Bot ID** 和 **Secret**
 5. **可见范围必须包含使用机器人的成员**（⚠️ 最常见故障点：可见范围没配，消息永远不会路由到机器人）
 
-## 安装
+## Installation
 
 ```bash
-# npm 安装打包产物
-npm install @anarkhgatsby/deepseek-harness-channel-wecom-0.1.0.tgz
-# 或本地开发 link
-npm link /path/to/harness-channel-wecom
+dsh plugin add @anarkhgatsby/deepseek-harness-channel-wecom
+dsh plugin add @anarkhgatsby/deepseek-harness-channel-config
 ```
 
-`ws` 为可选依赖（Node 内置 WebSocket 握手该网关偶发失败，建议装上）。
+The configuration package is optional. `ws` is optional as well; install it when the runtime's native WebSocket handshake is unreliable.
 
 ## 配置
 
@@ -81,6 +85,16 @@ wecom:
 也可用环境变量：`WECOM_BOT_ID` / `WECOM_BOT_SECRET`。
 
 > ⚠️ Secret 是长连接专用密钥，与 Webhook 模式的 Token/EncodingAESKey **不是一回事**。请妥善保管，避免泄露。
+
+## Approvals and agent questions
+
+For an Agent session created from a WeCom conversation, sandbox and tool permission requests are sent back to that same conversation:
+
+* Reply `1` to approve once.
+* Reply `2` or any other non-approval text to reject.
+* For `userQuestions`, reply with the displayed option number; separate multiple selections with commas.
+
+GUI-originated sessions continue to use the native Harness approval dialog. Passive stream replies preserve the callback request context; when the platform window expires, the adapter falls back to an active Markdown message.
 
 ## 运行
 
@@ -142,3 +156,7 @@ node --check lib/adapters/wecom.mjs
 ## License
 
 MIT
+
+## Compatibility
+
+`0.1.7` is validated with DeepSeek Harness `0.1.5-rc.1`, `0.1.5-rc.2`, and `0.1.6-alpha.2`, `@deepseek-ai/cordis@^4.0.2`, and matching protocol and tools peers. It uses `@anarkhgatsby/deepseek-harness-core@0.1.7` for shared routing.

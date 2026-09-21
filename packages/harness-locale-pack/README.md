@@ -120,8 +120,17 @@ Contributions are welcome! If you would like to improve translations or add new 
 
 ---
 
+## Compatibility
+
+`0.1.7` is validated with DeepSeek Harness `0.1.5-rc.1`, `0.1.5-rc.2`, and `0.1.6-alpha.2`,
+`@deepseek-ai/cordis@^4.0.2`, and
+matching `@deepseek-ai/dsh-client-locale` peer. It is a Web UI plugin with no
+native dependency and is available on macOS and Windows where the Harness Web
+client is available.
+
+---
+
 ## 📄 License & Disclaimer
 
 - **License**: Released under the [MIT License](LICENSE).
 - **Disclaimer**: This is an independent, community-developed plugin and is not officially affiliated with DeepSeek AI.
-

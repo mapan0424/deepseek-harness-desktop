@@ -38,8 +38,14 @@ try {
     await waitForHttp(port, child, () => log);
     assert.doesNotMatch(log, /duplicate loader entry id|plugin tree failed to load/i, log);
   } finally {
-    if (!child.killed) child.kill("SIGTERM");
-    await new Promise((resolveExit) => child.once("exit", resolveExit));
+    if (child.exitCode === null) {
+      child.kill("SIGTERM");
+      const killTimer = setTimeout(() => {
+        if (child.exitCode === null) child.kill("SIGKILL");
+      }, 5000);
+      await new Promise((resolveExit) => child.once("exit", resolveExit));
+      clearTimeout(killTimer);
+    }
   }
 
   console.log(`Bundled DSH booted with ${activePlugins.length} plugin overlays in an isolated profile.`);

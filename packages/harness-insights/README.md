@@ -50,12 +50,12 @@ plugin and is not published by DeepSeek.
 | Item | Supported / validated version |
 | --- | --- |
 | Harness host | Legacy cache API `0.1.2+`; session-persistence API `0.1.5+` |
-| Validated current runtime | DeepSeek Harness `0.1.5-rc.1` |
-| Cordis | `^4.0.2` |
-| Harness projection client services | `0.1.5-rc.1` |
-| Plugin release | `@anarkhgatsby/deepseek-harness-insights@0.1.8` |
+| Validated current runtime | DeepSeek Harness `0.1.5-rc.1`, `0.1.5-rc.2`, and `0.1.6-alpha.2` |
+| Upstream base framework | `@deepseek-ai/cordis@^4.0.2` |
+| Target client environments | Modern desktop WebView / browsers |
+| Plugin release | `@anarkhgatsby/deepseek-harness-insights@0.1.10` |
 
-The desktop `0.3.6` bundle ships this exact `0.1.8` plugin release. The
+The next desktop bundle can ship this exact `0.1.10` plugin release. The
 plugin has no native dependency and uses only the local Harness host.
 
 For local development, the same bundle can be installed from a checkout:

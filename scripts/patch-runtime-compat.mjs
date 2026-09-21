@@ -5,7 +5,7 @@ import { pathToFileURL } from "node:url";
 import { spawnSync } from "node:child_process";
 import { transform } from "esbuild";
 
-const expectedFrontendVersions = ["0.1.2-alpha.5", "0.1.2-rc.1", "0.1.3-alpha.2", "0.1.5-alpha.1", "0.1.5-rc.1", "0.1.5-rc.2"];
+const expectedFrontendVersions = ["0.1.2-alpha.5", "0.1.2-rc.1", "0.1.3-alpha.2", "0.1.5-alpha.1", "0.1.5-rc.1", "0.1.5-rc.2", "0.1.6-alpha.2"];
 
 // 0.1.2-alpha.x / 0.1.2-rc.x ships the GFM email autolink as a regex literal (not `new RegExp("...")`).
 // macOS 12.7.6 WebKit rejects the lookbehind + Unicode property escapes, so drop the
@@ -52,6 +52,8 @@ export async function patchRuntimeCompatibility(runtimeRoot) {
   await patchHostWebserverReadyMarkup(runtimeRoot);
   await patchLocalConnectionAuth(runtimeRoot);
   await patchDshCliLauncher(runtimeRoot);
+  await patchNodeAddonRequireBuiltin(runtimeRoot);
+  await patchProfileBootResolutionMode(runtimeRoot);
   await verifyRuntimeCompatibility(runtimeRoot);
 }
 
@@ -361,6 +363,25 @@ export async function verifyRuntimeCompatibility(runtimeRoot) {
       throw new Error("dsh bin.js still contains 'if (import.meta.main)' which silently fails under Node.js");
     }
   }
+
+  const targetAddon = join(modules, "node-addon-require-builtin", "lib", "index.js");
+  if (existsSync(targetAddon)) {
+    const addonContent = await readFile(targetAddon, "utf8");
+    if (!addonContent.includes("builtin-fallback")) {
+      throw new Error("node-addon-require-builtin is missing fallback for pruned/incompatible native addons");
+    }
+  }
+
+  const dshLib = join(modules, "@deepseek-ai", "dsh", "lib");
+  if (existsSync(dshLib)) {
+    const files = (await readdir(dshLib)).filter((name) => name.startsWith("profile-boot") && name.endsWith(".js"));
+    for (const file of files) {
+      const content = await readFile(join(dshLib, file), "utf8");
+      if (content.includes('options.resolutionMode ?? "runtime"')) {
+        throw new Error(`profile boot in ${file} still defaults to runtime resolutionMode instead of link`);
+      }
+    }
+  }
 }
 
 async function assertPackageVersion(root, name, expected) {
@@ -468,5 +489,61 @@ export async function patchDshCliLauncher(runtimeRoot) {
   if (content.includes(unpatched)) {
     await writeFile(binPath, content.replace(unpatched, patched), "utf8");
     console.log(`Patched Node.js CLI launcher in dsh bin.js: ${binPath}`);
+  }
+}
+
+export async function patchNodeAddonRequireBuiltin(runtimeRoot) {
+  const target = join(runtimeRoot, "node_modules", "node-addon-require-builtin", "lib", "index.js");
+  if (!existsSync(target)) return;
+  const content = await readFile(target, "utf8");
+  const unpatched = "const { createEntryApi } = require('node-addon-native-custom-loader');\nconst api = createEntryApi(node_path_1.default.resolve(__dirname, '..'));";
+  if (!content.includes(unpatched)) return;
+  const patched = `let api = null;
+try {
+    const { createEntryApi } = require('node-addon-native-custom-loader');
+    api = createEntryApi(node_path_1.default.resolve(__dirname, '..'));
+} catch (_) {}`;
+  let newContent = content.replace(unpatched, patched);
+  newContent = newContent.replace(
+    "function requireBuiltin(moduleId) {\n    return api.requireBuiltin(moduleId);\n}",
+    "function requireBuiltin(moduleId) {\n    if (api) {\n        try {\n            return api.requireBuiltin(moduleId);\n        } catch (_) {}\n    }\n    return require(moduleId);\n}"
+  );
+  newContent = newContent.replace(
+    "function isAllowedInternalId(moduleId) {\n    return api.isAllowedInternalId(moduleId);\n}",
+    "function isAllowedInternalId(moduleId) {\n    if (api) {\n        try {\n            return api.isAllowedInternalId(moduleId);\n        } catch (_) {}\n    }\n    return typeof moduleId === 'string';\n}"
+  );
+  newContent = newContent.replace(
+    "function getBindingInfo() {\n    return api.getBindingInfo();\n}",
+    `function getBindingInfo() {
+    if (api) {
+        try {
+            return api.getBindingInfo();
+        } catch (_) {}
+    }
+    return {
+        mode: "builtin-fallback",
+        product: "node-addon-require-builtin",
+        backend: "builtin",
+        abi: "native",
+    };
+}`
+  );
+  await writeFile(target, newContent, "utf8");
+  console.log(`Patched node-addon-require-builtin with safe fallback: ${target}`);
+}
+
+export async function patchProfileBootResolutionMode(runtimeRoot) {
+  const dshLib = join(runtimeRoot, "node_modules", "@deepseek-ai", "dsh", "lib");
+  if (!existsSync(dshLib)) return;
+  const files = (await readdir(dshLib)).filter((name) => name.startsWith("profile-boot") && name.endsWith(".js"));
+  const unpatched = 'const resolutionMode = process.pkg !== void 0 ? "runtime" : options.resolutionMode ?? "runtime";';
+  const patched = 'const resolutionMode = process.pkg !== void 0 ? "runtime" : (process.env.DSH_RESOLUTION_MODE ?? options.resolutionMode ?? "link");';
+  for (const file of files) {
+    const target = join(dshLib, file);
+    const content = await readFile(target, "utf8");
+    if (content.includes(unpatched)) {
+      await writeFile(target, content.replace(unpatched, patched), "utf8");
+      console.log(`Patched profile boot resolution mode to link in ${target}`);
+    }
   }
 }

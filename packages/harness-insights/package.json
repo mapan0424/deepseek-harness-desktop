@@ -1,6 +1,6 @@
 {
   "name": "@anarkhgatsby/deepseek-harness-insights",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "description": "Local-first usage insights for DeepSeek Harness",
   "type": "module",
   "main": "./lib/index.js",
@@ -11,12 +11,13 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/mapan0424/deepseek-harness-insights.git"
+    "url": "https://github.com/mapan0424/deepseek-harness-plugins.git",
+    "directory": "packages/harness-insights"
   },
   "bugs": {
-    "url": "https://github.com/mapan0424/deepseek-harness-insights/issues"
+    "url": "https://github.com/mapan0424/deepseek-harness-plugins/issues"
   },
-  "homepage": "https://github.com/mapan0424/deepseek-harness-insights#readme",
+  "homepage": "https://github.com/mapan0424/deepseek-harness-plugins#readme",
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
@@ -43,9 +44,9 @@
   "license": "MIT",
   "peerDependencies": {
     "@deepseek-ai/cordis": "^4.0.2",
-    "@deepseek-ai/dsh-session-projection": "0.1.5-rc.1 || 0.1.5-rc.2",
-    "@deepseek-ai/dsh-client-connection": "0.1.5-rc.1 || 0.1.5-rc.2",
-    "@deepseek-ai/dsh-client-locale": "0.1.5-rc.1 || 0.1.5-rc.2",
+    "@deepseek-ai/dsh-session-projection": "0.1.5-rc.1 || 0.1.5-rc.2 || 0.1.6-alpha.2",
+    "@deepseek-ai/dsh-client-connection": "0.1.5-rc.1 || 0.1.5-rc.2 || 0.1.6-alpha.2",
+    "@deepseek-ai/dsh-client-locale": "0.1.5-rc.1 || 0.1.5-rc.2 || 0.1.6-alpha.2",
     "react": "^18.2.0"
   }
 }

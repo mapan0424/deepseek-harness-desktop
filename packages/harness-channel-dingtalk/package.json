@@ -1,7 +1,7 @@
 {
   "name": "@anarkhgatsby/deepseek-harness-channel-dingtalk",
-  "version": "0.1.2",
-  "description": "Channel plugin for DeepSeek Harness: 钉钉 behind one message bus. Thin facade on @anarkhgatsby/deepseek-harness-core.",
+  "version": "0.1.3",
+  "description": "Channel plugin for DeepSeek Harness: 钉钉 / DingTalk (Stream Mode) behind one message bus. Thin facade on @anarkhgatsby/deepseek-harness-core.",
   "type": "module",
   "main": "./index.js",
   "exports": {
@@ -11,7 +11,8 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/mapan0424/deepseek-harness-desktop.git"
+    "url": "https://github.com/mapan0424/deepseek-harness-plugins.git",
+    "directory": "packages/harness-channel-dingtalk"
   },
   "dsh": {
     "bundle": {
@@ -34,19 +35,20 @@
     "lib/config.mjs",
     "lib/adapters/dingtalk.mjs",
     "README.md",
+    "README.zh-CN.md",
     "LICENSE"
   ],
   "license": "MIT",
   "dependencies": {
-    "@anarkhgatsby/deepseek-harness-core": "0.1.6"
+    "@anarkhgatsby/deepseek-harness-core": "0.1.7"
   },
   "optionalDependencies": {
     "ws": "^8.18.0"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "^4.0.2",
-    "@deepseek-ai/dsh-typert-protocol": "0.1.5-rc.1 || 0.1.5-rc.2",
-    "@deepseek-ai/dsh-tools": "0.1.5-rc.1 || 0.1.5-rc.2",
+    "@deepseek-ai/dsh-typert-protocol": "0.1.5-rc.1 || 0.1.5-rc.2 || 0.1.6-alpha.2",
+    "@deepseek-ai/dsh-tools": "0.1.5-rc.1 || 0.1.5-rc.2 || 0.1.6-alpha.2",
     "@deepseek-ai/schemastery": ">=3.18.0"
   }
 }

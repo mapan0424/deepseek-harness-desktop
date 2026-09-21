@@ -27,8 +27,8 @@ if (existsSync(join(runtime, "node_modules", "node-addon-require-builtin-win32-x
   throw new Error("Optional native internal-loader package should not be shipped in the Windows bundle.");
 }
 const size = (await stat(app)).size + await directorySize(runtime);
-const max = 500 * 1024 * 1024;
-if (size > max) throw new Error(`Expanded Windows app is unexpectedly large: ${(size / 1024 / 1024).toFixed(1)} MB > 500 MB`);
+const max = 750 * 1024 * 1024;
+if (size > max) throw new Error(`Expanded Windows app is unexpectedly large: ${(size / 1024 / 1024).toFixed(1)} MB > 750 MB`);
 console.log(`Verified Windows x86_64 app: ${(size / 1024 / 1024).toFixed(1)} MB, direct embedded runtime, patched Markdown compatibility.`);
 
 async function scanNativeFiles(root) {

@@ -1,53 +1,113 @@
-# harness-channel-dingtalk
+# `@anarkhgatsby/deepseek-harness-channel-dingtalk`
 
-DeepSeek Harness 的一个钉钉通道插件（薄壳）。开放 API。机器人 + Stream 模式收/发；需创建钉钉企业内部应用拿 appKey/appSecret，可配 Stream 模式（免公网 webhook）。
+[简体中文](README.zh-CN.md) | [NPM](https://www.npmjs.com/package/@anarkhgatsby/deepseek-harness-channel-dingtalk) | [Repository](https://github.com/mapan0424/deepseek-harness-plugins/tree/main/packages/harness-channel-dingtalk)
 
-与 `harness-channel-qq`/`harness-channel-feishu` 共用同一个消息总线核心 `@anarkhgatsby/deepseek-harness-core`，只替换了 channel 配置命名空间（dingtalk）和适配器。
+[![npm version](https://img.shields.io/npm/v/@anarkhgatsby/deepseek-harness-channel-dingtalk.svg)](https://www.npmjs.com/package/@anarkhgatsby/deepseek-harness-channel-dingtalk) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 
-## 设计哲学
+DingTalk bot channel plugin for **DeepSeek Harness**, using DingTalk's Stream long-connection transport and the shared `GatewayCore` message bus.
 
-「一个 channel 一种协议，一个 channel 一个薄壳插件；消息总线只装一份。」加新通道只需：新建一个薄壳插件包，复制一份 adapter（连平台协议），从 `harness-core` 导入 `GatewayCore`，改配置命名空间。骨架不动，心智负担接近零。
+> ⚠️ **Unofficial project** — independently developed and maintained by the open-source community. It is not an official DeepSeek or DingTalk product.
 
-## 架构
+## Features
 
-```
-Harness Agent
-     |
-     v
- Cordis 通道插件（host: index.js）  <- harness-channel-dingtalk
-     |  接 DingtalkAdapter
-     v
- GatewayCore（来自 @anarkhgatsby/deepseek-harness-core）
-     |  统一消息总线：路由/去重/投递/流式回复/typing
-     |  统一适配器接口 start()/send()/setTyping()/stop()
-     v
- 钉钉 适配器（纯 IO，只连只收发）
-```
+* **Stream long connection** for local deployments without a public webhook endpoint.
+* **One-to-one and group conversations**, with sender / conversation routing and optional allowlists.
+* **Markdown replies and active notifications** through the built-in `message_dingtalk` tool.
+* **Session continuity and deduplication** through the shared Core package.
+* **Approval and question routing**: requests from DingTalk-originated Agent sessions are returned to the same conversation, while GUI sessions retain the native GUI flow.
+* **Automatic fallback** from the passive callback response to DingTalk OpenAPI active send when the callback context is unavailable or expired.
 
-## 目录
-
-- `index.js` — host 入口：注册 `dingtalk` settings namespace、接 DingtalkAdapter、启停网关、注册全局 `message` 工具、Typert remote `dingtalkGateway`。
-- `client.js` — web client：`TypertRemoteServiceLocator` 调 host 的 `dingtalkGateway` 读写配置；`modeMeta` 渲染配置卡片。
-- `lib/config.mjs` — `dingtalk` 配置 schema 与 `normalizeSettings`（宽松校验 + 默认值）。
-- `lib/adapters/dingtalk.mjs` — 钉钉适配器：协议收发实现。
-- `cordis.patch.yml` — Cordis 补丁：`--patch` 注入本插件。
-
-## 前置条件
-
-需创建钉钉企业内部应用（开发者后台），拿 appKey/appSecret；机器人启用二进/Stream 模式，或配置公网回调。
-
-## 使用
-
-1. 在 dsh web 设置 → 钉钉，填充 appKey/appSecret 等，保存。
-2. host 连接钉钉；收到消息 → 按 sender 路由工作区 → agent 自动回复。
-
-## 开发
+## Installation
 
 ```bash
-node --check index.js
-node --check client.js
-node --check lib/config.mjs
-node --check lib/adapters/dingtalk.mjs
+dsh plugin add @anarkhgatsby/deepseek-harness-channel-dingtalk
+dsh plugin add @anarkhgatsby/deepseek-harness-channel-config
 ```
 
-License: MIT。
+The configuration package is optional. `@anarkhgatsby/deepseek-harness-core` is resolved as a dependency.
+
+## DingTalk Developer Console setup
+
+1. Create an enterprise internal application in the [DingTalk Developer Console](https://open-dev.dingtalk.com/).
+2. Enable the **Bot** capability and configure the message receiving method.
+3. Enable **Stream mode** when the console offers the long-connection option; this avoids a public webhook endpoint.
+4. Grant the application the permissions required to receive bot messages and send bot replies.
+5. Publish the application configuration according to the DingTalk console workflow.
+6. Copy the **Client ID (AppKey)** and **Client Secret (AppSecret)**.
+
+The exact permission names and console labels may vary by DingTalk tenant and region. Follow the permissions shown for the application in your console.
+
+## Configuration
+
+Open **DeepSeek Harness → Settings → Channel Configuration → DingTalk**, or configure the `dingtalk` namespace:
+
+```yaml
+dingtalk:
+  appKey: "dingxxxxxxxxxxxxxxxx"
+  appSecret: "replace-with-app-secret"
+  defaultWorkspace: "/Users/you/dsh/default"
+  autoReply: true
+  streamReplies: true
+  toolCallReplies: true
+  stepTimeoutSec: 0
+  allowlist: []
+  routes: {}
+```
+
+For local development, `DINGTALK_APP_KEY`, `DINGTALK_APP_SECRET`, and `DSH_CH_DEFAULT_WORKSPACE` can provide defaults. Keep secrets in the local Harness profile or environment, never in a committed repository.
+
+## Approvals and agent questions
+
+When an Agent created from DingTalk requests a sandbox or tool permission, the request is sent to the same conversation:
+
+* Reply `1` to approve once.
+* Reply `2` or any other non-approval text to reject.
+* For `userQuestions`, reply with the displayed option number; separate multiple selections with commas.
+
+If there is no active callback context, the adapter uses DingTalk OpenAPI active sending. A GUI-originated Agent session continues to use the native Harness approval dialog.
+
+## Active message tool
+
+The plugin registers `message_dingtalk` for proactive notifications:
+
+```json
+{
+  "action": "send",
+  "channel": "dingtalk",
+  "target": "staff-or-conversation-id",
+  "message": "Build completed successfully."
+}
+```
+
+## Architecture
+
+```text
+Harness Agent
+     │
+     ▼
+DingTalk channel plugin (index.js)
+     │
+     ▼
+GatewayCore (routing, sessions, deduplication, approvals)
+     │
+     ▼
+DingtalkAdapter (Stream receive + OpenAPI send)
+```
+
+## Troubleshooting
+
+| Symptom | Check |
+| --- | --- |
+| No connection | Verify AppKey / AppSecret, bot capability, published app settings, and Stream mode. |
+| Bot receives nothing | Check message subscription, application permissions, and tenant visibility. |
+| Reply fails after a long task | The passive callback window may have expired; verify OpenAPI send permissions and target identifiers. |
+| Approval appears as a GUI popup | The session-to-sender mapping was not recognized; inspect Core state and runtime logs. |
+| Duplicate replies | Ensure only one runtime instance uses the same DingTalk application and state file. |
+
+## Compatibility
+
+`0.1.3` is validated with DeepSeek Harness `0.1.5-rc.1`, `0.1.5-rc.2`, and `0.1.6-alpha.2`, `@deepseek-ai/cordis@^4.0.2`, and matching protocol and tools peers. It uses `@anarkhgatsby/deepseek-harness-core@0.1.7` for shared routing.
+
+## License
+
+[MIT License](./LICENSE)

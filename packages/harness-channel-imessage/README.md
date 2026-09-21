@@ -1,14 +1,37 @@
-# harness-channel-imessage
+# `@anarkhgatsby/deepseek-harness-channel-imessage`
 
-DeepSeek Harness 的本机 iMessage 通道插件。插件只通过 macOS 的 `Messages.app` 和本地 `chat.db` 收发消息，不使用 `imsg` CLI、Photon 或任何云中继。
+[简体中文](README.zh-CN.md) | [NPM](https://www.npmjs.com/package/@anarkhgatsby/deepseek-harness-channel-imessage) | [Repository](https://github.com/mapan0424/deepseek-harness-plugins/tree/main/packages/harness-channel-imessage)
 
-## 隐私设计
+[![npm version](https://img.shields.io/npm/v/@anarkhgatsby/deepseek-harness-channel-imessage.svg)](https://www.npmjs.com/package/@anarkhgatsby/deepseek-harness-channel-imessage) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 
-- 消息数据不经过第三方云服务。
-- 入站消息从 `~/Library/Messages/chat.db` 只读轮询。
-- 出站消息通过 macOS `/usr/bin/osascript` 控制 `Messages.app` 发送。
-- 不需要安装额外的 CLI，也不需要配置云端 API Key。
-- 需要为 DeepSeek Harness 授予“完全磁盘访问”和“自动化 → 信息”权限。
+Native local iMessage channel plugin for **DeepSeek Harness**. It uses macOS `Messages.app` and the local `chat.db` database, without the `imsg` CLI, Photon, or any cloud relay.
+
+> ⚠️ **Unofficial project** — independently developed and maintained by the open-source community. It is not an official DeepSeek or Apple product.
+
+## What's new in 0.1.5
+
+- iMessage replies are normalized to readable plain text before they are sent through Messages.app.
+- Common Markdown markers such as `**bold**`, `*italic*`, backticks, and strikethrough no longer appear in the conversation.
+- Lists, headings, links, and fenced code blocks receive channel-appropriate plain-text formatting.
+
+## Platform and installation
+
+This plugin is macOS-only. Windows desktop bundles intentionally exclude iMessage because Windows has no Messages.app or AppleScript transport.
+
+```bash
+dsh plugin add @anarkhgatsby/deepseek-harness-channel-imessage
+dsh plugin add @anarkhgatsby/deepseek-harness-channel-config
+```
+
+The configuration package is optional. The shared `@anarkhgatsby/deepseek-harness-core` package is resolved as a dependency.
+
+## Privacy and security
+
+- Message data stays on the local Mac and is not sent through a third-party relay.
+- Incoming messages are read from `~/Library/Messages/chat.db` in read-only mode.
+- Outgoing messages are sent through macOS `/usr/bin/osascript` controlling `Messages.app`.
+- No additional CLI or cloud API key is required.
+- DeepSeek Harness needs Full Disk Access and Automation permission to control Messages.app.
 
 ## 架构
 
@@ -27,38 +50,72 @@ LocalAdapter
      └── Messages.app：发送出站消息
 ```
 
-## 配置
+## Configuration
 
-插件保留 `local` 模式作为兼容标识，但当前没有模式选择项。配置页面只展示：
+The plugin keeps `local` as a compatibility marker; it is currently the only supported mode. The configuration page exposes:
 
-- `chatDb`：Messages 数据库路径，默认 `~/Library/Messages/chat.db`
-- `defaultWorkspace`：默认工作空间路径
-- 自动回复
-- 流式回复
+- `chatDb`: Messages database path, defaulting to `~/Library/Messages/chat.db`
+- `defaultWorkspace`: default workspace path
+- `autoReply`, `streamReplies`, and `toolCallReplies`
+- `allowlist` and `routes` for sender access and workspace routing
 
-收到消息后，插件会根据 sender 路由到对应工作空间，并由 Harness Agent 自动回复。
+The `imessage` settings namespace can also be configured in YAML. Prefer an absolute path when overriding `chatDb`:
 
-## 回复格式
+```yaml
+imessage:
+  mode: "local"
+  chatDb: "/Users/you/Library/Messages/chat.db"
+  defaultWorkspace: "/Users/you/dsh/default"
+  autoReply: true
+  streamReplies: true
+  toolCallReplies: true
+  allowlist: []
+  routes: {}
+```
 
-Messages.app 发送的是纯文本，因此插件会在 iMessage 出站前做一次轻量格式转换，保持回复易读：
+Defaults can be overridden during local development with `IMSG_CHAT_DB` and `IMSG_DEFAULT_WORKSPACE`. Incoming messages are routed by sender to the selected workspace and then delivered to the Harness Agent.
 
-- 移除 `**加粗**`、`*斜体*`、下划线、删除线和行内代码的 Markdown 标记；
-- 标题转换为普通文本标题；
-- 无序列表转换为 `•` 项目符号；
-- Markdown 链接保留标题和 URL；
-- 代码块显示为“代码：”段落，并保留缩进。
+## Outbound message formatting
 
-这项转换只作用于 iMessage 出站消息，网页端以及支持富文本的飞书、钉钉等渠道仍使用原有渲染方式。
+Messages.app sends plain text, so the adapter applies a small readability pass before delivering an iMessage reply:
 
-## 代码结构
+- Markdown emphasis, strikethrough, and inline-code markers are removed;
+- headings become plain-text headings;
+- unordered lists use `•` bullets;
+- Markdown links keep both their label and URL;
+- fenced code blocks are rendered under a `代码：` label with indentation preserved.
 
-- `index.js` — 注册 `imessage` settings namespace、启动本地网关和 `message_imessage` 工具。
-- `client.js` — 导出本地模式的客户端元数据。
-- `lib/config.mjs` — 本地模式配置 schema 与归一化逻辑。
-- `lib/adapters/local.mjs` — `chat.db` 监听与 `Messages.app` AppleScript 发送。
-- `cordis.patch.yml` — Cordis 补丁入口。
+This conversion is limited to iMessage outbound messages. Web, Feishu, DingTalk, and other rich-text-capable channels keep their existing rendering behavior.
 
-## 开发
+## Approvals and agent questions
+
+For an Agent session created from iMessage, sandbox or tool permission requests are sent to the same Messages conversation:
+
+* Reply `1` to approve once.
+* Reply `2` or any other non-approval text to reject.
+* For `userQuestions`, reply with the displayed option number; separate multiple selections with commas.
+
+Requests from desktop GUI sessions continue to use the native Harness GUI dialog. Approval and question prompts time out if no answer is received within the runtime window.
+
+## Code structure
+
+- `index.js` — registers the `imessage` settings namespace, local gateway, and `message_imessage` tool.
+- `client.js` — exports client metadata for the local mode.
+- `lib/config.mjs` — local-mode schema and settings normalization.
+- `lib/adapters/local.mjs` — `chat.db` polling and Messages.app AppleScript delivery.
+- `cordis.patch.yml` — Cordis bundle patch entry.
+
+## Troubleshooting
+
+| Symptom | Check |
+| --- | --- |
+| `chat.db` cannot be opened | Grant Full Disk Access to DeepSeek Harness (or Terminal / iTerm2 when running from a shell). |
+| Messages are received but replies fail | Grant Automation permission for DeepSeek Harness to control Messages.app. |
+| No conversations appear | Confirm the database path, the signed-in Messages account, and that the runtime is running on macOS. |
+| Approval appears as a GUI popup | The session-to-sender mapping was not recognized; inspect the Core and iMessage runtime logs. |
+| Duplicate replies | Ensure only one iMessage runtime instance is watching the same `chat.db`. |
+
+## Development
 
 ```bash
 node --check index.js
@@ -67,4 +124,10 @@ node --check lib/config.mjs
 node --check lib/adapters/local.mjs
 ```
 
-License: MIT。
+## Compatibility
+
+`0.1.8` is validated with DeepSeek Harness `0.1.5-rc.1`, `0.1.5-rc.2`, and `0.1.6-alpha.2`, `@deepseek-ai/cordis@^4.0.2`, and matching protocol and tools peers. It uses `@anarkhgatsby/deepseek-harness-core@0.1.7` and is macOS-only.
+
+## License
+
+[MIT License](./LICENSE)

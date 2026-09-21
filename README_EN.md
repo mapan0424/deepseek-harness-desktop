@@ -25,11 +25,11 @@ https://github.com/user-attachments/assets/486eb943-a455-4f56-b009-5fc1e877e812
 
 <p align="center"><sub>Embedded product demo · 35 seconds</sub></p>
 
-## What's new in v0.3.7 — DSH RC2
+## What's new in v0.3.8 — DSH 0.1.6-alpha.2
 
-- Bundles official `@deepseek-ai/dsh@0.1.5-rc.2` and `@deepseek-ai/cordis@4.0.2`, with the complete RC2 runtime closure pinned so npm prerelease ranges cannot produce a mixed runtime.
+- Bundles official `@deepseek-ai/dsh@0.1.6-alpha.2` and `@deepseek-ai/cordis@4.0.2`, with the complete 0.1.6-alpha.2 runtime closure pinned, bringing support for experimental agent teams, workflow PTC, and the new plugin manager.
 - Retains and extends the Intel Mac / macOS 12 Monterey compatibility layer: dynamic client modules are transpiled to syntax macOS 12.7.6 can parse, and the document-preview PDF.js dependency on the newer global `Iterator` constructor is handled safely.
-- Aligns the bundled plugin matrix to published npm versions, explicitly supporting DSH `0.1.5-rc.1 || 0.1.5-rc.2`: Channel Config `0.1.9`, Core `0.1.6`, Feishu `0.1.4`, DingTalk `0.1.2`, WeCom `0.1.6`, iMessage `0.1.7`, Insights `0.1.9`, and Locale Pack `0.1.6`.
+- Aligns the bundled plugin matrix to published npm versions, explicitly supporting DSH `0.1.5-rc.1 || 0.1.5-rc.2 || 0.1.6-alpha.2`: Channel Config `0.1.10`, Core `0.1.7`, Feishu `0.1.5`, DingTalk `0.1.3`, WeCom `0.1.7`, iMessage `0.1.8`, Insights `0.1.10`, and Locale Pack `0.1.7`.
 - Retains local-only Insights aggregation and historical derived-cache recovery; it never reads or uploads message content or API keys.
 - Runs runtime-contract and isolated all-plugin boot regression tests before packaging, catching peer mismatches, duplicate loaders, and failed startup.
 - Windows intentionally excludes the macOS-only iMessage transport; the other bundled plugins remain cross-platform.

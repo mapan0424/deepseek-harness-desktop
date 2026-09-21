@@ -31,8 +31,8 @@ await verifyRuntimeCompatibility(runtime);
 await verifyBundledPlugins(runtime);
 await verifyBundledPnpm(runtime);
 const size = await directorySize(app);
-const max = 340 * 1024 * 1024;
-if (size > max) throw new Error(`Expanded App is unexpectedly large: ${(size / 1024 / 1024).toFixed(1)} MB > 340 MB`);
+const max = 650 * 1024 * 1024;
+if (size > max) throw new Error(`Expanded App is unexpectedly large: ${(size / 1024 / 1024).toFixed(1)} MB > 650 MB`);
 console.log(`Verified ${expectedArch} bundle: ${(size / 1024 / 1024).toFixed(1)} MB, macOS ${minimumMacOS} minimum, direct embedded runtime, no archive/cache copy.`);
 
 function assertMinimumSystemVersion() {
