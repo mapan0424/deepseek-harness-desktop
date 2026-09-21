@@ -34,8 +34,13 @@ console.log(`Verified Windows x86_64 app: ${(size / 1024 / 1024).toFixed(1)} MB,
 async function scanNativeFiles(root) {
   for (const entry of await readdir(root, { withFileTypes: true })) {
     const path = join(root, entry.name);
-    if (entry.isDirectory()) await scanNativeFiles(path);
-    else if (entry.isFile() && (entry.name.endsWith(".node") || entry.name.endsWith(".dll") || entry.name.endsWith(".exe"))) assertPeX64(path);
+    if (entry.isDirectory()) {
+      await scanNativeFiles(path);
+    } else if (entry.isFile() && (entry.name.endsWith(".node") || entry.name.endsWith(".dll") || entry.name.endsWith(".exe"))) {
+      // LibreOffice for 64-bit Windows bundles a 32-bit twain32shim.exe to communicate with 32-bit TWAIN scanner drivers via IPC.
+      if (entry.name.toLowerCase() === "twain32shim.exe") continue;
+      assertPeX64(path);
+    }
   }
 }
 
