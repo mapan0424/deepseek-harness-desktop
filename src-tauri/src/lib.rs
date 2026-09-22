@@ -792,6 +792,29 @@ fn rpc_endpoint(method: &str) -> String {
     }
 }
 
+fn normalize_dsh_payload(endpoint: &str, payload: Value) -> Value {
+    if endpoint == "session/list" {
+        match payload {
+            Value::Object(mut map) => {
+                if let Some(args) = map.get_mut("args").and_then(Value::as_object_mut) {
+                    if !args.contains_key("_request") {
+                        args.insert("_request".to_string(), json!({}));
+                    }
+                    Value::Object(map)
+                } else if !map.contains_key("_request") {
+                    map.insert("_request".to_string(), json!({}));
+                    Value::Object(map)
+                } else {
+                    Value::Object(map)
+                }
+            }
+            _ => json!({ "_request": {} }),
+        }
+    } else {
+        payload
+    }
+}
+
 fn rpc_payload(payload: Value) -> Value {
     match payload.as_object() {
         Some(object) if object.len() == 1 && object.contains_key("args") => payload,
@@ -806,6 +829,7 @@ fn call_dsh_api(
     timeout_seconds: u64,
 ) -> Result<Value, String> {
     let endpoint = rpc_endpoint(method);
+    let payload = normalize_dsh_payload(&endpoint, payload);
     let rpc_id = format!("native-{}-{}", std::process::id(), chrono_like_timestamp());
     let body = json!({
         "type": "client-request",
@@ -1355,7 +1379,7 @@ fn refresh_tray_summary(app: &tauri::AppHandle) {
         set_tray_summary(app, "用量暂不可用");
         return;
     };
-    match call_dsh_api(port, "session.list", json!({}), 30) {
+    match call_dsh_api(port, "session/list", json!({ "_request": {} }), 30) {
         Ok(value) => {
             let usage = weekly_usage(&value, Local::now().date_naive());
             set_tray_summary(app, &weekly_usage_label(&usage));
@@ -1767,6 +1791,18 @@ mod tests {
     fn rpc_endpoint_maps_legacy_dot_methods() {
         assert_eq!(rpc_endpoint("session.list"), "session/list");
         assert_eq!(rpc_endpoint("session/list"), "session/list");
+        assert_eq!(
+            normalize_dsh_payload("session/list", json!({})),
+            json!({ "_request": {} })
+        );
+        assert_eq!(
+            normalize_dsh_payload("session/list", json!({ "args": {} })),
+            json!({ "args": { "_request": {} } })
+        );
+        assert_eq!(
+            rpc_payload(normalize_dsh_payload("session/list", json!({}))),
+            json!({ "args": { "_request": {} } })
+        );
         assert_eq!(
             rpc_payload(json!({ "_request": {} })),
             json!({ "args": { "_request": {} } })

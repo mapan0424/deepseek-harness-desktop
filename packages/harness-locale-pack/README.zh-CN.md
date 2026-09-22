@@ -122,7 +122,7 @@ dsh plugin --profile web add @anarkhgatsby/deepseek-harness-locale-pack
 
 ## 兼容性
 
-`0.1.7` 已与 DeepSeek Harness `0.1.5-rc.1`、`0.1.5-rc.2` 与 `0.1.6-alpha.2`、`@deepseek-ai/cordis@^4.0.2`
+`0.1.8` 已与 DeepSeek Harness `0.1.5-rc.1`、`0.1.5-rc.2` 与 `0.1.6-alpha.2`、`@deepseek-ai/cordis@^4.0.2`
 以及对应版本的 `@deepseek-ai/dsh-client-locale` 完成验证。它是没有原生依赖的
 Web UI 插件；在可运行 Harness Web 客户端的 macOS 与 Windows 上均可使用。
 
