@@ -200,8 +200,11 @@ async function pruneIntelRuntime() {
   // 15.0. Cordis catches its absence and falls back to standard module loading,
   // so exclude every platform binary to keep the Intel app compatible with
   // the supported minimum, macOS 12.7.6.
+  // Similarly, sherpa-onnx native prebuilds are compiled against macOS 14.0/15.0,
+  // which violates the macOS 12.7.6 minimum deployment target.
   await keepMatchingPackages(join(runtimeRoot, "node_modules"), (name) =>
-    !name.startsWith("node-addon-require-builtin-darwin-"));
+    !name.startsWith("node-addon-require-builtin-darwin-")
+    && !name.startsWith("sherpa-onnx-darwin-"));
 
   await rm(join(runtimeRoot, "node_modules", ".package-lock.json"), { force: true });
   await pruneNonRuntimeFiles(join(runtimeRoot, "node_modules"));

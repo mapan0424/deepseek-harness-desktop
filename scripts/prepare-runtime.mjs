@@ -132,8 +132,11 @@ async function pruneRuntime() {
   // This optional accelerator currently ships with LC_BUILD_VERSION minos
   // 15.0. Cordis catches its absence and falls back to standard module loading,
   // so exclude it to keep the app compatible with macOS 12.7.6.
+  // Similarly, sherpa-onnx native prebuilds are compiled against macOS 14.0/15.0,
+  // which violates the macOS 12.7.6 minimum deployment target.
   await keepMatchingPackages(join(runtimeRoot, "node_modules"), (name) =>
-    !name.startsWith("node-addon-require-builtin-darwin-"));
+    !name.startsWith("node-addon-require-builtin-darwin-")
+    && !name.startsWith("sherpa-onnx-darwin-"));
 
   await rm(join(runtimeRoot, "node_modules", ".package-lock.json"), { force: true });
   await pruneNonRuntimeFiles(join(runtimeRoot, "node_modules"));
