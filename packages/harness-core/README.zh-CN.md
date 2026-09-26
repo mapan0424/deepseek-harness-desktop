@@ -96,7 +96,7 @@ await gateway.startListener();
 
 ## 兼容性
 
-`0.1.7` 已与 DeepSeek Harness `0.1.5-rc.1`、`0.1.5-rc.2` 与 `0.1.6-alpha.2`、`@deepseek-ai/cordis@^4.0.2` 完成验证；`dsh-typert-protocol`、`dsh-tools`、`dsh-llm`、`dsh-session`、`dsh-agent` peer 依赖同时支持已验证版本。升级时请保持 Core 与各渠道插件处于同一版本线。
+`0.1.8` 已与 DeepSeek Harness `0.1.5-rc.1`、`0.1.5-rc.2`、`0.1.6-alpha.2` 与 `0.1.7-rc.2`、`@deepseek-ai/cordis@^4.0.4` 完成验证；`dsh-typert-protocol`、`dsh-tools`、`dsh-llm`、`dsh-session`、`dsh-agent` peer 依赖同时支持已验证版本。升级时请保持 Core 与各渠道插件处于同一版本线。
 
 ## 开源协议
 

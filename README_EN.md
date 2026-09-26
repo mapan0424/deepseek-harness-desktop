@@ -25,12 +25,14 @@ https://github.com/user-attachments/assets/486eb943-a455-4f56-b009-5fc1e877e812
 
 <p align="center"><sub>Embedded product demo · 35 seconds</sub></p>
 
-## What's new in v0.3.9
+## What's new in v0.3.10
 
-- Fixes macOS menu bar / tray usage displaying "Usage unavailable": updates the Session RPC request contract and adds Gateway parameter normalization defense;
-- Updates bundled `@anarkhgatsby/deepseek-harness-locale-pack` to `0.1.8`: completes translations for built-in plugin management, archived sessions, compact/default layouts, busy send behavior, and 12 extended languages (including Tibetan, Mongolian, Uyghur, and Yi);
-- Maintains full compatibility with `@deepseek-ai/dsh@0.1.6-alpha.2` runtime and bundled community plugin suite;
-- Windows intentionally excludes the macOS-only iMessage transport; the other bundled plugins remain cross-platform.
+- Upgrades embedded core runtime to official `@deepseek-ai/dsh@0.1.7-rc.2` and `@deepseek-ai/cordis@4.0.4`, locking the complete verified closure of 273 subpackages to prevent prerelease drift;
+- Supports 0.1.7-rc.2 features: customizable keyboard shortcuts with sidebar display, Auto Review plugin integration, hot-enabling tools within existing sessions, background task execution when desktop window is closed, etc.;
+- Fixes macOS menu bar / status item interaction: left-click immediately displays the full Insights usage card panel (with 300ms debounce), right-click pops up native quick menu;
+- Adapts settings center navigation icon injection to match the upstream Account section and Medium icon specifications;
+- Updates bundled plugin suite to fully support `0.1.5-rc.1 || 0.1.5-rc.2 || 0.1.6-alpha.2 || 0.1.7-rc.2`;
+- Windows builds continue to exclude macOS-only iMessage while retaining all cross-platform channels and features.
 
 ## ✨ Why use it
 

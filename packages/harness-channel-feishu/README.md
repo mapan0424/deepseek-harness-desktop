@@ -79,7 +79,7 @@ If native card question interaction is unavailable, the runtime falls back to nu
 
 ## Compatibility
 
-`0.1.5` is validated with DeepSeek Harness `0.1.5-rc.1`, `0.1.5-rc.2`, and `0.1.6-alpha.2`, `@deepseek-ai/cordis@^4.0.2`, and matching protocol and tools peers. It uses `@anarkhgatsby/deepseek-harness-core@0.1.7` for shared routing.
+`0.1.6` is validated with DeepSeek Harness `0.1.5-rc.1`, `0.1.5-rc.2`, `0.1.6-alpha.2`, and `0.1.7-rc.2`, `@deepseek-ai/cordis@^4.0.4`, and matching protocol and tools peers. It uses `@anarkhgatsby/deepseek-harness-core@0.1.8` for shared routing.
 
 ## License
 

@@ -106,7 +106,7 @@ DingtalkAdapter（Stream 接收 + OpenAPI 发送）
 
 ## 兼容性
 
-`0.1.3` 已与 DeepSeek Harness `0.1.5-rc.1`、`0.1.5-rc.2` 与 `0.1.6-alpha.2`、`@deepseek-ai/cordis@^4.0.2` 以及对应协议与工具 peer 依赖完成验证；共享路由依赖 `@anarkhgatsby/deepseek-harness-core@0.1.7`。
+`0.1.4` 已与 DeepSeek Harness `0.1.5-rc.1`、`0.1.5-rc.2`、`0.1.6-alpha.2` 与 `0.1.7-rc.2`、`@deepseek-ai/cordis@^4.0.4` 以及对应协议与工具 peer 依赖完成验证；共享路由依赖 `@anarkhgatsby/deepseek-harness-core@0.1.8`。
 
 ## 开源协议
 

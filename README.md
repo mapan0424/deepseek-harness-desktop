@@ -25,11 +25,13 @@ https://github.com/user-attachments/assets/486eb943-a455-4f56-b009-5fc1e877e812
 
 <p align="center"><sub>内嵌产品演示视频 · 35 秒</sub></p>
 
-## v0.3.9 更新内容
+## v0.3.10 更新内容
 
-- 修复 macOS 顶部菜单栏/托盘会话用量显示“用量暂不可用”的问题：更新 Session RPC 请求契约并增加网关入参防御；
-- 内嵌语言包 `@anarkhgatsby/deepseek-harness-locale-pack` 升级至 `0.1.8`：补全内置插件管理、已归档会话、紧凑/标准布局、繁忙时的发送行为等界面词条及 12 种扩展语言（含藏/蒙/维/彝等民族语言）翻译；
-- 保持核心运行时 `@deepseek-ai/dsh@0.1.6-alpha.2` 与全套社区插件生态兼容；
+- 升级核心运行时至官方 `@deepseek-ai/dsh@0.1.7-rc.2` 与 `@deepseek-ai/cordis@4.0.4`，精确锁定 273 个子包依赖闭包，杜绝预发布依赖漂移；
+- 支持 0.1.7-rc.2 最新特性：Web 与 Desktop 端自定义与重置快捷键设置、Auto Review 智能审查插件接入、会话中热启用新工具无需重建、窗口关闭时后台持续执行任务等；
+- 修复 macOS 状态栏托盘交互：左键点击即时呼出完整的 Insights 会话用量卡片面板（含 300ms 点击防抖），右键点击呼出快捷原生操作菜单；
+- 适配设置中心导航图标注入（兼容新版 Account 账户项与 Medium 尺寸图标规范）；
+- 内嵌全套插件全面兼容支持 `0.1.5-rc.1 || 0.1.5-rc.2 || 0.1.6-alpha.2 || 0.1.7-rc.2`；
 - Windows 构建继续排除仅依赖 macOS Messages.app 的 iMessage，其余插件跨平台提供。
 
 ## ✨ 为什么值得使用

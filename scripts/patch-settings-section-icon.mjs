@@ -10,9 +10,11 @@ const packageRelativePath = [
   "client.js",
 ];
 
-const marker = '\t\tfunction navIcon(id) {\n\t\t\tif (id === "models")';
+const markerAccount = '\t\tfunction navIcon(id) {\n\t\t\tif (id === "account")';
+const markerModels = '\t\tfunction navIcon(id) {\n\t\t\tif (id === "models")';
+const replacementAccount = '\t\tfunction navIcon(id) {\n\t\t\tif (id === "harness-insights") return (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconSparkleMedium, {\n\t\t\t\tclassName: SettingsRoot_module_css_default.navIcon,\n\t\t\t\tsize: 16\n\t\t\t});\n\t\t\tif (id === "harness-channel-config") return (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconNewChatOutlineMedium, {\n\t\t\t\tclassName: SettingsRoot_module_css_default.navIcon,\n\t\t\t\tsize: 16\n\t\t\t});\n\t\t\tif (id === "account")';
 const legacyReplacement = '\t\tfunction navIcon(id) {\n\t\t\tif (id === "harness-channel-config") return (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconNewChatOutline16, {\n\t\t\t\tclassName: SettingsRoot_module_css_default.navIcon,\n\t\t\t\tsize: 16\n\t\t\t});\n\t\t\tif (id === "models")';
-const replacement = '\t\tfunction navIcon(id) {\n\t\t\tif (id === "harness-insights") return (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconSparkle16, {\n\t\t\t\tclassName: SettingsRoot_module_css_default.navIcon,\n\t\t\t\tsize: 16\n\t\t\t});\n\t\t\tif (id === "harness-channel-config") return (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconNewChatOutline16, {\n\t\t\t\tclassName: SettingsRoot_module_css_default.navIcon,\n\t\t\t\tsize: 16\n\t\t\t});\n\t\t\tif (id === "models")';
+const replacementModels = '\t\tfunction navIcon(id) {\n\t\t\tif (id === "harness-insights") return (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconSparkle16, {\n\t\t\t\tclassName: SettingsRoot_module_css_default.navIcon,\n\t\t\t\tsize: 16\n\t\t\t});\n\t\t\tif (id === "harness-channel-config") return (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconNewChatOutline16, {\n\t\t\t\tclassName: SettingsRoot_module_css_default.navIcon,\n\t\t\t\tsize: 16\n\t\t\t});\n\t\t\tif (id === "models")';
 const compactPatchedMarker = 'function navIcon(id){if(id==="harness-insights")return';
 
 export async function patchSettingsSectionIcon(runtimeRoot) {
@@ -22,21 +24,32 @@ export async function patchSettingsSectionIcon(runtimeRoot) {
   const content = await readFile(path, "utf8");
   // `patch-runtime-compat` can minify this client bundle after a previous run.
   // Recognize both forms so the operation remains idempotent on RC2.
-  if (content.includes(replacement) || content.includes(compactPatchedMarker)) return;
+  if (
+    content.includes(replacementAccount) ||
+    content.includes(replacementModels) ||
+    content.includes(compactPatchedMarker)
+  ) return;
 
   if (content.includes(legacyReplacement)) {
-    const patched = content.replace(legacyReplacement, replacement);
+    const patched = content.replace(legacyReplacement, replacementModels);
     await writeFile(path, patched);
     console.log(`Updated DSH settings section icon: ${path}`);
     return;
   }
 
-  const markerCount = content.split(marker).length - 1;
-  if (markerCount !== 1) {
-    throw new Error(`Unexpected DSH settings shell shape: expected one navIcon marker, found ${markerCount}`);
+  if (content.includes(markerAccount)) {
+    const patched = content.replace(markerAccount, replacementAccount);
+    await writeFile(path, patched);
+    console.log(`Patched DSH settings section icon (0.1.7 account): ${path}`);
+    return;
   }
 
-  const patched = content.replace(marker, replacement);
-  await writeFile(path, patched);
-  console.log(`Patched DSH settings section icon: ${path}`);
+  if (content.includes(markerModels)) {
+    const patched = content.replace(markerModels, replacementModels);
+    await writeFile(path, patched);
+    console.log(`Patched DSH settings section icon (legacy models): ${path}`);
+    return;
+  }
+
+  throw new Error(`Unexpected DSH settings shell shape: expected navIcon marker for account or models. Review client.js.`);
 }

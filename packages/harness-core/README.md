@@ -96,7 +96,7 @@ Set `DSH_CHANNEL_DEBUG=1` to enable temporary channel diagnostics. Debug output 
 
 ## Compatibility
 
-`0.1.7` is validated with DeepSeek Harness `0.1.5-rc.1`, `0.1.5-rc.2`, and `0.1.6-alpha.2`, plus `@deepseek-ai/cordis@^4.0.2`. Its `dsh-typert-protocol`, `dsh-tools`, `dsh-llm`, `dsh-session`, and `dsh-agent` peers accept the validated releases. Keep Core and every channel on this release line when upgrading.
+`0.1.8` is validated with DeepSeek Harness `0.1.5-rc.1`, `0.1.5-rc.2`, `0.1.6-alpha.2`, and `0.1.7-rc.2`, plus `@deepseek-ai/cordis@^4.0.4`. Its `dsh-typert-protocol`, `dsh-tools`, `dsh-llm`, `dsh-session`, and `dsh-agent` peers accept the validated releases. Keep Core and every channel on this release line when upgrading.
 
 ## License
 

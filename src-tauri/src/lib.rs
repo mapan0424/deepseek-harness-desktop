@@ -2,7 +2,7 @@ use std::io::{BufRead, BufReader, Read, Write};
 use std::net::{SocketAddr, TcpListener, TcpStream};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
@@ -29,6 +29,7 @@ struct DshProcess {
     recovery_required: AtomicBool,
     restart_confirmation: Mutex<Option<(String, Instant)>>,
     tray_summary: Mutex<Option<MenuItem<tauri::Wry>>>,
+    insights_last_dismissed: AtomicU64,
 }
 
 fn start_local_window_controller(app: tauri::AppHandle) {
@@ -419,7 +420,7 @@ fn bundled_web_args(entry_arg: String, plugin_patches: &[PathBuf], port: u16) ->
         "web".to_string(),
     ];
     for plugin_patch in plugin_patches {
-        // DSH 0.1.6-alpha.2 accepts profile overlays on the `web` subcommand.
+        // DSH 0.1.7-rc.2 accepts profile overlays on the `web` subcommand.
         // Keep them before the Web app flags, which are forwarded verbatim to
         // the web profile. One repeatable `--patch` is emitted per plugin.
         args.push("--patch".to_string());
@@ -1431,14 +1432,26 @@ fn panel_position(
     let scale = monitor.scale_factor();
     let tray_position = rect.position.to_physical::<i32>(scale);
     let tray_size = rect.size.to_physical::<u32>(scale);
-    let center_x = tray_position.x + tray_size.width as i32 / 2;
+    let center_x = if tray_size.width > 0 {
+        tray_position.x + tray_size.width as i32 / 2
+    } else {
+        click.x.round() as i32
+    };
     let panel_width = (PANEL_WIDTH as f64 * scale).round() as i32;
     let panel_height = (PANEL_HEIGHT as f64 * scale).round() as i32;
     let mut x = center_x - panel_width / 2;
     let mut y = if cfg!(target_os = "macos") {
-        tray_position.y + tray_size.height as i32 + (6.0 * scale).round() as i32
+        if tray_size.height > 0 {
+            tray_position.y + tray_size.height as i32 + (6.0 * scale).round() as i32
+        } else {
+            (click.y + 6.0 * scale).round() as i32
+        }
     } else {
-        tray_position.y - panel_height - (8.0 * scale).round() as i32
+        if tray_size.height > 0 {
+            tray_position.y - panel_height - (8.0 * scale).round() as i32
+        } else {
+            (click.y - panel_height as f64 - 8.0 * scale).round() as i32
+        }
     };
     let min_x = area.position.x;
     let max_x = area.position.x + area.size.width as i32 - panel_width;
@@ -1450,10 +1463,17 @@ fn panel_position(
 }
 
 fn toggle_insights_panel(app: &tauri::AppHandle, click: PhysicalPosition<f64>, rect: Rect) {
+    let now = chrono_like_timestamp() as u64;
+    let state = app.state::<DshProcess>();
+    let last_dismissed = state.insights_last_dismissed.load(Ordering::SeqCst);
+    if now.saturating_sub(last_dismissed) < 300 {
+        return;
+    }
     let position = panel_position(app, click, rect);
     if let Some(panel) = app.get_webview_window("insights-panel") {
         if panel.is_visible().unwrap_or(false) {
             let _ = panel.hide();
+            state.insights_last_dismissed.store(now, Ordering::SeqCst);
             return;
         }
         let _ = panel.set_size(Size::Logical(LogicalSize::new(360.0, 460.0)));
@@ -1502,7 +1522,7 @@ fn setup_insights_panel(app: &tauri::AppHandle) -> Result<(), String> {
         tauri::WebviewUrl::App("tray-insights.html".into()),
     )
     .title("Harness Insights")
-    .inner_size(1.0, 1.0)
+    .inner_size(360.0, 460.0)
     .resizable(false)
     .decorations(false)
     .shadow(false)
@@ -1513,6 +1533,7 @@ fn setup_insights_panel(app: &tauri::AppHandle) -> Result<(), String> {
     .visible(true)
     .on_page_load(|window, payload| {
         if matches!(payload.event(), tauri::webview::PageLoadEvent::Finished) {
+            let _ = window.eval("document.body.classList.add('panel-visible')");
             let _ = window.hide();
         }
     })
@@ -1568,7 +1589,7 @@ fn setup_tray(app: &tauri::AppHandle) -> Result<(), String> {
         .map_err(|error| format!("创建托盘菜单失败：{error}"))?;
     let icon = tray_icon(app)?;
 
-    TrayIconBuilder::with_id("main-tray")
+    let tray = TrayIconBuilder::with_id("main-tray")
         .icon(icon)
         .icon_as_template(cfg!(target_os = "macos"))
         .tooltip("DeepSeek Harness")
@@ -1585,25 +1606,89 @@ fn setup_tray(app: &tauri::AppHandle) -> Result<(), String> {
             _ => {}
         })
         .on_tray_icon_event(|tray, event| {
-            if let TrayIconEvent::Click {
-                position,
-                rect,
-                button: MouseButton::Left,
-                button_state: MouseButtonState::Up,
-                ..
-            } = event
-            {
-                toggle_insights_panel(tray.app_handle(), position, rect);
+            match event {
+                TrayIconEvent::Click {
+                    position,
+                    rect,
+                    button: MouseButton::Left,
+                    button_state: MouseButtonState::Up,
+                    ..
+                } => {
+                    toggle_insights_panel(tray.app_handle(), position, rect);
+                }
+                #[cfg(target_os = "macos")]
+                TrayIconEvent::Click {
+                    button: MouseButton::Right,
+                    button_state: MouseButtonState::Up,
+                    ..
+                } => {
+                    show_macos_tray_menu(tray);
+                }
+                _ => {}
             }
         })
         .build(app)
         .map_err(|error| format!("创建托盘图标失败：{error}"))?;
+    #[cfg(target_os = "macos")]
+    setup_macos_tray_menu(&tray);
     *app.state::<DshProcess>()
         .tray_summary
         .lock()
         .map_err(|_| "无法保存托盘摘要菜单".to_string())? = Some(summary);
     start_tray_summary_worker(app.clone());
     Ok(())
+}
+
+#[cfg(target_os = "macos")]
+static MACOS_TRAY_MENU: std::sync::Mutex<Option<usize>> = std::sync::Mutex::new(None);
+
+#[cfg(target_os = "macos")]
+fn setup_macos_tray_menu(tray: &tauri::tray::TrayIcon) {
+    let _ = tray.with_inner_tray_icon(|inner| {
+        if let Some(status_item) = inner.ns_status_item() {
+            unsafe {
+                use objc2::msg_send;
+                use objc2::runtime::AnyObject;
+                let item_ptr = objc2::rc::Retained::as_ptr(&status_item) as *mut AnyObject;
+                let ns_menu: *mut AnyObject = msg_send![item_ptr, menu];
+                if !ns_menu.is_null() {
+                    let _: *mut AnyObject = msg_send![ns_menu, retain];
+                    let () = msg_send![item_ptr, setMenu: std::ptr::null::<AnyObject>()];
+                    if let Ok(mut guard) = MACOS_TRAY_MENU.lock() {
+                        *guard = Some(ns_menu as usize);
+                    }
+                }
+                let button: *mut AnyObject = msg_send![item_ptr, button];
+                if !button.is_null() {
+                    let subviews: *mut AnyObject = msg_send![button, subviews];
+                    if !subviews.is_null() {
+                        let count: usize = msg_send![subviews, count];
+                        for i in 0..count {
+                            let subview: *mut AnyObject = msg_send![subviews, objectAtIndex: i];
+                            let () = msg_send![subview, setAutoresizingMask: 18usize]; // 2 (width) | 16 (height)
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+#[cfg(target_os = "macos")]
+fn show_macos_tray_menu(tray: &tauri::tray::TrayIcon) {
+    let menu_ptr = MACOS_TRAY_MENU.lock().ok().and_then(|guard| *guard);
+    let Some(menu_ptr) = menu_ptr else { return };
+    let _ = tray.with_inner_tray_icon(move |inner| {
+        if let Some(status_item) = inner.ns_status_item() {
+            unsafe {
+                use objc2::msg_send;
+                use objc2::runtime::AnyObject;
+                let item_ptr = objc2::rc::Retained::as_ptr(&status_item) as *mut AnyObject;
+                let ns_menu = menu_ptr as *mut AnyObject;
+                let () = msg_send![item_ptr, popUpStatusItemMenu: ns_menu];
+            }
+        }
+    });
 }
 
 fn terminate_child(child: &mut Child) -> Result<(), String> {
@@ -1996,6 +2081,7 @@ pub fn run() {
             recovery_required: AtomicBool::new(false),
             restart_confirmation: Mutex::new(None),
             tray_summary: Mutex::new(None),
+            insights_last_dismissed: AtomicU64::new(0),
         })
         .setup(|app| {
             setup_tray(app.handle())?;
@@ -2039,7 +2125,13 @@ pub fn run() {
                 ..
             } if label == "insights-panel" => {
                 if let Some(panel) = app_handle.get_webview_window("insights-panel") {
-                    let _ = panel.hide();
+                    if panel.is_visible().unwrap_or(false) {
+                        let _ = panel.hide();
+                        app_handle
+                            .state::<DshProcess>()
+                            .insights_last_dismissed
+                            .store(chrono_like_timestamp() as u64, Ordering::SeqCst);
+                    }
                 }
             }
             #[cfg(target_os = "macos")]
