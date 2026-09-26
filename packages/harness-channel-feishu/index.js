@@ -10,7 +10,7 @@ import z from "@deepseek-ai/schemastery";
 import { defineTool } from "@deepseek-ai/dsh-tools";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { GatewayCore, createChannelLogger } from "@anarkhgatsby/deepseek-harness-core";
+import { GatewayCore, createChannelLogger, resolveSettingsScope } from "@anarkhgatsby/deepseek-harness-core";
 import { FeishuAdapter } from "./lib/adapters/feishu.mjs";
 import { normalizeSettings } from "./lib/config.mjs";
 
@@ -124,21 +124,23 @@ class GatewayService extends TypertRemoteService {
 }
 
 export function apply(ctx, config) {
-  const scope = ctx.settings.register("feishu", GatewaySchema, {
-    base: {
-      routes: {},
-      appId: "",
-      appSecret: "",
-      verifyToken: "",
-      encryptKey: "",
-      defaultWorkspace: join(homedir(), "dsh", "default"),
-      autoReply: true,
-      streamReplies: true,
-      toolCallReplies: true,
-      cardReplies: true,
-      stepTimeoutSec: 0,
-      allowlist: [],
-    },
+  const baseDefaults = {
+    routes: {},
+    appId: "",
+    appSecret: "",
+    verifyToken: "",
+    encryptKey: "",
+    defaultWorkspace: join(homedir(), "dsh", "default"),
+    autoReply: true,
+    streamReplies: true,
+    toolCallReplies: true,
+    cardReplies: true,
+    stepTimeoutSec: 0,
+    allowlist: [],
+  };
+  const scope = resolveSettingsScope(ctx, "feishu", baseDefaults, {
+    schema: GatewaySchema,
+    settingsPath: config?.settingsPath,
   });
 
   const log = createChannelLogger("feishu", ctx.logger);

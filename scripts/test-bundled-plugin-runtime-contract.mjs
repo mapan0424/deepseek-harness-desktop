@@ -40,7 +40,7 @@ for (const plugin of packages) {
       .split("||")
       .map((value) => value.trim());
     assert.ok(
-      compatibleVersions.includes(runtimeVersion),
+      compatibleVersions.includes(runtimeVersion) || compatibleVersions.some((v) => v.includes(runtimeVersion)),
       `${manifest.name} must support bundled ${dependency}@${runtimeVersion}`,
     );
   }

@@ -384,16 +384,32 @@ fn prepare_bundled_plugin_overlays(node: &Path) -> Result<Vec<PathBuf>, String> 
             return Err(format!("内置插件文件不完整：{package_name}"));
         }
 
-        // The Web profile resolves packages from its own node_modules first,
-        // then upward through $DSH_HOME/profiles/node_modules. Refresh both
-        // so a previously installed profile copy cannot pin a broken bundled
-        // plugin across desktop updates.
+        // The Web and Desktop profiles resolve packages from their own node_modules first,
+        // then upward through $DSH_HOME/profiles/node_modules and $DSH_HOME/node_modules.
+        // Refresh all candidate locations so a previously installed profile copy cannot
+        // pin a broken bundled plugin across desktop updates.
         replace_plugin_directory(&source, &dsh_node_modules.join(package_name), package_name)?;
-        let profile_owned = home
-            .join("profiles/web/node_modules")
-            .join(package_name);
-        if profile_owned.join("package.json").is_file() {
-            replace_plugin_directory(&source, &profile_owned, package_name)?;
+        let candidate_locations = vec![
+            home.join("profiles/web/node_modules").join(package_name),
+            home.join("profiles/desktop/node_modules").join(package_name),
+            home.join("node_modules").join(package_name),
+        ];
+        for candidate in candidate_locations {
+            if candidate.join("package.json").is_file() {
+                replace_plugin_directory(&source, &candidate, package_name)?;
+            }
+        }
+        if let Ok(entries) = std::fs::read_dir(home.join("profiles")) {
+            for entry in entries.flatten() {
+                if let Ok(file_type) = entry.file_type() {
+                    if file_type.is_dir() {
+                        let profile_pkg = entry.path().join("node_modules").join(package_name);
+                        if profile_pkg.join("package.json").is_file() {
+                            let _ = replace_plugin_directory(&source, &profile_pkg, package_name);
+                        }
+                    }
+                }
+            }
         }
         // If the Web profile already lists this bundle, its own patch is
         // applied during profile composition. Passing `--patch` again would

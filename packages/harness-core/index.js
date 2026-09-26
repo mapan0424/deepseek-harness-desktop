@@ -11,3 +11,4 @@
  */
 export { GatewayCore } from "./lib/gateway-core.mjs";
 export { createChannelLogger } from "./lib/helpers/logger.mjs";
+export { resolveSettingsScope } from "./lib/helpers/settings.mjs";

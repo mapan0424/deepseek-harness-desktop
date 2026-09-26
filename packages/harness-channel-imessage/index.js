@@ -13,7 +13,7 @@ import z from "@deepseek-ai/schemastery";
 import { defineTool } from "@deepseek-ai/dsh-tools";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { GatewayCore, createChannelLogger } from "@anarkhgatsby/deepseek-harness-core";
+import { GatewayCore, createChannelLogger, resolveSettingsScope } from "@anarkhgatsby/deepseek-harness-core";
 import { LocalAdapter } from "./lib/adapters/local.mjs";
 import { MODES, DEFAULT_MODE, normalizeSettings } from "./lib/config.mjs";
 
@@ -124,18 +124,20 @@ class GatewayService extends TypertRemoteService {
 }
 
 export function apply(ctx, config) {
-  const scope = ctx.settings.register("imessage", GatewaySchema, {
-    base: {
-      routes: {},
-      mode: DEFAULT_MODE,
-      chatDb: join(homedir(), "Library/Messages/chat.db"),
-      defaultWorkspace: join(homedir(), "dsh", "default"),
-      autoReply: true,
-      streamReplies: true,
-      toolCallReplies: true,
-      stepTimeoutSec: 0,
-      allowlist: [],
-    },
+  const baseDefaults = {
+    routes: {},
+    mode: DEFAULT_MODE,
+    chatDb: join(homedir(), "Library/Messages/chat.db"),
+    defaultWorkspace: join(homedir(), "dsh", "default"),
+    autoReply: true,
+    streamReplies: true,
+    toolCallReplies: true,
+    stepTimeoutSec: 0,
+    allowlist: [],
+  };
+  const scope = resolveSettingsScope(ctx, "imessage", baseDefaults, {
+    schema: GatewaySchema,
+    settingsPath: config?.settingsPath,
   });
 
   const log = createChannelLogger("im", ctx.logger);

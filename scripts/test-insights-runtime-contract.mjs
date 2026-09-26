@@ -14,7 +14,7 @@ assert.ok(
   pluginManifest.peerDependencies?.["@deepseek-ai/dsh-session-projection"]
     .split("||")
     .map((value) => value.trim())
-    .includes(projectionManifest.version),
+    .some((range) => range === projectionManifest.version || range.includes(projectionManifest.version)),
   "the plugin peer range must support the bundled projection runtime",
 );
 

@@ -80,8 +80,8 @@ window.__ModuleLoader__.load({
     const format=x=>new Intl.NumberFormat(displayLocale==='en'?'en-US':'zh-CN',{notation:x>=1e6?'compact':'standard',maximumFractionDigits:1}).format(x)
     const dateKey=d=>`${String(d.getFullYear()).padStart(4,'0')}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
     const copy={
-      zh:{nav:'用量洞察',title:'用量洞察',sub:'了解你如何使用 Harness。数据留在本地，不读取消息正文，也不会上传。',total:'累计 Token',peak:'单日峰值',calls:'模型调用',sessions:'活跃会话',cache:'缓存命中率',activity:'Token 活动',daily:'每日',weekly:'每周',cumulative:'累计',models:'最常用模型',tools:'最常用工具',conversations:'会话排行',facts:'活动洞察',refresh:'刷新',empty:'还没有可统计的用量记录。',privacy:'只使用 Harness Host 投影生成的 Token、模型、工具和时间聚合；浏览器不请求 session.history，也不读取 API Key。',input:'未缓存输入',output:'输出',cacheRead:'缓存读取',cacheWrite:'缓存写入',reasoning:'推理',less:'少',more:'多',modelCalls:'次调用',toolRuns:'次运行',tooltipTotal:'总 Token',modelCount:'使用模型',months:'1月,2月,3月,4月,5月,6月,7月,8月,9月,10月,11月,12月'},
-      en:{nav:'Usage insights',title:'Usage insights',sub:'Understand how you use Harness. Data stays local; message content is neither read nor uploaded.',total:'Total tokens',peak:'Peak day',calls:'Model calls',sessions:'Active sessions',cache:'Cache hit rate',activity:'Token activity',daily:'Daily',weekly:'Weekly',cumulative:'Cumulative',models:'Top models',tools:'Top tools',conversations:'Top sessions',facts:'Activity insights',refresh:'Refresh',empty:'No usage records yet.',privacy:'Uses only Token, model, tool, and time aggregates produced by Harness Host projections. The browser does not request session.history or read API keys.',input:'Uncached input',output:'Output',cacheRead:'Cache reads',cacheWrite:'Cache writes',reasoning:'Reasoning',less:'Less',more:'More',modelCalls:'calls',toolRuns:'runs',tooltipTotal:'Total tokens',modelCount:'Models used',months:'Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec'}
+      zh:{nav:'用量洞察',title:'用量洞察',sub:'了解你如何使用 Harness。数据留在本地，不读取消息正文，也不会上传。',total:'累计 Token',peak:'单日峰值',calls:'模型调用',sessions:'活跃会话',cache:'缓存命中率',activity:'Token 活动',daily:'每日',weekly:'每周',cumulative:'累计',models:'最常用模型',tools:'最常用工具',conversations:'会话排行',facts:'活动洞察',refresh:'刷新',loading:'正在加载用量数据…',serviceConnecting:'通信服务连接中，请稍后刷新',empty:'还没有可统计的用量记录。',privacy:'只使用 Harness Host 投影生成的 Token、模型、工具和时间聚合；浏览器不请求 session.history，也不读取 API Key。',input:'未缓存输入',output:'输出',cacheRead:'缓存读取',cacheWrite:'缓存写入',reasoning:'推理',less:'少',more:'多',modelCalls:'次调用',toolRuns:'次运行',tooltipTotal:'总 Token',modelCount:'使用模型',months:'1月,2月,3月,4月,5月,6月,7月,8月,9月,10月,11月,12月'},
+      en:{nav:'Usage insights',title:'Usage insights',sub:'Understand how you use Harness. Data stays local; message content is neither read nor uploaded.',total:'Total tokens',peak:'Peak day',calls:'Model calls',sessions:'Active sessions',cache:'Cache hit rate',activity:'Token activity',daily:'Daily',weekly:'Weekly',cumulative:'Cumulative',models:'Top models',tools:'Top tools',conversations:'Top sessions',facts:'Activity insights',refresh:'Refresh',loading:'Loading usage data…',serviceConnecting:'Service connecting, please refresh shortly',empty:'No usage records yet.',privacy:'Uses only Token, model, tool, and time aggregates produced by Harness Host projections. The browser does not request session.history or read API keys.',input:'Uncached input',output:'Output',cacheRead:'Cache reads',cacheWrite:'Cache writes',reasoning:'Reasoning',less:'Less',more:'More',modelCalls:'calls',toolRuns:'runs',tooltipTotal:'Total tokens',modelCount:'Models used',months:'Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec'}
     }
     const NS='harness.insights'
     const translated=t=>Object.fromEntries(Object.keys(copy.zh).map(key=>[key,t(key)]))
@@ -166,12 +166,250 @@ window.__ModuleLoader__.load({
       )
     }
 
-    function InsightsSection(props){const {connection,t:translate,locale}=props;if(!connection?.rpc||!translate||!locale)return null;const localeSnapshot=React.useSyncExternalStore(callback=>locale.subscribe(callback),()=>locale.getSnapshot()),t=translated(translate);displayLocale=localeSnapshot.active;const [mode,setMode]=React.useState('cumulative'),[state,setState]=React.useState({status:'loading',data:null,error:null});const load=React.useCallback(async()=>{setState(s=>({...s,status:'loading',error:null}));try{const result=await connection.rpc.call('/api','session/list',{args:{_request:{}}});if(!result.ok)throw new Error(result.error?.message||'session/list failed');setState({status:'ready',data:aggregate(result.value.items),error:null})}catch(error){setState({status:'error',data:null,error:error instanceof Error?error.message:String(error)})}},[connection]);React.useEffect(()=>{void load()},[load]);const data=state.data;const dayEntries=data?Object.entries(data.byDay):[],peak=dayEntries.reduce((best,row)=>tokenTotal(row[1])>tokenTotal(best[1])?row:best,['',zero()]),inputBilled=data?data.totals.inputTokens+data.totals.cacheReadTokens+data.totals.cacheWriteTokens:0,cacheRate=data&&inputBilled>0?data.totals.cacheReadTokens/inputBilled*100:0,topModel=data?Object.entries(data.byModel).sort((a,b)=>tokenTotal(b[1])-tokenTotal(a[1]))[0]:undefined;
-      return React.createElement('div',{className:'hi-root'},React.createElement('div',{className:'hi-head'},React.createElement('div',null,React.createElement('div',{className:'hi-title-row'},React.createElement(UsageIcon,null),React.createElement('h2',{className:'hi-title'},t.title)),React.createElement('p',{className:'hi-sub'},t.sub)),React.createElement(Button,{variant:'ghost',icon:React.createElement(IconRefreshOutline16,null),onClick:load,disabled:state.status==='loading'},t.refresh)),state.error&&React.createElement('div',{className:'hi-error'},state.error),data&&React.createElement(React.Fragment,null,React.createElement('div',{className:'hi-summary'},React.createElement(Metric,{label:t.total,value:format(tokenTotal(data.totals)),note:`${t.reasoning} ${format(data.totals.reasoningTokens)}`}),React.createElement(Metric,{label:t.peak,value:format(tokenTotal(peak[1])),note:peak[0]||'—'}),React.createElement(Metric,{label:t.calls,value:format(data.totals.calls),note:topModel?.[0]||'—'}),React.createElement(Metric,{label:t.sessions,value:format(data.sessions),note:t.conversations}),React.createElement(Metric,{label:t.cache,value:`${cacheRate.toFixed(1)}%`,note:`${t.cacheRead} ${format(data.totals.cacheReadTokens)}`})),data.totals.calls===0?React.createElement('div',{className:'hi-empty'},t.empty):React.createElement(React.Fragment,null,React.createElement('section',{className:'hi-section'},React.createElement('div',{className:'hi-section-head'},React.createElement('h3',{className:'hi-section-title'},t.activity),React.createElement('div',{className:'hi-tabs'},[['daily',t.daily],['weekly',t.weekly],['cumulative',t.cumulative]].map(([id,label])=>React.createElement('button',{className:'hi-tab',key:id,'data-active':mode===id,onClick:()=>setMode(id)},label)))),React.createElement(Heatmap,{byDay:data.byDay,mode,t})),React.createElement('div',{className:'hi-insights'},React.createElement('section',null,React.createElement('h3',{className:'hi-insight-title'},t.facts),React.createElement('div',{className:'hi-facts'},React.createElement('div',{className:'hi-fact-label'},t.input),React.createElement('div',{className:'hi-fact-value'},format(data.totals.inputTokens)),React.createElement('div',{className:'hi-fact-label'},t.output),React.createElement('div',{className:'hi-fact-value'},format(data.totals.outputTokens)),React.createElement('div',{className:'hi-fact-label'},t.reasoning),React.createElement('div',{className:'hi-fact-value'},format(data.totals.reasoningTokens)),React.createElement('div',{className:'hi-fact-label'},t.modelCount),React.createElement('div',{className:'hi-fact-value'},format(Object.keys(data.byModel).length)))),React.createElement('section',null,React.createElement('h3',{className:'hi-insight-title'},t.tools),React.createElement(Rows,{empty:t.empty,icons:true,codeNames:true,items:Object.entries(data.tools).sort((a,b)=>b[1]-a[1]).map(([k,v])=>[k,`${format(v)} ${t.toolRuns}`])})),React.createElement('section',null,React.createElement('h3',{className:'hi-insight-title'},t.models),React.createElement(Rows,{empty:t.empty,items:Object.entries(data.byModel).sort((a,b)=>tokenTotal(b[1])-tokenTotal(a[1])).map(([k,v])=>[k,format(tokenTotal(v))])})),React.createElement('section',null,React.createElement('h3',{className:'hi-insight-title'},t.conversations),React.createElement(Rows,{empty:t.empty,items:data.sessionRows.map(x=>[x.name,format(x.tokens)])})))),React.createElement('p',{className:'hi-privacy'},t.privacy)))
+    function InsightsSection(props) {
+      const { connection, t: translate, locale } = props;
+      if (!translate || !locale) return null;
+
+      const localeSnapshot = React.useSyncExternalStore(
+        (callback) => (locale.subscribe ? locale.subscribe(callback) : () => {}),
+        () => (locale.getSnapshot ? locale.getSnapshot() : { active: 'zh' }),
+      );
+      const t = translated(translate);
+      displayLocale = localeSnapshot?.active || 'zh';
+
+      const [mode, setMode] = React.useState('cumulative');
+      const [state, setState] = React.useState({ status: 'loading', data: null, error: null });
+
+      const load = React.useCallback(async (retryCount = 0) => {
+        setState((s) => ({ ...s, status: 'loading', error: null }));
+        try {
+          if (!connection?.rpc) {
+            if (retryCount < 4) {
+              await new Promise((r) => setTimeout(r, 600));
+              return load(retryCount + 1);
+            }
+            throw new Error(t.serviceConnecting || '通信服务连接中，请稍后刷新');
+          }
+          const result = await connection.rpc.call('/api','session/list',{args:{_request:{}}});
+          if (!result?.ok) {
+            if (retryCount < 2) {
+              await new Promise((r) => setTimeout(r, 600));
+              return load(retryCount + 1);
+            }
+            throw new Error(result?.error?.message || 'session/list failed');
+          }
+          setState({ status: 'ready', data: aggregate(result.value?.items || []), error: null });
+        } catch (error) {
+          setState({
+            status: 'error',
+            data: null,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      }, [connection, t]);
+
+      React.useEffect(() => {
+        void load();
+      }, [load]);
+
+      const data = state.data;
+      const dayEntries = data ? Object.entries(data.byDay) : [];
+      const peak = dayEntries.reduce(
+        (best, row) => (tokenTotal(row[1]) > tokenTotal(best[1]) ? row : best),
+        ['', zero()],
+      );
+      const inputBilled = data
+        ? data.totals.inputTokens + data.totals.cacheReadTokens + data.totals.cacheWriteTokens
+        : 0;
+      const cacheRate = data && inputBilled > 0
+        ? (data.totals.cacheReadTokens / inputBilled) * 100
+        : 0;
+      const topModel = data
+        ? Object.entries(data.byModel).sort((a, b) => tokenTotal(b[1]) - tokenTotal(a[1]))[0]
+        : undefined;
+
+      return React.createElement(
+        'div',
+        { className: 'hi-root' },
+        React.createElement(
+          'div',
+          { className: 'hi-head' },
+          React.createElement(
+            'div',
+            null,
+            React.createElement(
+              'div',
+              { className: 'hi-title-row' },
+              React.createElement(UsageIcon, null),
+              React.createElement('h2', { className: 'hi-title' }, t.title),
+            ),
+            React.createElement('p', { className: 'hi-sub' }, t.sub),
+          ),
+          React.createElement(
+            Button,
+            {
+              variant: 'ghost',
+              icon: React.createElement(IconRefreshOutline16, null),
+              onClick: () => load(),
+              disabled: state.status === 'loading',
+            },
+            t.refresh,
+          ),
+        ),
+        state.status === 'loading' && !data && React.createElement(
+          'div',
+          { style: { padding: '48px 0', textAlign: 'center', color: 'var(--hi-muted)' } },
+          t.loading || '正在加载用量数据…',
+        ),
+        state.error && React.createElement(
+          'div',
+          { className: 'hi-error', style: { margin: '16px 0' } },
+          state.error,
+        ),
+        data && React.createElement(
+          React.Fragment,
+          null,
+          React.createElement(
+            'div',
+            { className: 'hi-summary' },
+            React.createElement(Metric, {
+              label: t.total,
+              value: format(tokenTotal(data.totals)),
+              note: `${t.reasoning} ${format(data.totals.reasoningTokens)}`,
+            }),
+            React.createElement(Metric, {
+              label: t.peak,
+              value: format(tokenTotal(peak[1])),
+              note: peak[0] || '—',
+            }),
+            React.createElement(Metric, {
+              label: t.calls,
+              value: format(data.totals.calls),
+              note: topModel?.[0] || '—',
+            }),
+            React.createElement(Metric, {
+              label: t.sessions,
+              value: format(data.sessions),
+              note: t.conversations,
+            }),
+            React.createElement(Metric, {
+              label: t.cache,
+              value: `${cacheRate.toFixed(1)}%`,
+              note: `${t.cacheRead} ${format(data.totals.cacheReadTokens)}`,
+            }),
+          ),
+          data.totals.calls === 0
+            ? React.createElement('div', { className: 'hi-empty' }, t.empty)
+            : React.createElement(
+                React.Fragment,
+                null,
+                React.createElement(
+                  'section',
+                  { className: 'hi-section' },
+                  React.createElement(
+                    'div',
+                    { className: 'hi-section-head' },
+                    React.createElement('h3', { className: 'hi-section-title' }, t.activity),
+                    React.createElement(
+                      'div',
+                      { className: 'hi-tabs' },
+                      [['daily', t.daily], ['weekly', t.weekly], ['cumulative', t.cumulative]].map(
+                        ([id, label]) =>
+                          React.createElement(
+                            'button',
+                            {
+                              className: 'hi-tab',
+                              key: id,
+                              'data-active': mode === id,
+                              onClick: () => setMode(id),
+                            },
+                            label,
+                          ),
+                      ),
+                    ),
+                  ),
+                  React.createElement(Heatmap, { byDay: data.byDay, mode, t }),
+                ),
+                React.createElement(
+                  'div',
+                  { className: 'hi-insights' },
+                  React.createElement(
+                    'section',
+                    null,
+                    React.createElement('h3', { className: 'hi-insight-title' }, t.facts),
+                    React.createElement(
+                      'div',
+                      { className: 'hi-facts' },
+                      React.createElement('div', { className: 'hi-fact-label' }, t.input),
+                      React.createElement('div', { className: 'hi-fact-value' }, format(data.totals.inputTokens)),
+                      React.createElement('div', { className: 'hi-fact-label' }, t.output),
+                      React.createElement('div', { className: 'hi-fact-value' }, format(data.totals.outputTokens)),
+                      React.createElement('div', { className: 'hi-fact-label' }, t.reasoning),
+                      React.createElement('div', { className: 'hi-fact-value' }, format(data.totals.reasoningTokens)),
+                      React.createElement('div', { className: 'hi-fact-label' }, t.modelCount),
+                      React.createElement('div', { className: 'hi-fact-value' }, format(Object.keys(data.byModel).length)),
+                    ),
+                  ),
+                  React.createElement(
+                    'section',
+                    null,
+                    React.createElement('h3', { className: 'hi-insight-title' }, t.tools),
+                    React.createElement(Rows, {
+                      empty: t.empty,
+                      icons: true,
+                      codeNames: true,
+                      items: Object.entries(data.tools)
+                        .sort((a, b) => b[1] - a[1])
+                        .map(([k, v]) => [k, `${format(v)} ${t.toolRuns}`]),
+                    }),
+                  ),
+                  React.createElement(
+                    'section',
+                    null,
+                    React.createElement('h3', { className: 'hi-insight-title' }, t.models),
+                    React.createElement(Rows, {
+                      empty: t.empty,
+                      items: Object.entries(data.byModel)
+                        .sort((a, b) => tokenTotal(b[1]) - tokenTotal(a[1]))
+                        .map(([k, v]) => [k, format(tokenTotal(v))]),
+                    }),
+                  ),
+                  React.createElement(
+                    'section',
+                    null,
+                    React.createElement('h3', { className: 'hi-insight-title' }, t.conversations),
+                    React.createElement(Rows, {
+                      empty: t.empty,
+                      items: data.sessionRows.map((x) => [x.name, format(x.tokens)]),
+                    }),
+                  ),
+                ),
+              ),
+          React.createElement('p', { className: 'hi-privacy' }, t.privacy),
+        ),
+      );
     }
 
     const inject=['slots','connection','locale']
-    function apply(ctx){installStyle();const connection=ctx.get('connection'),t=ctx.locale.bind(NS);ctx.effect(()=>ctx.locale.register(NS,{zh:copy.zh,en:copy.en}),'harness-insights: dictionaries');ctx.slots.inject('settings.section',()=>ctx.slots.register({name:'settings.section',id:'harness-insights',order:25,label:()=>t('nav'),locale:NS,inject:()=>({connection,t,locale:ctx.locale})},InsightsSection))}
+    function apply(ctx) {
+      installStyle();
+      const connection = ctx.get('connection');
+      const t = ctx.locale.bind(NS);
+      ctx.effect(() => ctx.locale.register(NS, { zh: copy.zh, en: copy.en }), 'harness-insights: dictionaries');
+      ctx.slots.inject('settings.section', () =>
+        ctx.slots.register(
+          {
+            name: 'settings.section',
+            id: 'harness-insights',
+            order: 25,
+            label: () => t('nav'),
+            locale:NS,
+            inject: () => ({ connection: ctx.get('connection') || connection, t, locale: ctx.locale }),
+          },
+          InsightsSection,
+        ),
+      );
+    }
     exports.apply=apply;exports.inject=inject;exports.aggregate=aggregate;exports.calendar=calendar;exports.modeCells=modeCells
     return module.exports
   }
