@@ -73,7 +73,7 @@ Credentials remain in the local Harness settings profile. Treat the profile dire
 
 ## Compatibility
 
-`0.1.11` is validated with DeepSeek Harness `0.1.5-rc.1`, `0.1.5-rc.2`, `0.1.6-alpha.2`, and `0.1.7-rc.2`, `@deepseek-ai/cordis@^4.0.4`, and matching client connection and locale services. Install the UI and the channel runtime packages into the same profile.
+`0.1.12` is validated with DeepSeek Harness `0.1.5-rc.1`, `0.1.5-rc.2`, `0.1.6-alpha.2`, and `0.1.7-rc.2`, `@deepseek-ai/cordis@^4.0.4`, and matching client connection and locale services. Install the UI and the channel runtime packages into the same profile.
 
 ## License
 

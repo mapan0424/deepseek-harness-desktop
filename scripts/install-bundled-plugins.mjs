@@ -15,7 +15,7 @@ export const bundledPluginDefinitionsList = [
     packageName: "@anarkhgatsby/deepseek-harness-insights",
     source: join(projectRoot, "packages", "harness-insights"),
     publishedEntries: ["package.json", "cordis.patch.yml", "LICENSE", "README.md", "README.zh-CN.md", "lib"],
-    expectedVersion: "0.1.11",
+    expectedVersion: "0.1.12",
     clientId: "@anarkhgatsby/deepseek-harness-insights",
     clientEntry: "lib/client.js",
     patch: true,
@@ -25,7 +25,7 @@ export const bundledPluginDefinitionsList = [
     packageName: "@anarkhgatsby/deepseek-harness-channel-config",
     source: join(projectRoot, "packages", "harness-channel-config"),
     publishedEntries: ["package.json", "cordis.patch.yml", "LICENSE", "README.md", "README.zh-CN.md", "lib"],
-    expectedVersion: "0.1.11",
+    expectedVersion: "0.1.12",
     clientId: "@anarkhgatsby/deepseek-harness-channel-config",
     clientEntry: "lib/client.js",
     patch: true,
@@ -105,7 +105,7 @@ function npmEnv() {
 async function unpackNpmPackage(plugin) {
   const spec = `${plugin.packageName}@${plugin.expectedVersion}`;
   const work = await mkdtemp(join(tmpdir(), `dsh-plugin-${plugin.id}-`));
-  const packed = spawnSync("npm", ["pack", spec, "--pack-destination", work], {
+  const packed = spawnSync("npm", ["pack", spec, "--prefer-online", "--pack-destination", work], {
     encoding: "utf8",
     env: npmEnv(),
   });

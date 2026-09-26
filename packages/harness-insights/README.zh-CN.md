@@ -63,7 +63,7 @@ dsh plugin --profile demo add ./packages/harness-insights
 - Harness projection/client API：兼容旧版 `0.1.2+` 与新版 `0.1.5+`
 - 运行平台：Web UI
 - 插件类型：npm bundle
-- 当前版本：`0.1.10`
+- 当前版本：`0.1.12`
 - 数据模型：聚合 Token、模型分布、工具调用、活动时段与衍生缓存指标
 - 官方底座：`@deepseek-ai/cordis@^4.0.4`
 - 当前验证基线：DeepSeek Harness `0.1.5-rc.1`、`0.1.5-rc.2`、`0.1.6-alpha.2` 与 `0.1.7-rc.2`
@@ -78,9 +78,9 @@ dsh plugin --profile demo add ./packages/harness-insights
 | 已验证的当前运行时 | DeepSeek Harness `0.1.5-rc.1`、`0.1.5-rc.2`、`0.1.6-alpha.2` 与 `0.1.7-rc.2` |
 | Cordis | `^4.0.2` |
 | Harness Projection 客户端服务 | 对应 RC1、RC2、0.1.6-alpha.2 或 0.1.7-rc.2 发布 |
-| 插件发布版本 | `@anarkhgatsby/deepseek-harness-insights@0.1.10` |
+| 插件发布版本 | `@anarkhgatsby/deepseek-harness-insights@0.1.12` |
 
-后续桌面端可内嵌该 `0.1.10` 版本。插件不含原生依赖，只通过本地 Harness Host 工作。
+后续桌面端可内嵌该 `0.1.12` 版本。插件不含原生依赖，只通过本地 Harness Host 工作。
 
 Harness 目前仍处于 developer preview 阶段，未来版本可能存在兼容性变化。
 

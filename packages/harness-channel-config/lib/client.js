@@ -17,7 +17,13 @@ window.__ModuleLoader__.load({
     Object.defineProperty(exports, Symbol.toStringTag, { value: "Module" });
 
     const React = require("react");
-    const { Button, IconSettingsOutline16, IconNewChatOutline16, IconRefreshOutline16, IconWarningOutline16 } = require("@deepseek-ai/dsh-client-ui-primitives");
+    const Primitives = require("@deepseek-ai/dsh-client-ui-primitives");
+    const Button = Primitives.Button || ((props) => React.createElement("button", props, props.children));
+    const FallbackIcon = () => null;
+    const IconSettingsOutline16 = Primitives.IconSettingsOutlineMedium || Primitives.IconSettingsOutlineRegular || Primitives.IconSettingsOutline16 || FallbackIcon;
+    const IconNewChatOutline16 = Primitives.IconNewChatOutlineMedium || Primitives.IconNewChatOutlineRegular || Primitives.IconNewChatOutline16 || FallbackIcon;
+    const IconRefreshOutline16 = Primitives.IconRefreshOutlineMedium || Primitives.IconRefreshOutlineRegular || Primitives.IconRefreshOutline16 || FallbackIcon;
+    const IconWarningOutline16 = Primitives.IconWarningOutlineMedium || Primitives.IconWarningOutlineRegular || Primitives.IconWarningOutline16 || FallbackIcon;
 
     const STYLE_ID = "@anarkhgatsby/deepseek-harness-channel-config/main-v2";
     const NS = "harness-channel-config";
