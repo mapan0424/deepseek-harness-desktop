@@ -3,9 +3,11 @@ import { readFile } from 'node:fs/promises'
 import vm from 'node:vm'
 
 let plugin
+const requiredSpecifiers = []
 const context = {
   window: { __ModuleLoader__: { load(record) { plugin = record.factory(specifier => {
-    if (specifier === 'react') return {}
+    requiredSpecifiers.push(specifier)
+    if (specifier === 'react') return { createElement: () => null }
     if (specifier === '@deepseek-ai/dsh-client-ui-primitives') return {}
     throw new Error(`unexpected require: ${specifier}`)
   }) } } },
@@ -18,6 +20,8 @@ const context = {
 const clientSource = await readFile(new URL('../lib/client.js', import.meta.url), 'utf8')
 vm.runInNewContext(clientSource, context)
 assert.ok(plugin)
+assert.equal(requiredSpecifiers.includes('react'), true, 'client factory must require React')
+assert.equal(clientSource.includes("const React = require('react')"), true, 'client must define React via require')
 assert.equal(clientSource.includes('navigator.language'), false, 'locale must follow Harness, not the browser language')
 assert.equal(clientSource.includes("const inject=['slots','connection','locale']"), true)
 assert.equal(clientSource.includes("connection.rpc.call('/api','session/list',{args:{_request:{}}})"), true, 'dsh 0.1.2 session/list requires named _request args')

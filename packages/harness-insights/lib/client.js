@@ -4,6 +4,7 @@ window.__ModuleLoader__.load({
     const module = { exports: {} }
     const exports = module.exports
     Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' })
+    const React = require('react')
     const Primitives = require('@deepseek-ai/dsh-client-ui-primitives')
     const Button = Primitives.Button || ((props) => React.createElement('button', props, props.children))
     const FallbackIcon = () => null
@@ -174,21 +175,28 @@ window.__ModuleLoader__.load({
         (callback) => (locale.subscribe ? locale.subscribe(callback) : () => {}),
         () => (locale.getSnapshot ? locale.getSnapshot() : { active: 'zh' }),
       );
-      const t = translated(translate);
+      const t = React.useMemo(() => translated(translate), [translate, localeSnapshot?.active]);
       displayLocale = localeSnapshot?.active || 'zh';
 
       const [mode, setMode] = React.useState('cumulative');
       const [state, setState] = React.useState({ status: 'loading', data: null, error: null });
 
+      const connectionRef = React.useRef(connection);
+      connectionRef.current = connection;
+      const translateRef = React.useRef(translate);
+      translateRef.current = translate;
+
       const load = React.useCallback(async (retryCount = 0) => {
-        setState((s) => ({ ...s, status: 'loading', error: null }));
+        setState((s) => (s.status === 'loading' && s.data === null ? s : { ...s, status: 'loading', error: null }));
         try {
+          const connection = connectionRef.current;
           if (!connection?.rpc) {
             if (retryCount < 4) {
               await new Promise((r) => setTimeout(r, 600));
               return load(retryCount + 1);
             }
-            throw new Error(t.serviceConnecting || '通信服务连接中，请稍后刷新');
+            const tr = translateRef.current;
+            throw new Error((tr ? tr('serviceConnecting') : null) || '通信服务连接中，请稍后刷新');
           }
           const result = await connection.rpc.call('/api','session/list',{args:{_request:{}}});
           if (!result?.ok) {
@@ -206,7 +214,7 @@ window.__ModuleLoader__.load({
             error: error instanceof Error ? error.message : String(error),
           });
         }
-      }, [connection, t]);
+      }, []);
 
       React.useEffect(() => {
         void load();
