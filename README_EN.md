@@ -25,6 +25,13 @@ https://github.com/user-attachments/assets/486eb943-a455-4f56-b009-5fc1e877e812
 
 <p align="center"><sub>Embedded product demo · 35 seconds</sub></p>
 
+## What's new in v0.3.15
+
+- Fixes the model selector failing to render on macOS 12.7.6 when `Array.prototype.toSorted()` is unavailable;
+- Adds a sorting fallback for older WebKit without mutating the model catalog or replacing native implementations on newer engines;
+- Adds six compatibility regression tests to the existing build checks, with model ordering also verified using the real macOS 12.7.6 JavaScriptCore engine;
+- Continues to bundle `@deepseek-ai/dsh@0.2.1-alpha.5` and `@deepseek-ai/cordis@4.0.5`.
+
 ## What's new in v0.3.14
 
 - Upgrades embedded core runtime to official `@deepseek-ai/dsh@0.2.1-alpha.5` and `@deepseek-ai/cordis@4.0.5`, locking the complete verified closure of 293 subpackages to prevent prerelease drift;
