@@ -113,6 +113,8 @@ jobs:
             notes='升级核心运行时至 @deepseek-ai/dsh@0.2.1-alpha.5，带来插件市场、密钥脱敏与上下文压缩等 0.2.x 新能力；内嵌插件全面适配 DSH 0.2 版本兼容性检查，并继续支持 macOS 12.7.6。'
           elif [ "$VERSION" = "0.3.15" ]; then
             notes='修复 macOS 12.7.6 上模型选择器因缺少 toSorted 而无法使用的问题，补充旧版 WebKit 排序兼容实现及六项回归测试。'
+          elif [ "$VERSION" = "0.3.16" ]; then
+            notes='修复会话摘要截断 emoji 导致顶部栏无法读取用量的问题；兼容读取已有摘要，并避免新摘要切断字符，保留原始会话和统计记录。'
           fi
           node scripts/create-updater-manifest.mjs \
             --version "$VERSION" \
@@ -171,6 +173,8 @@ jobs:
             release_notes=$'## DSH 0.2.1-alpha.5 与插件矩阵升级\n\n- 内嵌官方 `@deepseek-ai/dsh@0.2.1-alpha.5` 与 `@deepseek-ai/cordis@4.0.5`，并锁定完整 0.2.1-alpha.5 依赖闭包（293 个子包精确版本），杜绝预发布依赖漂移。\n- 带来上游 0.2.x 系列能力：插件市场与自定义插件索引源、模型选择器搜索、已发送消息中的密钥自动脱敏、`/compact` 手动压缩上下文、Office / PDF 预览与对话体验优化等。\n- 适配 0.2.x 新版浏览器会话认证接口，重写桌面端本地回环自动登录补丁。\n- 内嵌插件全面升级并通过 DSH 0.2 插件版本兼容性检查：配置中心 `0.1.13`、Core `0.1.10`、飞书 `0.1.8`、钉钉 `0.1.6`、企业微信 `0.1.10`、iMessage `0.1.11`、Harness Insights `0.1.15`、Locale Pack `0.1.9`。\n- 构建门禁新增插件禁用检测：任一内置插件被 DSH 判定为版本不兼容时构建直接失败。\n- 继续保持 macOS 12.7.6 兼容：全部原生二进制最低系统版本不高于 12.7.6，WebKit 兼容补丁在新运行时上全部生效。\n\n## 平台\n\n- 支持 macOS 12.7.6+ Apple Silicon、macOS Intel 和 Windows x64。\n- Windows 构建不携带 iMessage。\n- Release 资产包含 updater 签名、`latest.json` 和 SHA256 校验清单。'
           elif [ "$VERSION" = "0.3.15" ]; then
             release_notes=$'## macOS 12 模型选择修复\n\n- 修复 macOS 12.7.6 上模型选择器因 `Array.prototype.toSorted()` 不可用而报错、无法选择模型的问题。\n- 在页面脚本执行前为旧版 WebKit 补充排序兼容实现，保持原模型目录不被修改，并保留新版引擎的原生实现。\n- 新增六项回归测试并纳入现有构建检查；已使用 macOS 12.7.6 的真实 JavaScriptCore 引擎验证已发布模型选择器的排序代码。\n\n## 运行时与平台\n\n- 继续内置 `@deepseek-ai/dsh@0.2.1-alpha.5` 与 `@deepseek-ai/cordis@4.0.5`。\n- 提供 macOS Apple Silicon、macOS Intel 和 Windows x64 安装包。\n- Release 资产包含 updater 签名、`latest.json` 和 SHA256 校验清单。'
+          elif [ "$VERSION" = "0.3.16" ]; then
+            release_notes=$'## 顶部栏用量读取修复\n\n- 修复会话摘要中的 emoji 被截断后，顶部栏读取用量报 `unexpected end of hex escape` 的问题。\n- 原生响应解析兼容已有摘要中的孤立 UTF-16 代理项，保留有效 emoji、字面量转义和全部统计字段；其他无效 JSON 仍会报错。\n- 新摘要按安全边界截断，避免将 emoji 切成半个字符，并保留原有预览长度限制。\n- 新增原生解析和摘要生成回归测试，并用真实本机会话列表验证；不会重写历史会话或用量记录。\n\n## 运行时与平台\n\n- 继续内置 `@deepseek-ai/dsh@0.2.1-alpha.5` 与 `@deepseek-ai/cordis@4.0.5`。\n- 提供 macOS Apple Silicon、macOS Intel 和 Windows x64 安装包。\n- Release 资产包含 updater 签名、`latest.json` 和 SHA256 校验清单。'
           else
             release_notes=$'Release 资产包含签名文件、latest.json 和 SHA256 校验清单。'
           fi
