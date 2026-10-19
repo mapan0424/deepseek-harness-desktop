@@ -17,6 +17,8 @@ use tauri::{LogicalSize, Manager, PhysicalPosition, Rect, Size};
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
 use tauri_plugin_updater::UpdaterExt;
 
+mod dsh_response;
+
 struct DshProcess {
     child: Mutex<Option<Child>>,
     port: Mutex<Option<u16>>,
@@ -900,7 +902,7 @@ fn call_dsh_api(
     if !output.status.success() {
         return Err(String::from_utf8_lossy(&output.stderr).trim().to_string());
     }
-    let response: Value = serde_json::from_slice(&output.stdout)
+    let response = dsh_response::parse_dsh_response(&output.stdout)
         .map_err(|error| format!("dsh 返回了无效响应：{error}"))?;
     match response.get("result") {
         Some(result) if result.get("ok") == Some(&Value::Bool(true)) => {

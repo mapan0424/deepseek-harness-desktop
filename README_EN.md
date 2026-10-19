@@ -25,6 +25,13 @@ https://github.com/user-attachments/assets/486eb943-a455-4f56-b009-5fc1e877e812
 
 <p align="center"><sub>Embedded product demo · 35 seconds</sub></p>
 
+## What's new in v0.3.16
+
+- Fixes menu-bar usage failing with `unexpected end of hex escape` when a session preview contains a clipped emoji;
+- Tolerates lone UTF-16 surrogates while reading existing previews without rewriting stored sessions or usage records;
+- Makes new preview clipping respect emoji surrogate pairs while preserving existing length budgets;
+- Adds native parsing and preview regression tests, with usage fields also verified against a real local session-list response.
+
 ## What's new in v0.3.15
 
 - Fixes the model selector failing to render on macOS 12.7.6 when `Array.prototype.toSorted()` is unavailable;

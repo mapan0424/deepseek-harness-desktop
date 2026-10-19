@@ -54,7 +54,55 @@ export async function patchRuntimeCompatibility(runtimeRoot) {
   await patchDshCliLauncher(runtimeRoot);
   await patchNodeAddonRequireBuiltin(runtimeRoot);
   await patchProfileBootResolutionMode(runtimeRoot);
+  await patchTurnOutlineUnicode(runtimeRoot);
   await verifyRuntimeCompatibility(runtimeRoot);
+}
+
+const unicodePreviewMarker = "/* dsh-desktop-unicode-preview */";
+const unicodePreviewSlice = `${unicodePreviewMarker}
+function slicePreview(text, limit) {
+  let end = Math.min(limit, text.length);
+  const last = text.charCodeAt(end - 1);
+  const next = text.charCodeAt(end);
+  if (last >= 0xD800 && last <= 0xDBFF && next >= 0xDC00 && next <= 0xDFFF) end -= 1;
+  return text.slice(0, end);
+}
+`;
+
+export async function patchTurnOutlineUnicode(runtimeRoot) {
+  const path = join(runtimeRoot, "node_modules", "@deepseek-ai", "dsh-session-turn-outline", "lib", "index.js");
+  if (!existsSync(path)) return;
+  const content = await readFile(path, "utf8");
+  if (!content.includes(unicodePreviewMarker)) {
+    const replacements = [
+      ["function preview(content, limit) {", `${unicodePreviewSlice}function preview(content, limit) {`],
+      ["block.text.slice(0, limit * 2)", "slicePreview(block.text, limit * 2)"],
+      ["normalized.slice(0, limit - 1)", "slicePreview(normalized, limit - 1)"],
+    ];
+    for (const [before] of replacements) {
+      if (count(content, before) !== 1) {
+        throw new Error(`Unicode preview patch no longer matches ${path}; review upstream before packaging.`);
+      }
+    }
+    let patched = content;
+    for (const [before, after] of replacements) patched = patched.replace(before, after);
+    await writeFile(path, patched, "utf8");
+    console.log(`Patched Unicode-safe turn outline previews: ${path}`);
+  }
+  await verifyTurnOutlineUnicode(runtimeRoot);
+}
+
+async function verifyTurnOutlineUnicode(runtimeRoot) {
+  const path = join(runtimeRoot, "node_modules", "@deepseek-ai", "dsh-session-turn-outline", "lib", "index.js");
+  if (!existsSync(path)) return;
+  const content = await readFile(path, "utf8");
+  if (!content.includes(unicodePreviewSlice)
+      || !content.includes("slicePreview(block.text, limit * 2)")
+      || !content.includes("slicePreview(normalized, limit - 1)")
+      || content.includes("block.text.slice(0, limit * 2)")
+      || content.includes("normalized.slice(0, limit - 1)")) {
+    throw new Error(`Turn outline previews can split UTF-16 surrogate pairs: ${path}`);
+  }
 }
 
 const macosTitlebarSnippet = `    <style id="dsh-macos-titlebar-style">
@@ -285,6 +333,7 @@ export async function patchHostWebserverReadyMarkup(runtimeRoot) {
 
 export async function verifyRuntimeCompatibility(runtimeRoot) {
   await verifyFrontendSyntax(runtimeRoot);
+  await verifyTurnOutlineUnicode(runtimeRoot);
   const modules = join(runtimeRoot, "node_modules");
   const assetsRoot = join(modules, "@deepseek-ai", "dsh-web-frontend", "dist", "assets");
   if (!existsSync(assetsRoot)) throw new Error(`Missing frontend assets: ${assetsRoot}`);

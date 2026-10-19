@@ -25,6 +25,13 @@ https://github.com/user-attachments/assets/486eb943-a455-4f56-b009-5fc1e877e812
 
 <p align="center"><sub>内嵌产品演示视频 · 35 秒</sub></p>
 
+## v0.3.16 更新内容
+
+- 修复顶部栏读取用量时，因会话摘要含截断的 emoji 而出现 `unexpected end of hex escape` 的问题；
+- 为已有摘要中的孤立 UTF-16 代理项增加读取容错，保留原始会话和用量记录；
+- 修复新会话摘要的截断边界，避免把 emoji 切成半个字符，并保留原有预览长度限制；
+- 新增原生解析和摘要生成回归测试，已使用本机真实会话列表验证用量字段保持一致。
+
 ## v0.3.15 更新内容
 
 - 修复 macOS 12.7.6 上模型选择器因缺少 `Array.prototype.toSorted()` 而报错、无法选择模型的问题；
