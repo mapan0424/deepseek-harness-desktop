@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { createReadStream, createWriteStream, existsSync, readFileSync } from "node:fs";
 import { chmod, cp, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { spawn, spawnSync } from "node:child_process";
-import { dirname, join, resolve } from "node:path";
+import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { pipeline } from "node:stream/promises";
 import { patchRuntimeCompatibility } from "./patch-runtime-compat.mjs";
@@ -23,6 +23,9 @@ const nodeExtractRoot = join(cacheRoot, `node-v${nodeVersion}-win-x64`);
 const officialNode = join(nodeExtractRoot, "node.exe");
 const officialLicense = join(nodeExtractRoot, "LICENSE");
 const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
+// Runtime-relative path budget: the CI checkout prefix is ~87 characters and an
+// installed per-user app prefix is ~63 characters plus the user name.
+const maxRuntimeRelativePath = 159;
 
 if (process.platform !== "win32" || process.arch !== "x64") {
   throw new Error("Windows runtime must be prepared on a native Windows x64 runner.");
@@ -67,6 +70,7 @@ await materializeBundledPnpmLauncher(runtimeRoot);
 await verifyBundledPnpm(runtimeRoot, join(runtimeRoot, "node.exe"));
 assertWindowsRuntime();
 await installRuntimeLegalFiles();
+await assertRuntimePathLengths(runtimeRoot);
 console.log(`Prepared self-contained dsh ${dshVersion} Windows x64 runtime with official Node ${nodeVersion}: ${runtimeRoot}`);
 
 async function downloadAndVerifyOfficialNode() {
@@ -112,8 +116,32 @@ async function pruneWindowsRuntime() {
   // needed and no architecture-specific native cache is created.
   await keepMatchingPackages(join(runtimeRoot, "node_modules"), (name) =>
     !name.startsWith("node-addon-require-builtin-"));
+  // The experimental inspector embeds Chrome DevTools, whose Issues panel help
+  // files have very long names. Drop the longest ones so installed paths stay
+  // within Windows MAX_PATH for NSIS/MSI; DevTools only loses that help text.
+  await pruneLongRuntimePaths(join(runtimeRoot, "node_modules", "@deepseek-ai", "dsh-experimental-inspector", "lib", "devtools", "models", "issues_manager", "descriptions"));
   await rm(join(runtimeRoot, "node_modules", ".package-lock.json"), { force: true });
   await pruneNonRuntimeFiles(join(runtimeRoot, "node_modules"));
+}
+
+async function pruneLongRuntimePaths(directory) {
+  if (!existsSync(directory)) return;
+  for (const entry of await readdir(directory, { withFileTypes: true })) {
+    const path = join(directory, entry.name);
+    if (entry.isDirectory()) await pruneLongRuntimePaths(path);
+    else if (relative(runtimeRoot, path).length > maxRuntimeRelativePath) await rm(path, { force: true });
+  }
+}
+
+async function assertRuntimePathLengths(directory, tooLong = []) {
+  for (const entry of await readdir(directory, { withFileTypes: true })) {
+    const path = join(directory, entry.name);
+    if (entry.isDirectory()) await assertRuntimePathLengths(path, tooLong);
+    else if (relative(runtimeRoot, path).length > maxRuntimeRelativePath || path.length >= 260) tooLong.push(path);
+  }
+  if (directory === runtimeRoot && tooLong.length) {
+    throw new Error(`Windows runtime paths exceed the MAX_PATH budget (${maxRuntimeRelativePath} characters below dsh-runtime):\n${tooLong.join("\n")}`);
+  }
 }
 
 function assertWindowsRuntime() {
