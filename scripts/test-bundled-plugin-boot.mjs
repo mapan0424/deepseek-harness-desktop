@@ -37,6 +37,8 @@ try {
   try {
     await waitForHttp(port, child, () => log);
     assert.doesNotMatch(log, /duplicate loader entry id|plugin tree failed to load/i, log);
+    // DSH >= 0.2 disables plugins whose dsh peers reject the runtime and only warns on stderr.
+    assert.doesNotMatch(log, /disabling profile plugin row|is incompatible with dsh/i, log);
   } finally {
     if (child.exitCode === null) {
       child.kill("SIGTERM");

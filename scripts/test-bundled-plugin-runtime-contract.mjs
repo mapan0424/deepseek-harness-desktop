@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
+import { createRequire } from "node:module";
 import { resolve } from "node:path";
 
 const runtimeModules = resolve("src-tauri/resources/dsh-runtime/node_modules");
+const semver = createRequire(resolve(runtimeModules, "..", "package.json"))("semver");
 const packages = [
   "harness-insights",
   "harness-channel-config",
@@ -29,18 +31,15 @@ for (const plugin of packages) {
     }
     const runtimeVersion = runtimeVersions.get(dependency);
     if (dependency === "@deepseek-ai/cordis") {
-      assert.equal(
-        manifest.peerDependencies[dependency],
-        `^${runtimeVersion}`,
-        `${manifest.name} must declare the bundled ${dependency} peer range`,
+      assert.ok(
+        semver.satisfies(runtimeVersion, manifest.peerDependencies[dependency]),
+        `${manifest.name} must declare a ${dependency} peer range covering bundled ${runtimeVersion}`,
       );
       continue;
     }
-    const compatibleVersions = manifest.peerDependencies[dependency]
-      .split("||")
-      .map((value) => value.trim());
+    // Same rule as DSH's evaluatePluginCompatibility: prereleases participate in ranges.
     assert.ok(
-      compatibleVersions.includes(runtimeVersion) || compatibleVersions.some((v) => v.includes(runtimeVersion)),
+      semver.satisfies(runtimeVersion, manifest.peerDependencies[dependency], { includePrerelease: true }),
       `${manifest.name} must support bundled ${dependency}@${runtimeVersion}`,
     );
   }

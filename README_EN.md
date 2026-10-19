@@ -25,13 +25,14 @@ https://github.com/user-attachments/assets/486eb943-a455-4f56-b009-5fc1e877e812
 
 <p align="center"><sub>Embedded product demo · 35 seconds</sub></p>
 
-## What's new in v0.3.10
+## What's new in v0.3.14
 
-- Upgrades embedded core runtime to official `@deepseek-ai/dsh@0.1.7-rc.2` and `@deepseek-ai/cordis@4.0.4`, locking the complete verified closure of 273 subpackages to prevent prerelease drift;
-- Supports 0.1.7-rc.2 features: customizable keyboard shortcuts with sidebar display, Auto Review plugin integration, hot-enabling tools within existing sessions, background task execution when desktop window is closed, etc.;
-- Fixes macOS menu bar / status item interaction: left-click immediately displays the full Insights usage card panel (with 300ms debounce), right-click pops up native quick menu;
-- Adapts settings center navigation icon injection to match the upstream Account section and Medium icon specifications;
-- Updates bundled plugin suite to fully support `0.1.5-rc.1 || 0.1.5-rc.2 || 0.1.6-alpha.2 || 0.1.7-rc.2`;
+- Upgrades embedded core runtime to official `@deepseek-ai/dsh@0.2.1-alpha.5` and `@deepseek-ai/cordis@4.0.5`, locking the complete verified closure of 293 subpackages to prevent prerelease drift;
+- Brings upstream 0.2.x features: plugin market with custom plugin index sources, model selector search, automatic masking of secrets in sent messages, manual context compaction via `/compact`, Office / PDF preview and conversation improvements, etc.;
+- Rewrites the desktop loopback auto-login patch for the new 0.2.x browser-session authentication API, so the app still opens straight into the workspace;
+- Updates the bundled plugin suite, all passing DSH 0.2 plugin version compatibility checks: Channel Config `0.1.13`, Core `0.1.10`, Feishu `0.1.8`, DingTalk `0.1.6`, WeCom `0.1.10`, iMessage `0.1.11`, Harness Insights `0.1.15`, Locale Pack `0.1.9`;
+- Adds a build gate that fails when DSH disables any bundled plugin as version-incompatible;
+- Keeps macOS 12.7.6 compatibility: every native binary targets macOS 12.7.6 or earlier, and all WebKit compatibility patches apply to the new runtime;
 - Windows builds continue to exclude macOS-only iMessage while retaining all cross-platform channels and features.
 
 ## ✨ Why use it

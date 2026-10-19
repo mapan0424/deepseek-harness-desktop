@@ -5,7 +5,7 @@ import { pathToFileURL } from "node:url";
 import { spawnSync } from "node:child_process";
 import { transform } from "esbuild";
 
-const expectedFrontendVersions = ["0.1.2-alpha.5", "0.1.2-rc.1", "0.1.3-alpha.2", "0.1.5-alpha.1", "0.1.5-rc.1", "0.1.5-rc.2", "0.1.6-alpha.2", "0.1.7-rc.2"];
+const expectedFrontendVersions = ["0.1.2-alpha.5", "0.1.2-rc.1", "0.1.3-alpha.2", "0.1.5-alpha.1", "0.1.5-rc.1", "0.1.5-rc.2", "0.1.6-alpha.2", "0.1.7-rc.2", "0.2.1-alpha.5"];
 
 // 0.1.2-alpha.x / 0.1.2-rc.x ships the GFM email autolink as a regex literal (not `new RegExp("...")`).
 // macOS 12.7.6 WebKit rejects the lookbehind + Unicode property escapes, so drop the
@@ -461,17 +461,44 @@ const unpatchedIndexAuth = `\t\tif (this.isAuthenticated(req)) return true;
 \t\tthis.writeUnauthorized(req, res);
 \t\treturn false;`;
 
+// 0.2.x authorizeIndex takes the listener's `secure` flag, binds cookies to
+// requestAudience(headers, secure) and passes `secure` through to sessionCookie.
+const loopbackAuthServeSecure = `\t\tif (this.isAuthenticated(req, secure)) return true;
+\t\t/* dsh-desktop-loopback-auth */
+\t\tconst isLoopback = req.socket?.remoteAddress === "127.0.0.1" || req.socket?.remoteAddress === "::1" || req.socket?.remoteAddress === "::ffff:127.0.0.1";
+\t\tif (req.method === "GET" && url.pathname === "/" && isLoopback) {
+\t\t\tconst authority = requestAudience(req.headers, secure) ?? "127.0.0.1";
+\t\t\tconst issuedAt = Date.now();
+\t\t\tconst expiresAt = issuedAt + this.maxAgeMilliseconds;
+\t\t\tconst value = encodeCookie({
+\t\t\t\tversion: COOKIE_PAYLOAD_VERSION,
+\t\t\t\tauthority,
+\t\t\t\tissuedAt,
+\t\t\t\texpiresAt
+\t\t\t}, this.secret);
+\t\t\tres.setHeader("set-cookie", sessionCookie(cookieName(authority), value, expiresAt, Math.floor(this.maxAgeMilliseconds / 1e3), secure));
+\t\t\treturn true;
+\t\t}
+\t\tthis.writeUnauthorized(req, res);
+\t\treturn false;`;
+
+const unpatchedIndexAuthSecure = `\t\tif (this.isAuthenticated(req, secure)) return true;
+\t\tthis.writeUnauthorized(req, res);
+\t\treturn false;`;
+
 export async function patchLocalConnectionAuth(runtimeRoot) {
   const connectionPath = join(runtimeRoot, "node_modules", "@deepseek-ai", "dsh-client-connection", "lib", "index.js");
   if (!existsSync(connectionPath)) return;
   const content = await readFile(connectionPath, "utf8");
-  if (content.includes(loopbackAuthServe)) return;
+  if (content.includes(loopbackAuthServe) || content.includes(loopbackAuthServeSecure)) return;
 
   let patched = content;
   if (content.includes(loopbackAuthRedirect)) {
     patched = content.replace(loopbackAuthRedirect, loopbackAuthServe);
   } else if (content.includes(unpatchedIndexAuth)) {
     patched = content.replace(unpatchedIndexAuth, loopbackAuthServe);
+  } else if (count(content, unpatchedIndexAuthSecure) === 1) {
+    patched = content.replace(unpatchedIndexAuthSecure, loopbackAuthServeSecure);
   } else {
     console.warn("Target not found in dsh-client-connection to patch local loopback auth");
     return;

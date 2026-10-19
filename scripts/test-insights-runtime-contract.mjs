@@ -1,20 +1,20 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
+import { createRequire } from "node:module";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { usageInsightsProjectionDefinition } from "../packages/harness-insights/lib/index.js";
 
 const runtimeRoot = resolve("src-tauri/resources/dsh-runtime/node_modules");
+const semver = createRequire(resolve(runtimeRoot, "..", "package.json"))("semver");
 const cordisRoot = resolve(runtimeRoot, "@deepseek-ai/cordis");
 const projectionRoot = resolve(runtimeRoot, "@deepseek-ai/dsh-session-projection");
 const pluginManifest = JSON.parse(await readFile(resolve("packages/harness-insights/package.json"), "utf8"));
 const projectionManifest = JSON.parse(await readFile(resolve(projectionRoot, "package.json"), "utf8"));
 
+// Same rule as DSH's evaluatePluginCompatibility: prereleases participate in ranges.
 assert.ok(
-  pluginManifest.peerDependencies?.["@deepseek-ai/dsh-session-projection"]
-    .split("||")
-    .map((value) => value.trim())
-    .some((range) => range === projectionManifest.version || range.includes(projectionManifest.version)),
+  semver.satisfies(projectionManifest.version, pluginManifest.peerDependencies?.["@deepseek-ai/dsh-session-projection"] ?? "", { includePrerelease: true }),
   "the plugin peer range must support the bundled projection runtime",
 );
 
