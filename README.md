@@ -25,6 +25,13 @@ https://github.com/user-attachments/assets/486eb943-a455-4f56-b009-5fc1e877e812
 
 <p align="center"><sub>内嵌产品演示视频 · 35 秒</sub></p>
 
+## v0.3.15 更新内容
+
+- 修复 macOS 12.7.6 上模型选择器因缺少 `Array.prototype.toSorted()` 而报错、无法选择模型的问题；
+- 为旧版 WebKit 补充排序兼容实现，保持模型目录不被修改，并保留新版引擎的原生实现；
+- 新增六项兼容性回归测试，纳入现有构建检查，并已用 macOS 12.7.6 的真实 JavaScriptCore 验证模型排序代码；
+- 继续内置 `@deepseek-ai/dsh@0.2.1-alpha.5` 与 `@deepseek-ai/cordis@4.0.5`。
+
 ## v0.3.14 更新内容
 
 - 升级核心运行时至官方 `@deepseek-ai/dsh@0.2.1-alpha.5` 与 `@deepseek-ai/cordis@4.0.5`，精确锁定 293 个子包依赖闭包，杜绝预发布依赖漂移；

@@ -5,6 +5,31 @@
 
   if (!global) return;
 
+  if (typeof global.Array === "function" && typeof global.Array.prototype.toSorted !== "function") {
+    Object.defineProperty(global.Array.prototype, "toSorted", {
+      configurable: true,
+      writable: true,
+      value: function toSorted(compareFn) {
+        if (compareFn !== undefined && typeof compareFn !== "function") {
+          throw new TypeError("Array.prototype.toSorted requires a function or undefined");
+        }
+        if (this === null || this === undefined) {
+          throw new TypeError("Array.prototype.toSorted called on null or undefined");
+        }
+
+        var source = Object(this);
+        var length = Math.min(Math.max(Math.floor(+source.length) || 0, 0), 9007199254740991);
+        var copy = new global.Array(length);
+        // Read indices directly: holes become undefined, and custom iterators
+        // or array subclass species must not affect the returned plain Array.
+        for (var i = 0; i < length; i += 1) {
+          copy[i] = source[i];
+        }
+        return copy.sort(compareFn);
+      },
+    });
+  }
+
   if (typeof global.Promise === "function" && typeof global.Promise.withResolvers !== "function") {
     Object.defineProperty(global.Promise, "withResolvers", {
       configurable: true,
