@@ -21,6 +21,11 @@
   </p>
 </div>
 
+> [!IMPORTANT]
+> **本项目仅供个人学习与测试使用。** 这是我在学习 Tauri 桌面封装和 DeepSeek Harness 插件开发时做的实验性项目，测试并不充分，随时可能变更或停止维护，不建议用于生产环境或重要工作。
+>
+> **推荐大家下载使用 DeepSeek 官方原版：** [DeepSeek Harness 官网](https://deepseek.com/harness) · [官方 GitHub 仓库](https://github.com/deepseek-ai/deepseek-harness)（安装 Node.js 后也可以直接运行 `npx @deepseek-ai/dsh web`）。
+
 https://github.com/user-attachments/assets/486eb943-a455-4f56-b009-5fc1e877e812
 
 <p align="center"><sub>内嵌产品演示视频 · 35 秒</sub></p>
@@ -287,6 +292,8 @@ pnpm build:windows
 桌面外壳采用 [MIT License](LICENSE)。DeepSeek Harness 及其他内置组件保留各自的版权和许可证；完整第三方说明见 [`src-tauri/legal/THIRD_PARTY_NOTICES.md`](src-tauri/legal/THIRD_PARTY_NOTICES.md)。
 
 本项目由社区独立开发和分发，不是 DeepSeek 官方产品，也不代表获得 DeepSeek 的赞助、认可或背书。“DeepSeek”与“DeepSeek Harness”仅用于说明兼容的上游项目。
+
+本项目仅用于个人学习与测试，不提供任何形式的稳定性或兼容性保证。日常使用请优先选择 [DeepSeek Harness 官方原版](https://github.com/deepseek-ai/deepseek-harness)。
 
 ## 🔗 相关项目
 

@@ -21,6 +21,11 @@
   </p>
 </div>
 
+> [!IMPORTANT]
+> **This project is for personal learning and testing only.** It is an experimental project I built while learning Tauri desktop packaging and DeepSeek Harness plugin development. It is not thoroughly tested, may change or stop being maintained at any time, and is not recommended for production or important work.
+>
+> **Please download and use the official DeepSeek release instead:** [DeepSeek Harness website](https://deepseek.com/harness) · [Official GitHub repository](https://github.com/deepseek-ai/deepseek-harness) (with Node.js installed, you can also run `npx @deepseek-ai/dsh web`).
+
 https://github.com/user-attachments/assets/486eb943-a455-4f56-b009-5fc1e877e812
 
 <p align="center"><sub>Embedded product demo · 35 seconds</sub></p>
@@ -287,6 +292,8 @@ When reporting a problem, include your macOS version, processor architecture, an
 The desktop shell is available under the [MIT License](LICENSE). DeepSeek Harness and bundled components retain their respective copyrights and licenses. See [`src-tauri/legal/THIRD_PARTY_NOTICES.md`](src-tauri/legal/THIRD_PARTY_NOTICES.md) for details.
 
 This is an independent community project. It is not an official DeepSeek product and does not imply sponsorship, endorsement, or affiliation. “DeepSeek” and “DeepSeek Harness” are used only to identify the compatible upstream project.
+
+This project is intended only for personal learning and testing and comes with no stability or compatibility guarantees. For everyday use, please prefer the [official DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness).
 
 ## 🔗 Related projects
 
